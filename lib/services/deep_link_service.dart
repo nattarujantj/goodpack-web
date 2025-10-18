@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import '../screens/product_detail_screen.dart';
-import '../config/env_config.dart';
 
 class DeepLinkService {
   static final DeepLinkService _instance = DeepLinkService._internal();
@@ -44,8 +43,8 @@ class DeepLinkService {
       }
     }
     
-    // Check if it's a web URL link
-    if (uri.scheme == 'https' && uri.host == EnvConfig.qrDomain && uri.pathSegments.length >= 2) {
+    // Check if it's a web URL link (simplified for product links)
+    if (uri.scheme == 'https' && uri.pathSegments.length >= 2) {
       if (uri.pathSegments[0] == 'product') {
         final productId = uri.pathSegments[1];
         _navigateToProduct(context, productId);
@@ -69,7 +68,7 @@ class DeepLinkService {
 
   // Generate deep link URL
   String generateProductLink(String productId) {
-    return '${EnvConfig.deepLinkUrl}/$productId';
+    return 'goodpack://product/$productId';
   }
 
   // Dispose

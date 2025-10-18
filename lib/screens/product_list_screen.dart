@@ -5,8 +5,6 @@ import '../providers/product_provider.dart';
 import '../models/product.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/search_bar.dart';
-import 'product_form_screen.dart';
-import 'product_detail_screen.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({Key? key}) : super(key: key);

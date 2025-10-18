@@ -14,16 +14,6 @@ class EnvConfig {
   static String get apiPort => _apiPort;
   static String get apiProtocol => _apiProtocol;
 
-  // QR Code Configuration
-  static const String qrBaseUrl = String.fromEnvironment(
-    'QR_BASE_URL',
-    defaultValue: 'https://goodpack.app',
-  );
-  
-  static const String qrDomain = String.fromEnvironment(
-    'QR_DOMAIN',
-    defaultValue: 'goodpack.app',
-  );
 
   // Development Configuration
   static const String environment = String.fromEnvironment(
@@ -74,6 +64,4 @@ class EnvConfig {
 
   // Helper methods
   static String get apiUrl => '$_apiProtocol://$_apiHost:$_apiPort/api';
-  static String get qrCodeUrl => '$qrBaseUrl/product';
-  static String get deepLinkUrl => '$qrBaseUrl/product';
 }

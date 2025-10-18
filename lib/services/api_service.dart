@@ -148,47 +148,6 @@ class ApiService {
     }
   }
 
-  // GET inventory report
-  Future<List<Product>> getInventoryReport() async {
-    try {
-      final response = await _client
-          .get(
-            Uri.parse(AppConfig.getInventoryUrl()),
-            headers: _headers,
-          )
-          .timeout(Duration(milliseconds: AppConfig.connectTimeout));
-
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonList = json.decode(response.body);
-        return jsonList.map((json) => Product.fromJson(json)).toList();
-      } else {
-        throw ApiException('Failed to load inventory: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw ApiException('Error loading inventory: $e');
-    }
-  }
-
-  // GET QR code for product
-  Future<String> getQrCodeData(String productId) async {
-    try {
-      final response = await _client
-          .get(
-            Uri.parse(AppConfig.getQrCodeUrl(productId)),
-            headers: _headers,
-          )
-          .timeout(Duration(milliseconds: AppConfig.connectTimeout));
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        return data['qrCodeData'] as String;
-      } else {
-        throw ApiException('Failed to get QR code: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw ApiException('Error getting QR code: $e');
-    }
-  }
 
   void dispose() {
     _client.close();

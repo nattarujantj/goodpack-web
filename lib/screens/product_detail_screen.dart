@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import '../providers/product_provider.dart';
 import '../models/product.dart';
 import '../widgets/responsive_layout.dart';
-import '../widgets/qr_code_widget.dart';
 import '../utils/number_formatter.dart';
 import '../services/image_upload_service.dart';
 
@@ -76,8 +75,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   
                   const SizedBox(height: 24),
                   
-                  // QR Code Section
-                  _buildQrCodeSection(product),
                   
                   const SizedBox(height: 32),
                 ],
@@ -801,43 +798,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildQrCodeSection(Product product) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            ResponsiveText(
-              'QR Code',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            Center(
-              child: QrCodeWidget(
-                data: product.qrCodeData,
-                size: 200,
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            ResponsiveText(
-              'สแกน QR Code เพื่อดูรายละเอียดสินค้า',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
 
   String _formatDate(DateTime date) {

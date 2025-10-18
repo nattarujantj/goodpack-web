@@ -1,4 +1,3 @@
-import '../config/env_config.dart';
 
 // PriceInfo represents price information for VAT and Non-VAT
 class PriceInfo {
@@ -331,11 +330,7 @@ class Product {
   // Helper method to get formatted price
   String get formattedPrice => '฿${price.displayPrice.toStringAsFixed(2)}';
 
-  // Helper method to get QR code data
-  String get qrCodeData => '${EnvConfig.qrCodeUrl}/$skuId';
   
-  // Helper method to get deep link URL
-  String get deepLinkUrl => '${EnvConfig.deepLinkUrl}/$skuId';
 
   // Helper method to get total stock
   int get totalStock => stock.actualStock;

@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import '../providers/product_provider.dart';
 import '../widgets/responsive_layout.dart';
 import 'product_list_screen.dart';
-import 'inventory_management_screen.dart';
-import 'inventory_report_screen.dart';
-import 'qr_scanner_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final Widget? child;
@@ -23,9 +18,6 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = [
     const ProductListScreen(),
-    const InventoryManagementScreen(),
-    const InventoryReportScreen(),
-    const QrScannerScreen(),
   ];
 
   final List<BottomNavigationBarItem> _bottomNavItems = [
@@ -48,22 +40,6 @@ class _MainScreenState extends State<MainScreen> {
     const BottomNavigationBarItem(
       icon: Icon(Icons.description),
       label: 'เสนอราคา',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.manage_accounts),
-      label: 'จัดการสต็อก',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.assessment),
-      label: 'รายงาน',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.qr_code_scanner),
-      label: 'สแกน QR',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.print),
-      label: 'ปริ๊น QR',
     ),
   ];
 
@@ -296,18 +272,6 @@ class _MainScreenState extends State<MainScreen> {
           break;
         case 4:
           context.go('/quotations');
-          break;
-        case 5:
-          context.go('/inventory-management');
-          break;
-        case 6:
-          context.go('/inventory-report');
-          break;
-        case 7:
-          context.go('/qr-scanner');
-          break;
-        case 8:
-          context.go('/qr-print');
           break;
       }
     } else {

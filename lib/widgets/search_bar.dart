@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/responsive_layout.dart';
 
 class SearchBar extends StatefulWidget {
   final Function(String) onSearchChanged;

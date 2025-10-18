@@ -4,10 +4,6 @@ import '../screens/main_screen.dart';
 import '../screens/product_list_screen.dart';
 import '../screens/product_detail_screen.dart';
 import '../screens/product_form_screen.dart';
-import '../screens/qr_scanner_screen.dart';
-import '../screens/qr_print_screen.dart';
-import '../screens/inventory_management_screen.dart';
-import '../screens/inventory_report_screen.dart';
 import '../screens/customer_list_screen.dart';
 import '../screens/customer_detail_screen.dart';
 import '../screens/customer_form_screen.dart';
@@ -126,26 +122,6 @@ class AppRouter {
                 productId: productId,
               );
             },
-          ),
-          // QR Scanner route
-          GoRoute(
-            path: '/qr-scanner',
-            builder: (context, state) => const QrScannerScreen(),
-          ),
-          // QR Print route
-          GoRoute(
-            path: '/qr-print',
-            builder: (context, state) => const QrPrintScreen(),
-          ),
-          // Inventory Management route
-          GoRoute(
-            path: '/inventory-management',
-            builder: (context, state) => const InventoryManagementScreen(),
-          ),
-          // Inventory Report route
-          GoRoute(
-            path: '/inventory-report',
-            builder: (context, state) => const InventoryReportScreen(),
           ),
           // Customer routes
           GoRoute(

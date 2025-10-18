@@ -38,9 +38,6 @@ dependencies:
   # HTTP requests
   http: ^1.1.0
   
-  # QR Code generation
-  qr_flutter: ^4.1.0
-  mobile_scanner: ^3.5.6
   
   # State management
   provider: ^6.1.1
