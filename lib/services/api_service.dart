@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../models/product.dart';
+import '../models/stock_adjustment.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -148,6 +149,84 @@ class ApiService {
     }
   }
 
+  // POST adjust stock
+  Future<Product> adjustStock(String productId, StockAdjustmentRequest request) async {
+    try {
+      final response = await _client
+          .post(
+            Uri.parse('${AppConfig.getProductByIdUrl(productId)}/stock/adjust'),
+            headers: _headers,
+            body: json.encode(request.toJson()),
+          )
+          .timeout(Duration(milliseconds: AppConfig.connectTimeout));
+
+      if (response.statusCode == 200) {
+        return Product.fromJson(json.decode(response.body));
+      } else if (response.statusCode == 404) {
+        throw ApiException('Product not found');
+      } else {
+        final errorBody = response.body;
+        throw ApiException('Failed to adjust stock: ${response.statusCode} - $errorBody');
+      }
+    } catch (e) {
+      throw ApiException('Error adjusting stock: $e');
+    }
+  }
+
+  // GET stock history
+  Future<List<StockAdjustment>> getStockHistory(
+    String productId, {
+    int? limit,
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (limit != null) queryParams['limit'] = limit.toString();
+      if (startDate != null) queryParams['startDate'] = startDate;
+      if (endDate != null) queryParams['endDate'] = endDate;
+
+      final uri = Uri.parse('${AppConfig.getProductByIdUrl(productId)}/stock/history')
+          .replace(queryParameters: queryParams);
+
+      final response = await _client
+          .get(uri, headers: _headers)
+          .timeout(Duration(milliseconds: AppConfig.connectTimeout));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = json.decode(response.body);
+        return jsonList.map((json) => StockAdjustment.fromJson(json)).toList();
+      } else if (response.statusCode == 404) {
+        throw ApiException('Product not found');
+      } else {
+        throw ApiException('Failed to get stock history: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw ApiException('Error getting stock history: $e');
+    }
+  }
+
+  // DELETE stock adjustment
+  Future<Product> deleteStockAdjustment(String adjustmentId) async {
+    try {
+      final response = await _client
+          .delete(
+            Uri.parse('${AppConfig.baseUrl}/api/stock/adjustments/$adjustmentId'),
+            headers: _headers,
+          )
+          .timeout(Duration(milliseconds: AppConfig.connectTimeout));
+
+      if (response.statusCode == 200) {
+        return Product.fromJson(json.decode(response.body));
+      } else if (response.statusCode == 404) {
+        throw ApiException('Stock adjustment not found');
+      } else {
+        throw ApiException('Failed to delete stock adjustment: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw ApiException('Error deleting stock adjustment: $e');
+    }
+  }
 
   void dispose() {
     _client.close();

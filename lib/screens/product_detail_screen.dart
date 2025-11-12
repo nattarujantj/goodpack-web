@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../providers/product_provider.dart';
 import '../models/product.dart';
+import '../models/stock_adjustment.dart';
 import '../widgets/responsive_layout.dart';
 import '../utils/number_formatter.dart';
 import '../services/image_upload_service.dart';
+import 'package:intl/intl.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -591,12 +593,38 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ResponsiveText(
-              'ข้อมูลสต็อก',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ResponsiveText(
+                  'ข้อมูลสต็อก',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => _showStockHistoryDialog(product),
+                      icon: const Icon(Icons.history, size: 16),
+                      label: const Text('ประวัติ'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () => _showAdjustStockDialog(product),
+                      icon: const Icon(Icons.edit, size: 16),
+                      label: const Text('แก้ไขสต็อก'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             
@@ -987,5 +1015,338 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
+  void _showAdjustStockDialog(Product product) {
+    String adjustmentType = 'add'; // 'add' or 'reduce'
+    String stockType = 'vat'; // 'vat', 'nonvat', 'actualstock'
+    final quantityController = TextEditingController();
+    final notesController = TextEditingController();
 
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('แก้ไขสต็อก'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Adjustment Type
+                    const Text(
+                      'ประเภทการแก้ไข:',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(
+                          value: 'add',
+                          label: Text('เพิ่ม'),
+                          icon: Icon(Icons.add),
+                        ),
+                        ButtonSegment(
+                          value: 'reduce',
+                          label: Text('ลด'),
+                          icon: Icon(Icons.remove),
+                        ),
+                      ],
+                      selected: {adjustmentType},
+                      onSelectionChanged: (Set<String> newSelection) {
+                        setState(() {
+                          adjustmentType = newSelection.first;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Stock Type
+                    const Text(
+                      'ประเภทสต็อก:',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: stockType,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'vat', child: Text('VAT')),
+                        DropdownMenuItem(value: 'nonvat', child: Text('Non-VAT')),
+                        DropdownMenuItem(value: 'actualstock', child: Text('สินค้าคงเหลือจริง')),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          stockType = value!;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Quantity
+                    TextField(
+                      controller: quantityController,
+                      decoration: const InputDecoration(
+                        labelText: 'จำนวน *',
+                        border: OutlineInputBorder(),
+                        hintText: 'ระบุจำนวนที่ต้องการเพิ่ม/ลด',
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Notes
+                    TextField(
+                      controller: notesController,
+                      decoration: const InputDecoration(
+                        labelText: 'หมายเหตุ (ไม่บังคับ)',
+                        border: OutlineInputBorder(),
+                        hintText: 'ระบุเหตุผลในการแก้ไข',
+                      ),
+                      maxLines: 3,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('ยกเลิก'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final quantity = int.tryParse(quantityController.text);
+                    if (quantity == null || quantity <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('กรุณาระบุจำนวนที่มากกว่า 0'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    Navigator.of(context).pop();
+
+                    final provider = context.read<ProductProvider>();
+                    final success = await provider.adjustStock(
+                      product.id,
+                      adjustmentType,
+                      stockType,
+                      quantity,
+                      notes: notesController.text.isEmpty ? null : notesController.text,
+                    );
+
+                    if (mounted) {
+                      if (success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('แก้ไขสต็อกสำเร็จ'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(provider.error),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('บันทึก'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showStockHistoryDialog(Product product) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.9,
+            height: MediaQuery.of(context).size.height * 0.8,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'ประวัติการแก้ไขสต็อก',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                Expanded(
+                  child: FutureBuilder<List<StockAdjustment>>(
+                    future: context.read<ProductProvider>().getStockHistory(product.id, limit: 100),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'),
+                        );
+                      }
+
+                      final history = snapshot.data ?? [];
+
+                      if (history.isEmpty) {
+                        return const Center(
+                          child: Text('ยังไม่มีประวัติการแก้ไขสต็อก'),
+                        );
+                      }
+
+                      return ListView.builder(
+                        itemCount: history.length,
+                        itemBuilder: (context, index) {
+                          final adjustment = history[index];
+                          
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.all(12),
+                              title: Row(
+                                children: [
+                                  Icon(
+                                    adjustment.adjustmentType == 'add'
+                                        ? Icons.add_circle
+                                        : Icons.remove_circle,
+                                    color: adjustment.adjustmentType == 'add'
+                                        ? Colors.green
+                                        : Colors.red,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '${adjustment.adjustmentTypeDisplay} ${adjustment.stockTypeDisplay} ${NumberFormatter.formatQuantity(adjustment.quantity)} ชิ้น',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                  // Delete button (only for adjustment source type)
+                                  if (adjustment.sourceType == 'adjustment')
+                                    IconButton(
+                                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                      onPressed: () => _confirmDeleteAdjustment(adjustment),
+                                    ),
+                                ],
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'จาก: ${adjustment.sourceTypeDisplay}${adjustment.sourceCode != null ? " (${adjustment.sourceCode})" : ""}',
+                                    style: TextStyle(color: Colors.grey[600]),
+                                  ),
+                                  if (adjustment.notes != null && adjustment.notes!.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        'หมายเหตุ: ${adjustment.notes}',
+                                        style: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
+                                      ),
+                                    ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    DateFormat('dd/MM/yyyy HH:mm').format(adjustment.createdAt),
+                                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteAdjustment(StockAdjustment adjustment) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('ลบรายการแก้ไขสต็อก'),
+          content: Text(
+            'คุณต้องการลบรายการ "${adjustment.adjustmentTypeDisplay} ${adjustment.stockTypeDisplay} ${NumberFormatter.formatQuantity(adjustment.quantity)} ชิ้น" ใช่หรือไม่?\n\n'
+            'การลบจะทำให้สต็อกถูกย้อนกลับไปเป็นค่าเดิม',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close confirmation dialog
+                
+                final provider = context.read<ProductProvider>();
+                final success = await provider.deleteStockAdjustment(adjustment.id);
+
+                if (mounted) {
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('ลบรายการแก้ไขสต็อกสำเร็จ'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    // Refresh history dialog
+                    Navigator.of(context).pop(); // Close history dialog
+                    _showStockHistoryDialog(provider.getProductById(widget.productId)!);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(provider.error),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('ลบ'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }

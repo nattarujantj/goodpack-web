@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/product.dart';
+import '../models/stock_adjustment.dart';
 import '../services/api_service.dart';
 
 class ProductProvider with ChangeNotifier {
@@ -173,6 +174,93 @@ class ProductProvider with ChangeNotifier {
   // Refresh data
   Future<void> refresh() async {
     await loadProducts();
+  }
+
+  // Adjust stock
+  Future<bool> adjustStock(
+    String productId,
+    String adjustmentType,
+    String stockType,
+    int quantity, {
+    String? notes,
+  }) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final request = StockAdjustmentRequest(
+        adjustmentType: adjustmentType,
+        stockType: stockType,
+        quantity: quantity,
+        notes: notes,
+      );
+
+      final updatedProduct = await _apiService.adjustStock(productId, request);
+
+      // Update product in list
+      final index = _products.indexWhere((p) => p.id == productId);
+      if (index != -1) {
+        _products[index] = updatedProduct;
+        _filteredProducts = List.from(_products);
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      _setError('ไม่สามารถแก้ไขสต็อกได้: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Get stock history
+  Future<List<StockAdjustment>> getStockHistory(
+    String productId, {
+    int? limit,
+    String? startDate,
+    String? endDate,
+  }) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final history = await _apiService.getStockHistory(
+        productId,
+        limit: limit,
+        startDate: startDate,
+        endDate: endDate,
+      );
+      return history;
+    } catch (e) {
+      _setError('ไม่สามารถโหลดประวัติสต็อกได้: $e');
+      return [];
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Delete stock adjustment
+  Future<bool> deleteStockAdjustment(String adjustmentId) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final updatedProduct = await _apiService.deleteStockAdjustment(adjustmentId);
+
+      // Update product in list
+      final index = _products.indexWhere((p) => p.id == updatedProduct.id);
+      if (index != -1) {
+        _products[index] = updatedProduct;
+        _filteredProducts = List.from(_products);
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      _setError('ไม่สามารถลบรายการแก้ไขสต็อกได้: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
   }
 
   // Helper methods
