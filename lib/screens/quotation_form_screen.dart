@@ -51,6 +51,14 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
     _quotationDateController.text = _formatDate(DateTime.now());
     _shippingCostController.text = ''; // ปล่อยว่างให้ user กรอกเอง
     _validUntilController.text = _formatDate(DateTime.now().add(const Duration(days: 30)));
+    
+    // ใส่ default notes สำหรับใบเสนอราคาใหม่ (ไม่ใช่ Edit)
+    if (!_isEdit) {
+      _notesController.text = '''ใบเสนอราคา ใช้ได้10วันทำการ
+ลูกค้าได้ตกลงสีของสินค้าและส่งผลิต
+ระยะเวลาผลิต25วัน หลังชำระมัดจำ
+ชำระเงินมัดจำก่อนผลิต50%และอีก50%ก่อนจัดส่งสินค้า''';
+    }
   }
 
   void _loadData() async {
