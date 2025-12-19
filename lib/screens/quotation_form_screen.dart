@@ -748,11 +748,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
             onChanged: (product) {
               setState(() {
                 _selectedProduct = product;
-                if (product != null) {
-                  // ถ้าราคาเป็น 0 ให้ปล่อยว่างให้ผู้ใช้กรอกเอง
-                  final price = product.price.saleVAT.latest;
-                  _unitPriceController.text = price > 0 ? price.toStringAsFixed(2) : '';
-                }
+                // ไม่ prefill ราคา ให้ user กรอกเอง
               });
             },
             hint: 'เลือกสินค้า',
