@@ -38,6 +38,8 @@ dependencies:
   # HTTP requests
   http: ^1.1.0
   
+  # File picker for CSV upload
+  file_picker: ^6.1.1
   
   # State management
   provider: ^6.1.1

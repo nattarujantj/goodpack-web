@@ -54,6 +54,10 @@ class _MainScreenState extends State<MainScreen> {
       icon: Icon(Icons.file_download),
       label: 'Export',
     ),
+    const BottomNavigationBarItem(
+      icon: Icon(Icons.upload_file),
+      label: 'Import',
+    ),
   ];
 
   @override
@@ -268,6 +272,8 @@ class _MainScreenState extends State<MainScreen> {
                 
                 // Export
                 _buildNavItem(6, Icons.file_download, 'Export'),
+                // Import
+                _buildNavItem(7, Icons.upload_file, 'Import'),
               ],
             ),
           ),
@@ -427,6 +433,9 @@ class _MainScreenState extends State<MainScreen> {
           break;
         case 6:
           context.go('/export');
+          break;
+        case 7:
+          context.go('/import');
           break;
       }
     } else {
