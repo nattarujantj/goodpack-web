@@ -626,9 +626,26 @@ class PdfServiceSale {
   }
 
   static pw.Widget _buildSummarySection(Sale sale, pw.Font? thaiFont, double fontSizeText, SaleDocumentType documentType, {BankAccount? bankAccount}) {
-    final subtotal = sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);
-    final vatAmount = sale.isVAT ? subtotal * 0.07 : 0.0;
-    final grandTotal = subtotal + vatAmount + sale.shippingCost;
+    final itemsTotal = sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);
+    
+    // Calculate VAT based on vatType
+    double subtotal = itemsTotal;
+    double vatAmount = 0.0;
+    double grandTotal = itemsTotal + sale.shippingCost;
+    
+    if (sale.isVAT) {
+      if (sale.vatType == 'inclusive') {
+        // VAT ใน: ราคาที่กรอกรวม VAT แล้ว
+        subtotal = itemsTotal / 1.07;
+        vatAmount = itemsTotal - subtotal;
+        grandTotal = itemsTotal + sale.shippingCost;
+      } else {
+        // VAT นอก: ราคา + VAT 7%
+        subtotal = itemsTotal;
+        vatAmount = itemsTotal * 0.07;
+        grandTotal = itemsTotal + vatAmount + sale.shippingCost;
+      }
+    }
 
     return pw.Column(
       children: [
@@ -836,9 +853,22 @@ class PdfServiceSale {
   }
 
   static pw.Widget _buildMergedAmountInWordsCell(Sale sale, pw.Font? thaiFont, double fontSizeText) {
-    final subtotal = sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);
-    final vatAmount = sale.isVAT ? subtotal * 0.07 : 0.0;
-    final grandTotal = subtotal + vatAmount + sale.shippingCost;
+    final itemsTotal = sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);
+    
+    // Calculate VAT based on vatType
+    double vatAmount = 0.0;
+    double grandTotal = itemsTotal + sale.shippingCost;
+    
+    if (sale.isVAT) {
+      if (sale.vatType == 'inclusive') {
+        // VAT ใน: ราคาที่กรอกรวม VAT แล้ว
+        grandTotal = itemsTotal + sale.shippingCost;
+      } else {
+        // VAT นอก: ราคา + VAT 7%
+        vatAmount = itemsTotal * 0.07;
+        grandTotal = itemsTotal + vatAmount + sale.shippingCost;
+      }
+    }
     final fullAmountInWords = _convertToThaiText(grandTotal);
     
     return pw.Container(
