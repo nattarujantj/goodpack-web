@@ -47,17 +47,15 @@ jobs:
           go mod tidy
           go build -o server
           
-          echo "🔄 Restarting server..."
-          pkill -f "./server" || true
-          sleep 2
-          nohup ./server > server.log 2>&1 &
+          echo "🔄 Restarting server via systemd..."
+          sudo systemctl restart goodpack-server
           sleep 3
           
           if curl -s http://localhost:8080/api/health > /dev/null 2>&1; then
             echo "✅ Go Server deployed!"
           else
             echo "❌ Server health check failed"
-            tail -20 server.log
+            sudo journalctl -u goodpack-server --no-pager -n 20
             exit 1
           fi
 

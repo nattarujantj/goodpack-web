@@ -31,11 +31,9 @@ echo -e "${YELLOW}🔨 Building server...${NC}"
 go mod tidy
 go build -o server
 
-# Restart server
-echo -e "${YELLOW}🔄 Restarting server...${NC}"
-pkill -f "./server" || true
-sleep 2
-nohup ./server > server.log 2>&1 &
+# Restart server via systemd
+echo -e "${YELLOW}🔄 Restarting server via systemd...${NC}"
+sudo systemctl restart goodpack-server
 sleep 3
 
 # Health check
@@ -45,7 +43,7 @@ if curl -s http://localhost:8080/api/health > /dev/null 2>&1; then
 else
     echo -e "${RED}❌ Server health check failed${NC}"
     echo -e "${YELLOW}Last 20 lines of log:${NC}"
-    tail -20 server.log
+    sudo journalctl -u goodpack-server --no-pager -n 20
     exit 1
 fi
 

@@ -63,5 +63,13 @@ class EnvConfig {
   }
 
   // Helper methods
-  static String get apiUrl => '$_apiProtocol://$_apiHost:$_apiPort/api';
+  // ใช้ค่าจาก dart-define ถ้ามี, ถ้าไม่มีใช้ runtime config
+  static String get apiUrl {
+    // ถ้า apiBaseUrl ถูกกำหนดจาก dart-define (ไม่ใช่ค่า default)
+    if (apiBaseUrl != 'http://localhost:8080/api') {
+      return apiBaseUrl;
+    }
+    // fallback ไปใช้ runtime config
+    return '$_apiProtocol://$_apiHost:$_apiPort/api';
+  }
 }
