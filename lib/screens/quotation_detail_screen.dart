@@ -86,6 +86,10 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Action Buttons - ย้ายมาด้านบน
+              _buildActionButtons(quotation),
+              const SizedBox(height: 16),
+              
               // Header Card
               Card(
                 child: Padding(
@@ -291,61 +295,6 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
                 ),
               ],
 
-              const SizedBox(height: 16),
-
-              // Action Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => context.go('/quotation-form?id=${quotation.id}'),
-                      icon: const Icon(Icons.edit),
-                      label: const Text('แก้ไข'),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  if (quotation.saleCode == null) ...[
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _createSaleFromQuotation(quotation),
-                        icon: const Icon(Icons.shopping_cart),
-                        label: const Text('สร้างรายการขาย'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ] else ...[
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _goToSale(quotation.saleCode!),
-                        icon: const Icon(Icons.visibility),
-                        label: const Text('ดูรายการขาย'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Delete Button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => _showDeleteDialog(quotation),
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  label: const Text('ลบ', style: TextStyle(color: Colors.red)),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.red),
-                  ),
-                ),
-              ),
             ],
           ),
         );
@@ -364,6 +313,68 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
             foregroundColor: Colors.white,
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(Quotation quotation) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => context.go('/quotation-form?id=${quotation.id}'),
+                icon: const Icon(Icons.edit, size: 18),
+                label: const Text('แก้ไข'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            if (quotation.saleCode == null) ...[
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _createSaleFromQuotation(quotation),
+                  icon: const Icon(Icons.shopping_cart, size: 18),
+                  label: const Text('สร้างรายการขาย'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ] else ...[
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _goToSale(quotation.saleCode!),
+                  icon: const Icon(Icons.visibility, size: 18),
+                  label: const Text('ดูรายการขาย'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _showDeleteDialog(quotation),
+                icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+                label: const Text('ลบ', style: TextStyle(color: Colors.red)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: const BorderSide(color: Colors.red),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
