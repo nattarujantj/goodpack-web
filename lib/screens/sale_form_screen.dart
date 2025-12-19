@@ -1562,14 +1562,18 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
       final saleProvider = context.read<SaleProvider>();
       bool success;
       
+      String? resultSaleId;
+      
       if (_isEdit) {
         final saleId = widget.sale?.id ?? widget.saleId!;
         success = await saleProvider.updateSale(saleId, saleRequest);
+        if (success) resultSaleId = saleId;
       } else {
-        success = await saleProvider.addSale(saleRequest);
+        final newSale = await saleProvider.addSale(saleRequest);
+        resultSaleId = newSale?.id;
       }
 
-      if (success && mounted) {
+      if (resultSaleId != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -1581,12 +1585,8 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
           ),
         );
         
-        if (_isEdit) {
-          final saleId = widget.sale?.id ?? widget.saleId!;
-          context.go('/sale/$saleId');
-        } else {
-          context.go('/sales');
-        }
+        // Redirect to sale detail page (both create and edit)
+        context.go('/sale/$resultSaleId');
       } else if (mounted) {
         // Show error popup if not successful
         final errorMessage = saleProvider.error ?? 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ';

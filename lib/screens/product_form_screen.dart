@@ -740,14 +740,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           ),
         );
         
-        // Redirect based on edit or create
-        if (_isEdit) {
-          // Go back to product detail page
-          context.go('/product/${product.id}');
-        } else {
-          // Go to product list
-          context.go('/');
-        }
+        // Redirect to product detail page (both create and edit)
+        context.go('/product/${product.id}');
       } else if (mounted) {
         // Show error popup if not successful
         final errorMessage = productProvider.error;

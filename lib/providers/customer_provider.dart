@@ -44,8 +44,8 @@ class CustomerProvider with ChangeNotifier {
     }
   }
 
-  // Add new customer
-  Future<bool> addCustomer(CustomerRequest customerRequest) async {
+  // Add new customer - returns Customer on success, null on failure
+  Future<Customer?> addCustomer(CustomerRequest customerRequest) async {
     _isLoading = true;
     _error = '';
     notifyListeners();
@@ -54,10 +54,10 @@ class CustomerProvider with ChangeNotifier {
       final newCustomer = await CustomerApiService.addCustomer(customerRequest);
       _customers.add(newCustomer);
       _error = '';
-      return true;
+      return newCustomer;
     } catch (e) {
       _error = e.toString();
-      return false;
+      return null;
     } finally {
       _isLoading = false;
       notifyListeners();

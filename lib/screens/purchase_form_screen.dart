@@ -1369,16 +1369,18 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       );
 
       final purchaseProvider = context.read<PurchaseProvider>();
-      bool success;
+      String? resultPurchaseId;
       
       if (_isEdit) {
         final purchaseId = widget.purchase?.id ?? widget.purchaseId!;
-        success = await purchaseProvider.updatePurchase(purchaseId, purchaseRequest);
+        final success = await purchaseProvider.updatePurchase(purchaseId, purchaseRequest);
+        if (success) resultPurchaseId = purchaseId;
       } else {
-        success = await purchaseProvider.addPurchase(purchaseRequest);
+        final newPurchase = await purchaseProvider.addPurchase(purchaseRequest);
+        resultPurchaseId = newPurchase?.id;
       }
 
-      if (success && mounted) {
+      if (resultPurchaseId != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -1390,15 +1392,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           ),
         );
         
-        // Redirect based on edit or create
-        if (_isEdit) {
-          // Go back to purchase detail page
-          final purchaseId = widget.purchase?.id ?? widget.purchaseId!;
-          context.go('/purchase/$purchaseId');
-        } else {
-          // Go to purchase list
-          context.go('/purchases');
-        }
+        // Redirect to purchase detail page (both create and edit)
+        context.go('/purchase/$resultPurchaseId');
       } else if (mounted) {
         // Show error popup if not successful
         final errorMessage = purchaseProvider.error;

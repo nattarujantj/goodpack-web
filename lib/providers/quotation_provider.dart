@@ -35,16 +35,16 @@ class QuotationProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> addQuotation(QuotationRequest quotationRequest) async {
+  Future<Quotation?> addQuotation(QuotationRequest quotationRequest) async {
     try {
       final newQuotation = await _apiService.addQuotation(quotationRequest);
       _quotations.add(newQuotation);
       notifyListeners();
-      return true;
+      return newQuotation;
     } catch (e) {
       _error = e.toString();
       notifyListeners();
-      return false;
+      return null;
     }
   }
 

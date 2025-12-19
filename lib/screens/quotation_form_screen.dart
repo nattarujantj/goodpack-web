@@ -825,23 +825,26 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
         bankAccountNumber: _selectedBankAccount?.accountNumber,
       );
 
-      bool success;
+      String? resultQuotationId;
+      
       if (_isEdit) {
         final id = widget.quotationId ?? widget.quotation?.id;
-        success = await context.read<QuotationProvider>().updateQuotation(id!, quotationRequest);
+        final success = await context.read<QuotationProvider>().updateQuotation(id!, quotationRequest);
+        if (success) resultQuotationId = id;
       } else {
-        success = await context.read<QuotationProvider>().addQuotation(quotationRequest);
+        final newQuotation = await context.read<QuotationProvider>().addQuotation(quotationRequest);
+        resultQuotationId = newQuotation?.id;
       }
 
-      if (success && mounted) {
+      if (resultQuotationId != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_isEdit ? 'อัปเดตเสนอราคาเรียบร้อยแล้ว' : 'เพิ่มเสนอราคาเรียบร้อยแล้ว'),
             backgroundColor: Colors.green,
           ),
         );
-        // Redirect to quotation list
-        context.go('/quotations');
+        // Redirect to quotation detail page (both create and edit)
+        context.go('/quotation/$resultQuotationId');
       } else if (mounted) {
         // Show error popup if not successful
         final quotationProvider = context.read<QuotationProvider>();

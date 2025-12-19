@@ -35,16 +35,16 @@ class SaleProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> addSale(SaleRequest saleRequest) async {
+  Future<Sale?> addSale(SaleRequest saleRequest) async {
     try {
       final newSale = await _apiService.addSale(saleRequest);
       _sales.add(newSale);
       notifyListeners();
-      return true;
+      return newSale;
     } catch (e) {
       _error = e.toString();
       notifyListeners();
-      return false;
+      return null;
     }
   }
 

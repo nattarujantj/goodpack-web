@@ -44,8 +44,8 @@ class PurchaseProvider with ChangeNotifier {
     }
   }
 
-  // Add new purchase
-  Future<bool> addPurchase(PurchaseRequest purchaseRequest) async {
+  // Add new purchase - returns Purchase on success, null on failure
+  Future<Purchase?> addPurchase(PurchaseRequest purchaseRequest) async {
     _isLoading = true;
     _error = '';
     notifyListeners();
@@ -54,10 +54,10 @@ class PurchaseProvider with ChangeNotifier {
       final newPurchase = await PurchaseApiService.addPurchase(purchaseRequest);
       _purchases.add(newPurchase);
       _error = '';
-      return true;
+      return newPurchase;
     } catch (e) {
       _error = e.toString();
-      return false;
+      return null;
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -335,16 +335,18 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
       );
 
       final customerProvider = context.read<CustomerProvider>();
-      bool success;
+      String? resultCustomerId;
       
       if (_isEdit) {
         final customerId = widget.customer?.id ?? widget.customerId!;
-        success = await customerProvider.updateCustomer(customerId, customerRequest);
+        final success = await customerProvider.updateCustomer(customerId, customerRequest);
+        if (success) resultCustomerId = customerId;
       } else {
-        success = await customerProvider.addCustomer(customerRequest);
+        final newCustomer = await customerProvider.addCustomer(customerRequest);
+        resultCustomerId = newCustomer?.id;
       }
 
-      if (success && mounted) {
+      if (resultCustomerId != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -356,15 +358,8 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
           ),
         );
         
-        // Redirect based on edit or create
-        if (_isEdit) {
-          // Go back to customer detail page
-          final customerId = widget.customer?.id ?? widget.customerId!;
-          context.go('/customer/$customerId');
-        } else {
-          // Go to customer list
-          context.go('/customers');
-        }
+        // Redirect to customer detail page (both create and edit)
+        context.go('/customer/$resultCustomerId');
       } else if (mounted) {
         // Show error popup if not successful
         final errorMessage = customerProvider.error;
