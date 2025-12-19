@@ -38,7 +38,6 @@ class AccountItem {
   final String name;
   final String accountNumber;
   final String bankName;
-  final String accountType;
   final bool isActive;
 
   AccountItem({
@@ -46,7 +45,6 @@ class AccountItem {
     required this.name,
     required this.accountNumber,
     required this.bankName,
-    required this.accountType,
     required this.isActive,
   });
 
@@ -56,12 +54,20 @@ class AccountItem {
       name: json['name'] ?? '',
       accountNumber: json['accountNumber'] ?? '',
       bankName: json['bankName'] ?? '',
-      accountType: json['accountType'] ?? '',
       isActive: json['isActive'] ?? true,
     );
   }
 
-  String get displayName => '$name ($accountNumber) - $bankName';
+  // แสดงชื่อบัญชี: ถ้าไม่มีเลขบัญชี (เช่น เงินสด) แสดงแค่ชื่อธนาคาร
+  String get displayName {
+    if (accountNumber.isEmpty) {
+      return bankName;
+    }
+    if (name.isEmpty) {
+      return '$bankName ($accountNumber)';
+    }
+    return '$bankName - $name ($accountNumber)';
+  }
 }
 
 class ConfigService {
