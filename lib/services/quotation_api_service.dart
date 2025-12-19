@@ -98,4 +98,20 @@ class QuotationApiService {
       throw Exception('Failed to copy quotation to sale: ${response.statusCode}');
     }
   }
+
+  /// Update quotation status only
+  /// Valid statuses: draft, sent, accepted, rejected, expired
+  Future<Quotation> updateQuotationStatus(String id, String status) async {
+    final response = await http.patch(
+      Uri.parse('$_baseUrl$_endpoint/$id/status'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'status': status}),
+    );
+
+    if (response.statusCode == 200) {
+      return Quotation.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Failed to update quotation status: ${response.statusCode}');
+    }
+  }
 }

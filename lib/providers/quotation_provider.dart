@@ -92,6 +92,24 @@ class QuotationProvider with ChangeNotifier {
     }
   }
 
+  /// Update quotation status only
+  /// Valid statuses: draft, sent, accepted, rejected, expired
+  Future<bool> updateQuotationStatus(String id, String status) async {
+    try {
+      final updatedQuotation = await _apiService.updateQuotationStatus(id, status);
+      final index = _quotations.indexWhere((quotation) => quotation.id == id);
+      if (index != -1) {
+        _quotations[index] = updatedQuotation;
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   void clearError() {
     _error = null;
     notifyListeners();

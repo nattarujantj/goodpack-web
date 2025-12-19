@@ -546,6 +546,9 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
 
   void _createSaleFromQuotation(Quotation quotation) async {
     try {
+      // อัพเดตสถานะเป็น 'accepted' เมื่อสร้างรายการขาย
+      await context.read<QuotationProvider>().updateQuotationStatus(quotation.id, 'accepted');
+      
       // Navigate to sale form with quotation ID for pre-filling
       context.go('/sale-form?quotationId=${quotation.id}');
     } catch (e) {
@@ -640,6 +643,11 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
         bankAccount: bankAccount,
         signerName: signerName,
       );
+
+      // อัพเดตสถานะเป็น 'sent' เมื่อพิมพ์ (เฉพาะถ้ายังเป็น draft)
+      if (quotation.status == 'draft') {
+        await context.read<QuotationProvider>().updateQuotationStatus(quotation.id, 'sent');
+      }
 
       // แสดง snackbar เมื่อสำเร็จ
       if (mounted) {
