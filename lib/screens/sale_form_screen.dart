@@ -357,7 +357,6 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
               controller: _quotationCodeController,
               label: 'รหัส Quotation',
               hint: 'รหัส Quotation (ถ้ามี)',
-              readOnly: _isEdit, // block เฉพาะหน้า edit, หน้า create กรอกได้
             ),
             const SizedBox(height: 16),
             
