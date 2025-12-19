@@ -831,21 +831,6 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     if (signerName.isEmpty) return;
     
     try {
-      // แสดง loading dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          content: Row(
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(width: 16),
-              Text('กำลังสร้าง PDF ${documentType.thaiTitle}...'),
-            ],
-          ),
-        ),
-      );
-
       // ใช้ข้อมูล BankAccount ที่โหลดมา หรือสร้างจากข้อมูลใน sale
       BankAccount? bankAccount = _ourAccount;
       if (bankAccount == null && _sale!.bankAccountId != null) {
@@ -857,7 +842,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
         );
       }
 
-      // สร้างและพิมพ์ PDF
+      // สร้างและพิมพ์ PDF (สำหรับ Web จะเปิด tab ใหม่ทันที)
       await PdfServiceSale.generateAndPrintSale(
         _sale!,
         documentType,
@@ -865,20 +850,17 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
         signerName: signerName,
       );
 
-      // ปิด loading dialog
+      // แสดง snackbar เมื่อสำเร็จ
       if (mounted) {
-        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('สร้าง PDF ${documentType.thaiTitle} เรียบร้อยแล้ว'),
+            content: Text('เปิด PDF ${documentType.thaiTitle} ในแท็บใหม่แล้ว'),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
-      // ปิด loading dialog
       if (mounted) {
-        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('เกิดข้อผิดพลาด: $e'),

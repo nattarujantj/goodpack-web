@@ -623,21 +623,6 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
     if (signerName.isEmpty) return;
     
     try {
-      // แสดง loading dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
-              Text('กำลังสร้าง PDF ไทย...'),
-            ],
-          ),
-        ),
-      );
-
       // สร้าง BankAccount จากข้อมูลใน quotation
       BankAccount? bankAccount;
       if (quotation.bankAccountId != null) {
@@ -649,27 +634,24 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
         );
       }
 
-      // สร้างและพิมพ์ PDF ไทย
+      // สร้างและพิมพ์ PDF ไทย (สำหรับ Web จะเปิด tab ใหม่ทันที)
       await PdfServiceThaiEnhanced.generateAndPrintQuotation(
         quotation, 
         bankAccount: bankAccount,
         signerName: signerName,
       );
 
-      // ปิด loading dialog
+      // แสดง snackbar เมื่อสำเร็จ
       if (mounted) {
-        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('สร้าง PDF ไทย เรียบร้อยแล้ว'),
+            content: Text('เปิด PDF ในแท็บใหม่แล้ว'),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
-      // ปิด loading dialog
       if (mounted) {
-        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('เกิดข้อผิดพลาด: $e'),
