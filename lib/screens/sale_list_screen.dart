@@ -473,50 +473,53 @@ class _SaleListScreenState extends State<SaleListScreen> {
     return Consumer<CustomerProvider>(
       builder: (context, customerProvider, child) {
         final customers = customerProvider.allCustomers;
+        final isLoading = customerProvider.isLoading;
         
         return Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
-                'ลูกค้า:',
-                style: TextStyle(fontWeight: FontWeight.w500),
+                'ลูกค้า: ${isLoading ? "(กำลังโหลด...)" : "(${customers.length})"}',
+                style: const TextStyle(fontWeight: FontWeight.w500),
               ),
             ),
             Expanded(
               flex: 2,
-              child: DropdownButton<String?>(
-                value: _selectedCustomerId,
-                isExpanded: true,
-                hint: const Text('ทั้งหมด'),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCustomerId = value;
-                  });
-                },
-                items: [
-                  const DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
-                  ...customers.map((customer) {
-                    final companyName = customer.companyName.isNotEmpty ? customer.companyName : 'ไม่มีชื่อบริษัท';
-                    final contactName = customer.contactName.isNotEmpty ? customer.contactName : '';
-                    final phoneNumber = customer.phone.isNotEmpty ? customer.phone : '';
-                    final customerCode = customer.customerCode.isNotEmpty ? '[${customer.customerCode}]' : '';
-                    
-                    // Build display text: ชื่อบริษัท [รหัส] - ผู้ติดต่อ (เบอร์โทร)
-                    String displayText = companyName;
-                    if (customerCode.isNotEmpty) displayText += ' $customerCode';
-                    if (contactName.isNotEmpty) displayText += ' - $contactName';
-                    if (phoneNumber.isNotEmpty) displayText += ' ($phoneNumber)';
-                    
-                    return DropdownMenuItem<String?>(
-                      value: customer.id,
-                      child: Text(
-                        displayText,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    );
-                  }),
-                ],
-              ),
+              child: isLoading 
+                ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+                : DropdownButton<String?>(
+                    value: _selectedCustomerId,
+                    isExpanded: true,
+                    hint: const Text('ทั้งหมด'),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCustomerId = value;
+                      });
+                    },
+                    items: [
+                      const DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
+                      ...customers.map((customer) {
+                        final companyName = customer.companyName.isNotEmpty ? customer.companyName : 'ไม่มีชื่อบริษัท';
+                        final contactName = customer.contactName.isNotEmpty ? customer.contactName : '';
+                        final phoneNumber = customer.phone.isNotEmpty ? customer.phone : '';
+                        final customerCode = customer.customerCode.isNotEmpty ? '[${customer.customerCode}]' : '';
+                        
+                        // Build display text: ชื่อบริษัท [รหัส] - ผู้ติดต่อ (เบอร์โทร)
+                        String displayText = companyName;
+                        if (customerCode.isNotEmpty) displayText += ' $customerCode';
+                        if (contactName.isNotEmpty) displayText += ' - $contactName';
+                        if (phoneNumber.isNotEmpty) displayText += ' ($phoneNumber)';
+                        
+                        return DropdownMenuItem<String?>(
+                          value: customer.id,
+                          child: Text(
+                            displayText,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
             ),
           ],
         );
