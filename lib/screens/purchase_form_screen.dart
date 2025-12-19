@@ -6,6 +6,7 @@ import '../models/product.dart';
 import '../providers/purchase_provider.dart';
 import '../providers/customer_provider.dart';
 import '../providers/product_provider.dart';
+import '../models/customer.dart';
 import '../services/config_service.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/searchable_dropdown.dart';
@@ -620,7 +621,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           items: customerProvider.allCustomers.map((customer) => customer.id).toList(),
           itemAsString: (customerId) {
             final customer = customerProvider.allCustomers.firstWhere((c) => c.id == customerId);
-            return '${customer.companyName.isNotEmpty ? customer.companyName : customer.contactName} (${customer.customerCode})';
+            return _formatCustomerDisplay(customer);
           },
           itemAsValue: (customerId) => customerId,
           onChanged: (value) {
@@ -985,6 +986,34 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+
+  String _formatCustomerDisplay(Customer customer) {
+    final parts = <String>[];
+    
+    // ชื่อบริษัท หรือ ชื่อผู้ติดต่อ
+    if (customer.companyName.isNotEmpty) {
+      parts.add(customer.companyName);
+    } else if (customer.contactName.isNotEmpty) {
+      parts.add(customer.contactName);
+    }
+    
+    // รหัสลูกค้า
+    if (customer.customerCode.isNotEmpty) {
+      parts.add('[${customer.customerCode}]');
+    }
+    
+    // ชื่อผู้ติดต่อ (ถ้ามีชื่อบริษัทแล้ว)
+    if (customer.companyName.isNotEmpty && customer.contactName.isNotEmpty) {
+      parts.add('- ${customer.contactName}');
+    }
+    
+    // เบอร์โทร
+    if (customer.phone.isNotEmpty) {
+      parts.add('(${customer.phone})');
+    }
+    
+    return parts.join(' ');
   }
 
   Widget _buildActionButtons(bool isEdit) {
