@@ -353,16 +353,13 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
               const SizedBox(height: 16),
             ],
             
-            // แสดงเฉพาะหน้า edit หรือเมื่อมี quotationCode
-            if (_isEdit || _quotationCodeController.text.isNotEmpty) ...[
-              _buildTextField(
-                controller: _quotationCodeController,
-                label: 'รหัส Quotation',
-                hint: 'รหัส Quotation (ถ้ามี)',
-                readOnly: true, // block เสมอเพราะไม่ควรแก้ไข
-              ),
-              const SizedBox(height: 16),
-            ],
+            _buildTextField(
+              controller: _quotationCodeController,
+              label: 'รหัส Quotation',
+              hint: 'รหัส Quotation (ถ้ามี)',
+              readOnly: _isEdit, // block เฉพาะหน้า edit, หน้า create กรอกได้
+            ),
+            const SizedBox(height: 16),
             
             _buildCustomerDropdown(),
             
