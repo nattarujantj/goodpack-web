@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide SearchBar;
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/purchase_provider.dart';
+import '../providers/customer_provider.dart';
 import '../models/purchase.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/search_bar.dart';
@@ -22,14 +23,30 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   late String _vatFilter;
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
+  
+  // Month-Year filter (multi-select)
+  Set<String> _selectedMonthYears = {};
+  
+  // Customer filter
+  String? _selectedCustomerId;
 
   @override
   void initState() {
     super.initState();
     _vatFilter = widget.initialVatFilter ?? 'ทั้งหมด';
+    _initDefaultMonthFilter();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PurchaseProvider>().loadPurchases();
+      context.read<CustomerProvider>().loadCustomers();
     });
+  }
+
+  void _initDefaultMonthFilter() {
+    final now = DateTime.now();
+    final thisMonth = '${now.month.toString().padLeft(2, '0')}/${now.year}';
+    final lastMonth = DateTime(now.year, now.month - 1);
+    final lastMonthStr = '${lastMonth.month.toString().padLeft(2, '0')}/${lastMonth.year}';
+    _selectedMonthYears = {lastMonthStr, thisMonth};
   }
   
   @override
@@ -180,6 +197,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Search Bar
             SearchBar(
@@ -190,6 +208,16 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
               },
               hintText: 'ค้นหารายการซื้อ...',
             ),
+            
+            const SizedBox(height: 16),
+            
+            // Month-Year Filter (Multi-select)
+            _buildMonthYearFilter(purchaseProvider.allPurchases),
+            
+            const SizedBox(height: 16),
+            
+            // Customer Filter
+            _buildCustomerFilter(),
             
             const SizedBox(height: 16),
             
@@ -487,6 +515,19 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   List<Purchase> _getFilteredPurchases(List<Purchase> purchases) {
     List<Purchase> filtered = List.from(purchases);
 
+    // Filter by month-year
+    if (_selectedMonthYears.isNotEmpty) {
+      filtered = filtered.where((purchase) {
+        final monthYear = '${purchase.purchaseDate.month.toString().padLeft(2, '0')}/${purchase.purchaseDate.year}';
+        return _selectedMonthYears.contains(monthYear);
+      }).toList();
+    }
+
+    // Filter by customer
+    if (_selectedCustomerId != null) {
+      filtered = filtered.where((purchase) => purchase.customerId == _selectedCustomerId).toList();
+    }
+
     // Filter by search query
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((purchase) {
@@ -543,14 +584,152 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   }
 
   bool _hasActiveFilters() {
-    return _searchQuery.isNotEmpty || _vatFilter != 'ทั้งหมด';
+    return _searchQuery.isNotEmpty || 
+           _vatFilter != 'ทั้งหมด' ||
+           _selectedMonthYears.isNotEmpty ||
+           _selectedCustomerId != null;
   }
 
   void _clearFilters() {
     setState(() {
       _searchQuery = '';
       _vatFilter = 'ทั้งหมด';
+      _selectedMonthYears.clear();
+      _selectedCustomerId = null;
     });
+  }
+
+  Widget _buildMonthYearFilter(List<Purchase> allPurchases) {
+    // Get unique month-years from purchases data
+    final monthYears = <String>{};
+    for (final purchase in allPurchases) {
+      final date = purchase.purchaseDate;
+      monthYears.add('${date.month.toString().padLeft(2, '0')}/${date.year}');
+    }
+    
+    // Add current and last month if not in data
+    final now = DateTime.now();
+    final thisMonth = '${now.month.toString().padLeft(2, '0')}/${now.year}';
+    final lastMonth = DateTime(now.year, now.month - 1);
+    final lastMonthStr = '${lastMonth.month.toString().padLeft(2, '0')}/${lastMonth.year}';
+    monthYears.add(thisMonth);
+    monthYears.add(lastMonthStr);
+    
+    // Sort descending (newest first)
+    final sortedMonthYears = monthYears.toList()
+      ..sort((a, b) {
+        final partsA = a.split('/');
+        final partsB = b.split('/');
+        final dateA = DateTime(int.parse(partsA[1]), int.parse(partsA[0]));
+        final dateB = DateTime(int.parse(partsB[1]), int.parse(partsB[0]));
+        return dateB.compareTo(dateA);
+      });
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'เดือน-ปี:',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _selectedMonthYears.clear();
+                });
+              },
+              icon: const Icon(Icons.clear, size: 16),
+              label: const Text('ล้าง'),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: sortedMonthYears.map((monthYear) {
+            final isSelected = _selectedMonthYears.contains(monthYear);
+            return FilterChip(
+              label: Text(_formatMonthYearDisplay(monthYear)),
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    _selectedMonthYears.add(monthYear);
+                  } else {
+                    _selectedMonthYears.remove(monthYear);
+                  }
+                });
+              },
+              selectedColor: Colors.blue[100],
+              checkmarkColor: Colors.blue[800],
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  String _formatMonthYearDisplay(String monthYear) {
+    final parts = monthYear.split('/');
+    final month = int.parse(parts[0]);
+    final year = int.parse(parts[1]);
+    final thaiMonths = [
+      '', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+    ];
+    return '${thaiMonths[month]} ${year + 543}';
+  }
+
+  Widget _buildCustomerFilter() {
+    return Consumer<CustomerProvider>(
+      builder: (context, customerProvider, child) {
+        final customers = customerProvider.allCustomers;
+        
+        return Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'ลูกค้า:',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: DropdownButton<String?>(
+                value: _selectedCustomerId,
+                isExpanded: true,
+                hint: const Text('ทั้งหมด'),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCustomerId = value;
+                  });
+                },
+                items: [
+                  const DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
+                  ...customers.map((customer) => DropdownMenuItem<String?>(
+                    value: customer.id,
+                    child: Text(
+                      customer.companyName.isNotEmpty 
+                          ? customer.companyName 
+                          : customer.contactName,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  )),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildEmptyState() {

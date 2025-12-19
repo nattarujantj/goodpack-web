@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../models/sale.dart';
 import '../providers/sale_provider.dart';
+import '../providers/customer_provider.dart';
 import '../widgets/responsive_layout.dart';
 
 class SaleListScreen extends StatefulWidget {
@@ -22,14 +23,30 @@ class _SaleListScreenState extends State<SaleListScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
+  
+  // Month-Year filter (multi-select)
+  Set<String> _selectedMonthYears = {};
+  
+  // Customer filter
+  String? _selectedCustomerId;
 
   @override
   void initState() {
     super.initState();
     _vatFilter = widget.initialVatFilter;
+    _initDefaultMonthFilter();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SaleProvider>().loadSales();
+      context.read<CustomerProvider>().loadCustomers();
     });
+  }
+
+  void _initDefaultMonthFilter() {
+    final now = DateTime.now();
+    final thisMonth = '${now.month.toString().padLeft(2, '0')}/${now.year}';
+    final lastMonth = DateTime(now.year, now.month - 1);
+    final lastMonthStr = '${lastMonth.month.toString().padLeft(2, '0')}/${lastMonth.year}';
+    _selectedMonthYears = {lastMonthStr, thisMonth};
   }
   
   @override
@@ -181,8 +198,9 @@ class _SaleListScreenState extends State<SaleListScreen> {
     return Card(
       margin: const EdgeInsets.all(16),
       child: Padding(
-      padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Search Bar
             TextField(
@@ -220,32 +238,42 @@ class _SaleListScreenState extends State<SaleListScreen> {
             
             const SizedBox(height: 16),
             
+            // Month-Year Filter (Multi-select)
+            _buildMonthYearFilter(saleProvider.sales),
+            
+            const SizedBox(height: 16),
+            
+            // Customer Filter
+            _buildCustomerFilter(),
+            
+            const SizedBox(height: 16),
+            
             // VAT Filter
             Row(
-        children: [
+              children: [
                 Expanded(
                   child: ResponsiveText(
                     'ประเภท VAT:',
-            style: const TextStyle(
-              fontWeight: FontWeight.w500,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
                     ),
-            ),
-          ),
+                  ),
+                ),
                 Expanded(
                   flex: 2,
                   child: DropdownButton<String?>(
-            value: _vatFilter,
+                    value: _vatFilter,
                     isExpanded: true,
                     onChanged: (value) {
                       setState(() {
                         _vatFilter = value;
                       });
                     },
-            items: const [
-              DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
-              DropdownMenuItem<String?>(value: 'VAT', child: Text('VAT')),
-              DropdownMenuItem<String?>(value: 'Non-VAT', child: Text('Non-VAT')),
-            ],
+                    items: const [
+                      DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
+                      DropdownMenuItem<String?>(value: 'VAT', child: Text('VAT')),
+                      DropdownMenuItem<String?>(value: 'Non-VAT', child: Text('Non-VAT')),
+                    ],
                   ),
                 ),
               ],
@@ -253,6 +281,139 @@ class _SaleListScreenState extends State<SaleListScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMonthYearFilter(List<Sale> allSales) {
+    // Get unique month-years from sales data
+    final monthYears = <String>{};
+    for (final sale in allSales) {
+      final date = sale.saleDate;
+      monthYears.add('${date.month.toString().padLeft(2, '0')}/${date.year}');
+    }
+    
+    // Add current and last month if not in data
+    final now = DateTime.now();
+    final thisMonth = '${now.month.toString().padLeft(2, '0')}/${now.year}';
+    final lastMonth = DateTime(now.year, now.month - 1);
+    final lastMonthStr = '${lastMonth.month.toString().padLeft(2, '0')}/${lastMonth.year}';
+    monthYears.add(thisMonth);
+    monthYears.add(lastMonthStr);
+    
+    // Sort descending (newest first)
+    final sortedMonthYears = monthYears.toList()
+      ..sort((a, b) {
+        final partsA = a.split('/');
+        final partsB = b.split('/');
+        final dateA = DateTime(int.parse(partsA[1]), int.parse(partsA[0]));
+        final dateB = DateTime(int.parse(partsB[1]), int.parse(partsB[0]));
+        return dateB.compareTo(dateA);
+      });
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'เดือน-ปี:',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _selectedMonthYears.clear();
+                });
+              },
+              icon: const Icon(Icons.clear, size: 16),
+              label: const Text('ล้าง'),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: sortedMonthYears.map((monthYear) {
+            final isSelected = _selectedMonthYears.contains(monthYear);
+            return FilterChip(
+              label: Text(_formatMonthYearDisplay(monthYear)),
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    _selectedMonthYears.add(monthYear);
+                  } else {
+                    _selectedMonthYears.remove(monthYear);
+                  }
+                });
+              },
+              selectedColor: Colors.blue[100],
+              checkmarkColor: Colors.blue[800],
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  String _formatMonthYearDisplay(String monthYear) {
+    final parts = monthYear.split('/');
+    final month = int.parse(parts[0]);
+    final year = int.parse(parts[1]);
+    final thaiMonths = [
+      '', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+    ];
+    return '${thaiMonths[month]} ${year + 543}';
+  }
+
+  Widget _buildCustomerFilter() {
+    return Consumer<CustomerProvider>(
+      builder: (context, customerProvider, child) {
+        final customers = customerProvider.allCustomers;
+        
+        return Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'ลูกค้า:',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: DropdownButton<String?>(
+                value: _selectedCustomerId,
+                isExpanded: true,
+                hint: const Text('ทั้งหมด'),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCustomerId = value;
+                  });
+                },
+                items: [
+                  const DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
+                  ...customers.map((customer) => DropdownMenuItem<String?>(
+                    value: customer.id,
+                    child: Text(
+                      customer.companyName.isNotEmpty 
+                          ? customer.companyName 
+                          : customer.contactName,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  )),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -604,15 +765,29 @@ class _SaleListScreenState extends State<SaleListScreen> {
   }
 
   List<Sale> _getFilteredSales(List<Sale> sales) {
-    if (_vatFilter == null) return sales;
+    var filtered = sales.toList();
     
-    if (_vatFilter == 'VAT') {
-      return sales.where((sale) => sale.isVAT).toList();
-    } else if (_vatFilter == 'Non-VAT') {
-      return sales.where((sale) => !sale.isVAT).toList();
+    // Filter by month-year
+    if (_selectedMonthYears.isNotEmpty) {
+      filtered = filtered.where((sale) {
+        final monthYear = '${sale.saleDate.month.toString().padLeft(2, '0')}/${sale.saleDate.year}';
+        return _selectedMonthYears.contains(monthYear);
+      }).toList();
     }
     
-    return sales;
+    // Filter by customer
+    if (_selectedCustomerId != null) {
+      filtered = filtered.where((sale) => sale.customerId == _selectedCustomerId).toList();
+    }
+    
+    // Filter by VAT
+    if (_vatFilter == 'VAT') {
+      filtered = filtered.where((sale) => sale.isVAT).toList();
+    } else if (_vatFilter == 'Non-VAT') {
+      filtered = filtered.where((sale) => !sale.isVAT).toList();
+    }
+    
+    return filtered;
   }
 
   List<Sale> _getSearchedSales(List<Sale> sales) {
@@ -660,7 +835,10 @@ class _SaleListScreenState extends State<SaleListScreen> {
   }
 
   bool _hasActiveFilters() {
-    return _vatFilter != null || _searchQuery.isNotEmpty;
+    return _vatFilter != null || 
+           _searchQuery.isNotEmpty || 
+           _selectedMonthYears.isNotEmpty ||
+           _selectedCustomerId != null;
   }
 
   void _clearFilters() {
@@ -668,6 +846,8 @@ class _SaleListScreenState extends State<SaleListScreen> {
       _vatFilter = null;
       _searchQuery = '';
       _searchController.clear();
+      _selectedMonthYears.clear();
+      _selectedCustomerId = null;
     });
   }
 
