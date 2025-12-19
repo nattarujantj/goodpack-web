@@ -1285,12 +1285,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       ),
                                     ),
                                   ),
-                                  // Delete button (only for adjustment source type)
-                                  if (adjustment.sourceType == 'adjustment')
-                                    IconButton(
-                                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                                      onPressed: () => _confirmDeleteAdjustment(adjustment),
-                                    ),
                                 ],
                               ),
                               subtitle: Column(
