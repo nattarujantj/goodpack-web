@@ -275,13 +275,23 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
                               children: [
                                 Checkbox(
                                   value: _isVAT,
-                                  onChanged: (value) {
+                                  onChanged: _isEdit ? null : (value) {
                                     setState(() {
                                       _isVAT = value ?? false;
                                     });
                                   },
                                 ),
-                                const Text('มี VAT (7%)'),
+                                Text(
+                                  'มี VAT (7%)',
+                                  style: TextStyle(
+                                    color: _isEdit ? Colors.grey : null,
+                                  ),
+                                ),
+                                if (_isEdit)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 8),
+                                    child: Icon(Icons.lock, size: 16, color: Colors.grey[400]),
+                                  ),
                               ],
                             ),
                             const SizedBox(height: 16),

@@ -352,9 +352,23 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             const SizedBox(height: 16),
             
             CheckboxListTile(
-              title: const Text('รายการซื้อนี้เป็น VAT (7%)'),
+              title: Row(
+                children: [
+                  Text(
+                    'รายการซื้อนี้เป็น VAT (7%)',
+                    style: TextStyle(
+                      color: _isEdit ? Colors.grey : null,
+                    ),
+                  ),
+                  if (_isEdit)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Icon(Icons.lock, size: 16, color: Colors.grey[400]),
+                    ),
+                ],
+              ),
               value: _isVAT,
-              onChanged: (value) {
+              onChanged: _isEdit ? null : (value) {
                 setState(() {
                   _isVAT = value ?? false;
                 });
