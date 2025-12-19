@@ -213,7 +213,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         leading: _isEdit && productId != null
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.go('/product/$productId'),
+                onPressed: () => context.pop(),
                 tooltip: 'กลับไปหน้ารายละเอียด',
               )
             : null,

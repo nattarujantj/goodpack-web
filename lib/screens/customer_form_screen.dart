@@ -122,7 +122,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
         leading: _isEdit && customerId != null
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.go('/customer/$customerId'),
+                onPressed: () => context.pop(),
                 tooltip: 'กลับไปหน้ารายละเอียด',
               )
             : null,

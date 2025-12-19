@@ -271,7 +271,7 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
         leading: _isEdit && quotationId != null
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.go('/quotation/$quotationId'),
+                onPressed: () => context.pop(),
                 tooltip: 'กลับไปหน้ารายละเอียด',
               )
             : null,

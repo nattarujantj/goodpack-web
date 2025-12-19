@@ -209,7 +209,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
         leading: _isEdit && purchaseId != null
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.go('/purchase/$purchaseId'),
+                onPressed: () => context.pop(),
                 tooltip: 'กลับไปหน้ารายละเอียด',
               )
             : null,
