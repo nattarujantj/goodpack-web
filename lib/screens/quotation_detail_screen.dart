@@ -587,6 +587,41 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
   }
 
   void _printQuotationPdf(Quotation quotation) async {
+    // แสดง dialog ให้ระบุชื่อผู้ลงนาม
+    final signerNameController = TextEditingController(
+      text: PdfServiceThaiEnhanced.defaultSignerName,
+    );
+    
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ระบุชื่อผู้ลงนาม'),
+        content: TextField(
+          controller: signerNameController,
+          decoration: const InputDecoration(
+            labelText: 'ชื่อผู้ลงนาม',
+            hintText: 'กรอกชื่อผู้ลงนาม',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('พิมพ์ PDF'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed != true) return;
+    
+    final signerName = signerNameController.text.trim();
+    if (signerName.isEmpty) return;
+    
     try {
       // แสดง loading dialog
       showDialog(
@@ -618,6 +653,7 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
       await PdfServiceThaiEnhanced.generateAndPrintQuotation(
         quotation, 
         bankAccount: bankAccount,
+        signerName: signerName,
       );
 
       // ปิด loading dialog

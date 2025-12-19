@@ -7,10 +7,12 @@ import '../models/quotation.dart';
 import '../models/bank_account.dart';
 
 class PdfServiceThaiEnhanced {
-  static Future<void> generateAndPrintQuotation(Quotation quotation, {BankAccount? bankAccount}) async {
+  static const String defaultSignerName = 'สุภาวดี บูรณะโอสถ';
+  
+  static Future<void> generateAndPrintQuotation(Quotation quotation, {BankAccount? bankAccount, String? signerName}) async {
     try {
       // สร้าง PDF document
-      final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount);
+      final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName);
       
       // แสดง dialog สำหรับการพิมพ์หรือบันทึก
       await Printing.layoutPdf(
@@ -22,16 +24,16 @@ class PdfServiceThaiEnhanced {
     }
   }
 
-  static Future<Uint8List> generateQuotationPdfBytes(Quotation quotation, {BankAccount? bankAccount}) async {
+  static Future<Uint8List> generateQuotationPdfBytes(Quotation quotation, {BankAccount? bankAccount, String? signerName}) async {
     try {
-      final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount);
+      final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName);
       return pdf.save();
     } catch (e) {
       throw Exception('เกิดข้อผิดพลาดในการสร้าง PDF: $e');
     }
   }
 
-  static Future<pw.Document> _createQuotationPdf(Quotation quotation, {BankAccount? bankAccount}) async {
+  static Future<pw.Document> _createQuotationPdf(Quotation quotation, {BankAccount? bankAccount, required String signerName}) async {
     final pdf = pw.Document();
 
     // กำหนดขนาดฟอนต์
@@ -111,7 +113,7 @@ class PdfServiceThaiEnhanced {
             
               
               // Signature Section
-              _buildSignatureSection(thaiFont, quotation, fontSizeText),
+              _buildSignatureSection(thaiFont, quotation, fontSizeText, signerName),
             ],
           );
         },
@@ -832,7 +834,7 @@ class PdfServiceThaiEnhanced {
     );
   }
 
-  static pw.Widget _buildSignatureSection(pw.Font? thaiFont, Quotation quotation, double fontSizeText) {
+  static pw.Widget _buildSignatureSection(pw.Font? thaiFont, Quotation quotation, double fontSizeText, String signerName) {
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
@@ -867,7 +869,7 @@ class PdfServiceThaiEnhanced {
                 ),
                 pw.SizedBox(height: 10), // เว้นหลังบรรทัดลงชื่อ
                 pw.Text(
-                  'สุภาวดี บูรณะโอสถ',
+                  signerName,
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
                 pw.SizedBox(height: 5),
@@ -902,7 +904,7 @@ class PdfServiceThaiEnhanced {
                 ),
                 pw.SizedBox(height: 10), // เว้นหลังบรรทัดลงชื่อ
                 pw.Text(
-                  'สุภาวดี บูรณะโอสถ',
+                  signerName,
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
                 pw.SizedBox(height: 5),

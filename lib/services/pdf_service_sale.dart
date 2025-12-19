@@ -18,10 +18,12 @@ enum SaleDocumentType {
 }
 
 class PdfServiceSale {
-  static Future<void> generateAndPrintSale(Sale sale, SaleDocumentType documentType, {BankAccount? bankAccount}) async {
+  static const String defaultSignerName = 'สุภาวดี บูรณะโอสถ';
+  
+  static Future<void> generateAndPrintSale(Sale sale, SaleDocumentType documentType, {BankAccount? bankAccount, String? signerName}) async {
     try {
       // สร้าง PDF document
-      final pdf = await _createSalePdf(sale, documentType, bankAccount: bankAccount);
+      final pdf = await _createSalePdf(sale, documentType, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName);
       
       // แสดง dialog สำหรับการพิมพ์หรือบันทึก
       await Printing.layoutPdf(
@@ -33,16 +35,16 @@ class PdfServiceSale {
     }
   }
 
-  static Future<Uint8List> generateSalePdfBytes(Sale sale, SaleDocumentType documentType, {BankAccount? bankAccount}) async {
+  static Future<Uint8List> generateSalePdfBytes(Sale sale, SaleDocumentType documentType, {BankAccount? bankAccount, String? signerName}) async {
     try {
-      final pdf = await _createSalePdf(sale, documentType, bankAccount: bankAccount);
+      final pdf = await _createSalePdf(sale, documentType, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName);
       return pdf.save();
     } catch (e) {
       throw Exception('เกิดข้อผิดพลาดในการสร้าง PDF: $e');
     }
   }
 
-  static Future<pw.Document> _createSalePdf(Sale sale, SaleDocumentType documentType, {BankAccount? bankAccount}) async {
+  static Future<pw.Document> _createSalePdf(Sale sale, SaleDocumentType documentType, {BankAccount? bankAccount, required String signerName}) async {
     final pdf = pw.Document();
 
     // กำหนดขนาดฟอนต์
@@ -120,7 +122,7 @@ class PdfServiceSale {
               pw.SizedBox(height: 5),
             
               // Signature Section
-              _buildSignatureSection(thaiFont, sale, fontSizeText, documentType),
+              _buildSignatureSection(thaiFont, sale, fontSizeText, documentType, signerName),
             ],
           );
         },
@@ -843,21 +845,21 @@ class PdfServiceSale {
     );
   }
 
-  static pw.Widget _buildSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, SaleDocumentType documentType) {
+  static pw.Widget _buildSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, SaleDocumentType documentType, String signerName) {
     switch (documentType) {
       case SaleDocumentType.quotation:
-        return _buildQuotationSignatureSection(thaiFont, sale, fontSizeText);
+        return _buildQuotationSignatureSection(thaiFont, sale, fontSizeText, signerName);
       case SaleDocumentType.receipt:
-        return _buildReceiptSignatureSection(thaiFont, sale, fontSizeText);
+        return _buildReceiptSignatureSection(thaiFont, sale, fontSizeText, signerName);
       case SaleDocumentType.taxInvoiceReceipt:
-        return _buildTaxInvoiceReceiptSignatureSection(thaiFont, sale, fontSizeText);
+        return _buildTaxInvoiceReceiptSignatureSection(thaiFont, sale, fontSizeText, signerName);
       case SaleDocumentType.taxInvoice:
-        return _buildTaxInvoiceSignatureSection(thaiFont, sale, fontSizeText);
+        return _buildTaxInvoiceSignatureSection(thaiFont, sale, fontSizeText, signerName);
     }
   }
 
   // 1. Quotation (ปัจจุบัน)
-  static pw.Widget _buildQuotationSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText) {
+  static pw.Widget _buildQuotationSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, String signerName) {
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
@@ -891,7 +893,7 @@ class PdfServiceSale {
                 ),
                 pw.SizedBox(height: 10),
                 pw.Text(
-                  'สุภาวดี บูรณะโอสถ',
+                  signerName,
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
                 pw.SizedBox(height: 5),
@@ -925,7 +927,7 @@ class PdfServiceSale {
                 ),
                 pw.SizedBox(height: 10),
                 pw.Text(
-                  'สุภาวดี บูรณะโอสถ',
+                  signerName,
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
                 pw.SizedBox(height: 5),
@@ -947,7 +949,7 @@ class PdfServiceSale {
   }
 
   // 2. ใบเสร็จรับเงิน - เหลือ column 4 อันเดียว
-  static pw.Widget _buildReceiptSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText) {
+  static pw.Widget _buildReceiptSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, String signerName) {
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
@@ -987,7 +989,7 @@ class PdfServiceSale {
                 ),
                 pw.SizedBox(height: 10),
                 pw.Text(
-                  'สุภาวดี บูรณะโอสถ',
+                  signerName,
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
                 pw.SizedBox(height: 5),
@@ -1011,7 +1013,7 @@ class PdfServiceSale {
   }
 
   // 3. ใบกำกับภาษี/ใบเสร็จรับเงิน - 4 columns
-  static pw.Widget _buildTaxInvoiceReceiptSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText) {
+  static pw.Widget _buildTaxInvoiceReceiptSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, String signerName) {
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
@@ -1067,7 +1069,7 @@ class PdfServiceSale {
                 ),
                 pw.SizedBox(height: 10),
                 pw.Text(
-                  'สุภาวดี บูรณะโอสถ',
+                  signerName,
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
                 pw.SizedBox(height: 5),
@@ -1101,7 +1103,7 @@ class PdfServiceSale {
                 ),
                 pw.SizedBox(height: 10),
                 pw.Text(
-                  'สุภาวดี บูรณะโอสถ',
+                  signerName,
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
                 pw.SizedBox(height: 5),
@@ -1135,7 +1137,7 @@ class PdfServiceSale {
                 ),
                 pw.SizedBox(height: 10),
                 pw.Text(
-                  'สุภาวดี บูรณะโอสถ',
+                  signerName,
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
                 pw.SizedBox(height: 5),
@@ -1159,7 +1161,7 @@ class PdfServiceSale {
   }
 
   // 4. ใบกำกับภาษี - 3 columns (column 1 ว่าง)
-  static pw.Widget _buildTaxInvoiceSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText) {
+  static pw.Widget _buildTaxInvoiceSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, String signerName) {
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
@@ -1221,7 +1223,7 @@ class PdfServiceSale {
                 ),
                 pw.SizedBox(height: 10),
                 pw.Text(
-                  'สุภาวดี บูรณะโอสถ',
+                  signerName,
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
                 pw.SizedBox(height: 5),
@@ -1255,7 +1257,7 @@ class PdfServiceSale {
                 ),
                 pw.SizedBox(height: 10),
                 pw.Text(
-                  'สุภาวดี บูรณะโอสถ',
+                  signerName,
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
                 pw.SizedBox(height: 5),
