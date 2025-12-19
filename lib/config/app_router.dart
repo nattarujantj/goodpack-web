@@ -161,9 +161,11 @@ class AppRouter {
             builder: (context, state) {
               final saleId = state.uri.queryParameters['id'];
               final quotationId = state.uri.queryParameters['quotationId'];
+              final duplicateId = state.uri.queryParameters['duplicateId'];
               return SaleFormScreen(
                 saleId: saleId,
                 quotationId: quotationId,
+                duplicateId: duplicateId,
               );
             },
           ),

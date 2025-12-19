@@ -417,6 +417,13 @@ class _SaleListScreenState extends State<SaleListScreen> {
                                 ),
                                 const SizedBox(width: 2),
                                 _buildHoverIcon(
+                                  icon: Icons.copy,
+                                  onTap: () => context.go('/sale-form?duplicateId=${sale.id}'),
+                        tooltip: 'คัดลอกรายการ',
+                                  color: Colors.blue,
+                                ),
+                                const SizedBox(width: 2),
+                                _buildHoverIcon(
                                   icon: Icons.edit,
                                   onTap: () => context.go('/sale-form?id=${sale.id}'),
                         tooltip: 'แก้ไข',
