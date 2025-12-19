@@ -1,0 +1,95 @@
+name: Deploy (Self-Hosted Runner)
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: 'Deploy target'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - web
+          - server
+
+jobs:
+  deploy:
+    # ใช้ self-hosted runner ที่ติดตั้งบน Ubuntu server
+    runs-on: self-hosted
+    
+    steps:
+      - name: Determine deploy target
+        id: target
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "target=${{ github.event.inputs.deploy_target }}" >> $GITHUB_OUTPUT
+          else
+            # Auto detect from changed files
+            echo "target=all" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy Go Server
+        if: steps.target.outputs.target == 'server' || steps.target.outputs.target == 'all'
+        run: |
+          echo "🚀 Deploying Go Server..."
+          
+          cd /opt/goodpack-server
+          
+          echo "📥 Pulling latest code..."
+          git fetch origin
+          git reset --hard origin/master
+          
+          echo "🔨 Building..."
+          go mod tidy
+          go build -o server
+          
+          echo "🔄 Restarting server..."
+          pkill -f "./server" || true
+          sleep 2
+          nohup ./server > server.log 2>&1 &
+          sleep 3
+          
+          if curl -s http://localhost:8080/api/health > /dev/null 2>&1; then
+            echo "✅ Go Server deployed!"
+          else
+            echo "❌ Server health check failed"
+            tail -20 server.log
+            exit 1
+          fi
+
+      - name: Deploy Flutter Web
+        if: steps.target.outputs.target == 'web' || steps.target.outputs.target == 'all'
+        run: |
+          echo "🌐 Deploying Flutter Web..."
+          
+          cd /opt/goodpack-web
+          
+          echo "📥 Pulling latest code..."
+          git fetch origin
+          git reset --hard origin/master
+          
+          echo "🔨 Building..."
+          flutter pub get
+          flutter build web --dart-define=API_BASE_URL="http://192.168.1.162:8080/api"
+          
+          echo "📦 Deploying to nginx..."
+          sudo rm -rf /var/www/html/*
+          sudo cp -r build/web/* /var/www/html/
+          sudo systemctl restart nginx
+          
+          echo "✅ Flutter Web deployed!"
+
+      - name: Deployment Summary
+        run: |
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✅ Deployment complete!"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🌐 Web: http://192.168.1.162"
+          echo "📡 API: http://192.168.1.162:8080/api"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
