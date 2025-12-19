@@ -53,7 +53,7 @@ class ProductProvider with ChangeNotifier {
   }
 
   // Add new product
-  Future<bool> addProduct(Product product) async {
+  Future<Product?> addProduct(Product product) async {
     _setLoading(true);
     _clearError();
     
@@ -62,10 +62,10 @@ class ProductProvider with ChangeNotifier {
       _products.add(newProduct);
       _filteredProducts = List.from(_products);
       notifyListeners();
-      return true;
+      return newProduct;
     } catch (e) {
       _setError('ไม่สามารถเพิ่มสินค้าได้: $e');
-      return false;
+      return null;
     } finally {
       _setLoading(false);
     }

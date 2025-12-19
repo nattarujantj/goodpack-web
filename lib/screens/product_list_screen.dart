@@ -28,7 +28,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   // Scroll controllers for selected products table
   final ScrollController _selectedTableHorizontalScrollController = ScrollController();
   final ScrollController _selectedTableVerticalScrollController = ScrollController();
-  
+
   // Draggable FAB position
   Offset _fabPosition = const Offset(16, 16);
 
@@ -70,117 +70,117 @@ class _ProductListScreenState extends State<ProductListScreen> {
       body: Stack(
         children: [
           Consumer<ProductProvider>(
-            builder: (context, productProvider, child) {
-              if (productProvider.isLoading) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
+        builder: (context, productProvider, child) {
+          if (productProvider.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
 
-              if (productProvider.error.isNotEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+          if (productProvider.error.isNotEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red[300],
+                  ),
+                  const SizedBox(height: 16),
+                  ResponsiveText(
+                    productProvider.error,
+                    style: TextStyle(
+                      color: Colors.red[700],
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => productProvider.refresh(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('ลองใหม่'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final filteredProducts = _getFilteredProducts(productProvider.allProducts);
+
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                // Selected Products Summary (if any selected)
+                if (_selectedProducts.isNotEmpty) _buildSelectedProductsSection(),
+                
+                // Filters Section
+                _buildFiltersSection(productProvider),
+                
+                // Product Count
+                ResponsivePadding(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.red[300],
-                      ),
-                      const SizedBox(height: 16),
                       ResponsiveText(
-                        productProvider.error,
-                        style: TextStyle(
-                          color: Colors.red[700],
-                          fontSize: 16,
+                        'แสดง ${filteredProducts.length} จาก ${productProvider.allProducts.length} รายการ',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[600],
                         ),
-                        textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () => productProvider.refresh(),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('ลองใหม่'),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          if (_selectedProductIds.isNotEmpty)
+                            TextButton.icon(
+                              onPressed: _clearSelection,
+                              icon: const Icon(Icons.clear, size: 16),
+                              label: Text('ล้างการเลือก (${_selectedProductIds.length})'),
+                            ),
+                          if (_hasActiveFilters())
+                            TextButton.icon(
+                              onPressed: _clearFilters,
+                              icon: const Icon(Icons.clear, size: 16),
+                              label: const Text('ล้างตัวกรอง'),
+                            ),
+                        ],
                       ),
                     ],
                   ),
-                );
-              }
-
-              final filteredProducts = _getFilteredProducts(productProvider.allProducts);
-
-              return SingleChildScrollView(
-                child: Column(
-                  children: [
-                    // Selected Products Summary (if any selected)
-                    if (_selectedProducts.isNotEmpty) _buildSelectedProductsSection(),
-                    
-                    // Filters Section
-                    _buildFiltersSection(productProvider),
-                    
-                    // Product Count
-                    ResponsivePadding(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                ),
+                
+                // Product Table
+                filteredProducts.isEmpty
+                    ? _buildEmptyState()
+                    : Column(
                         children: [
-                          ResponsiveText(
-                            'แสดง ${filteredProducts.length} จาก ${productProvider.allProducts.length} รายการ',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey[600],
+                          // Scroll indicator
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Row(
+                              children: [
+                                Icon(Icons.swipe_left, size: 16, color: Colors.grey[600]),
+                                const SizedBox(width: 8),
+                                ResponsiveText(
+                                  'เลื่อนซ้าย-ขวาเพื่อดูคอลัมน์ทั้งหมด',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          Wrap(
-                            spacing: 8,
-                            children: [
-                              if (_selectedProductIds.isNotEmpty)
-                                TextButton.icon(
-                                  onPressed: _clearSelection,
-                                  icon: const Icon(Icons.clear, size: 16),
-                                  label: Text('ล้างการเลือก (${_selectedProductIds.length})'),
-                                ),
-                              if (_hasActiveFilters())
-                                TextButton.icon(
-                                  onPressed: _clearFilters,
-                                  icon: const Icon(Icons.clear, size: 16),
-                                  label: const Text('ล้างตัวกรอง'),
-                                ),
-                            ],
-                          ),
+                          _buildProductTable(filteredProducts),
+                              const SizedBox(height: 80), // Space for FAB
                         ],
                       ),
-                    ),
-                    
-                    // Product Table
-                    filteredProducts.isEmpty
-                        ? _buildEmptyState()
-                        : Column(
-                            children: [
-                              // Scroll indicator
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.swipe_left, size: 16, color: Colors.grey[600]),
-                                    const SizedBox(width: 8),
-                                    ResponsiveText(
-                                      'เลื่อนซ้าย-ขวาเพื่อดูคอลัมน์ทั้งหมด',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              _buildProductTable(filteredProducts),
-                              const SizedBox(height: 80), // Space for FAB
-                            ],
-                          ),
-                  ],
-                ),
-              );
-            },
-          ),
+              ],
+            ),
+          );
+        },
+      ),
           // Draggable FAB
           Positioned(
             right: _fabPosition.dx,
@@ -195,11 +195,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 });
               },
               child: FloatingActionButton.extended(
-                onPressed: () => _navigateToProductForm(),
-                icon: const Icon(Icons.add),
-                label: const Text('เพิ่มสินค้า'),
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
+        onPressed: () => _navigateToProductForm(),
+        icon: const Icon(Icons.add),
+        label: const Text('เพิ่มสินค้า'),
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
               ),
             ),
           ),

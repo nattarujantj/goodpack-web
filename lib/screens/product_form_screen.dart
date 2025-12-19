@@ -720,15 +720,18 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       );
 
       final productProvider = context.read<ProductProvider>();
-      bool success;
+      Product? resultProduct;
       
       if (_isEdit) {
-        success = await productProvider.updateProduct(product);
+        final success = await productProvider.updateProduct(product);
+        if (success) {
+          resultProduct = product; // Use the same product object with existing ID
+        }
       } else {
-        success = await productProvider.addProduct(product);
+        resultProduct = await productProvider.addProduct(product);
       }
 
-      if (success && mounted) {
+      if (resultProduct != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -741,7 +744,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         );
         
         // Redirect to product detail page (both create and edit)
-        context.go('/product/${product.id}');
+        context.go('/product/${resultProduct.id}');
       } else if (mounted) {
         // Show error popup if not successful
         final errorMessage = productProvider.error;

@@ -90,106 +90,106 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
       body: Stack(
         children: [
           Consumer<PurchaseProvider>(
-            builder: (context, purchaseProvider, child) {
-              if (purchaseProvider.isLoading) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
+        builder: (context, purchaseProvider, child) {
+          if (purchaseProvider.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
 
-              if (purchaseProvider.error.isNotEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.red[300],
-                      ),
-                      const SizedBox(height: 16),
-                      ResponsiveText(
-                        purchaseProvider.error,
-                        style: TextStyle(
-                          color: Colors.red[700],
-                          fontSize: 16,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () => purchaseProvider.refresh(),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('ลองใหม่'),
-                      ),
-                    ],
+          if (purchaseProvider.error.isNotEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red[300],
                   ),
-                );
-              }
+                  const SizedBox(height: 16),
+                  ResponsiveText(
+                    purchaseProvider.error,
+                    style: TextStyle(
+                      color: Colors.red[700],
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => purchaseProvider.refresh(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('ลองใหม่'),
+                  ),
+                ],
+              ),
+            );
+          }
 
-              final filteredPurchases = _getFilteredPurchases(purchaseProvider.allPurchases);
+          final filteredPurchases = _getFilteredPurchases(purchaseProvider.allPurchases);
 
-              return SingleChildScrollView(
-                child: Column(
-                  children: [
-                    // Filters Section
-                    _buildFiltersSection(purchaseProvider),
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                // Filters Section
+                _buildFiltersSection(purchaseProvider),
                     
                     // Summary Section
                     _buildSummarySection(filteredPurchases),
-                    
-                    // Purchase Count
-                    ResponsivePadding(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                
+                // Purchase Count
+                ResponsivePadding(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ResponsiveText(
+                        'แสดง ${filteredPurchases.length} จาก ${purchaseProvider.allPurchases.length} รายการ',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      if (_hasActiveFilters())
+                        TextButton.icon(
+                          onPressed: _clearFilters,
+                          icon: const Icon(Icons.clear, size: 16),
+                          label: const Text('ล้างตัวกรอง'),
+                        ),
+                    ],
+                  ),
+                ),
+                
+                // Purchase Table
+                filteredPurchases.isEmpty
+                    ? _buildEmptyState()
+                    : Column(
                         children: [
-                          ResponsiveText(
-                            'แสดง ${filteredPurchases.length} จาก ${purchaseProvider.allPurchases.length} รายการ',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey[600],
+                          // Scroll indicator
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Row(
+                              children: [
+                                Icon(Icons.swipe_left, size: 16, color: Colors.grey[600]),
+                                const SizedBox(width: 8),
+                                ResponsiveText(
+                                  'เลื่อนซ้าย-ขวาเพื่อดูคอลัมน์ทั้งหมด',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          if (_hasActiveFilters())
-                            TextButton.icon(
-                              onPressed: _clearFilters,
-                              icon: const Icon(Icons.clear, size: 16),
-                              label: const Text('ล้างตัวกรอง'),
-                            ),
+                          _buildPurchaseTable(filteredPurchases),
+                              const SizedBox(height: 80), // Space for FAB
                         ],
                       ),
-                    ),
-                    
-                    // Purchase Table
-                    filteredPurchases.isEmpty
-                        ? _buildEmptyState()
-                        : Column(
-                            children: [
-                              // Scroll indicator
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.swipe_left, size: 16, color: Colors.grey[600]),
-                                    const SizedBox(width: 8),
-                                    ResponsiveText(
-                                      'เลื่อนซ้าย-ขวาเพื่อดูคอลัมน์ทั้งหมด',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              _buildPurchaseTable(filteredPurchases),
-                              const SizedBox(height: 80), // Space for FAB
-                            ],
-                          ),
-                  ],
-                ),
-              );
-            },
-          ),
+              ],
+            ),
+          );
+        },
+      ),
           // Draggable FAB
           Positioned(
             right: _fabPosition.dx,
@@ -204,11 +204,11 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
                 });
               },
               child: FloatingActionButton.extended(
-                onPressed: () => _navigateToPurchaseForm(),
-                icon: const Icon(Icons.add),
-                label: const Text('เพิ่มรายการซื้อ'),
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
+        onPressed: () => _navigateToPurchaseForm(),
+        icon: const Icon(Icons.add),
+        label: const Text('เพิ่มรายการซื้อ'),
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
               ),
             ),
           ),

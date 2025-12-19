@@ -91,105 +91,105 @@ class _SaleListScreenState extends State<SaleListScreen> {
       body: Stack(
         children: [
           Consumer<SaleProvider>(
-            builder: (context, saleProvider, child) {
-              if (saleProvider.isLoading) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
+        builder: (context, saleProvider, child) {
+          if (saleProvider.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
 
-              if (saleProvider.error != null) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.red[300],
-                      ),
-                      const SizedBox(height: 16),
-                      ResponsiveText(
-                        saleProvider.error!,
-                        style: TextStyle(
-                          color: Colors.red[700],
-                          fontSize: 16,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () => saleProvider.loadSales(),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('ลองใหม่'),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              final filteredSales = _getFilteredSales(saleProvider.sales);
-              final searchedSales = _getSearchedSales(filteredSales);
-              final sortedSales = _getSortedSales(searchedSales);
-
-              return SingleChildScrollView(
-                  child: Column(
-                  children: [
-                    // Filters Section
-                    _buildFiltersSection(saleProvider),
-                    
-                    // Sale Count
-                    ResponsivePadding(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      ResponsiveText(
-                            'แสดง ${sortedSales.length} จาก ${saleProvider.sales.length} รายการ',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                          if (_hasActiveFilters())
-                            TextButton.icon(
-                              onPressed: _clearFilters,
-                              icon: const Icon(Icons.clear, size: 16),
-                              label: const Text('ล้างตัวกรอง'),
-                      ),
-                    ],
-                  ),
-                    ),
-                    
-                    // Sale Table
-                    sortedSales.isEmpty
-                        ? _buildEmptyState()
-                        : Column(
-                            children: [
-                              // Scroll indicator
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                child: Row(
+          if (saleProvider.error != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                                    Icon(Icons.swipe_left, size: 16, color: Colors.grey[600]),
-                                    const SizedBox(width: 8),
-                                    ResponsiveText(
-                                      'เลื่อนซ้าย-ขวาเพื่อดูคอลัมน์ทั้งหมด',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              _buildSalesTable(sortedSales),
-                              const SizedBox(height: 80), // Space for FAB
-                            ],
-                          ),
-                  ],
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red[300],
+                  ),
+                  const SizedBox(height: 16),
+                  ResponsiveText(
+                    saleProvider.error!,
+                    style: TextStyle(
+                      color: Colors.red[700],
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => saleProvider.loadSales(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('ลองใหม่'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final filteredSales = _getFilteredSales(saleProvider.sales);
+          final searchedSales = _getSearchedSales(filteredSales);
+          final sortedSales = _getSortedSales(searchedSales);
+
+          return SingleChildScrollView(
+              child: Column(
+              children: [
+                // Filters Section
+                _buildFiltersSection(saleProvider),
+                
+                // Sale Count
+                ResponsivePadding(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ResponsiveText(
+                        'แสดง ${sortedSales.length} จาก ${saleProvider.sales.length} รายการ',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                      if (_hasActiveFilters())
+                        TextButton.icon(
+                          onPressed: _clearFilters,
+                          icon: const Icon(Icons.clear, size: 16),
+                          label: const Text('ล้างตัวกรอง'),
+                  ),
+                ],
+              ),
                 ),
-              );
-            },
-          ),
+                
+                // Sale Table
+                sortedSales.isEmpty
+                    ? _buildEmptyState()
+                    : Column(
+                        children: [
+                          // Scroll indicator
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Row(
+            children: [
+                                Icon(Icons.swipe_left, size: 16, color: Colors.grey[600]),
+                                const SizedBox(width: 8),
+                                ResponsiveText(
+                                  'เลื่อนซ้าย-ขวาเพื่อดูคอลัมน์ทั้งหมด',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          _buildSalesTable(sortedSales),
+                              const SizedBox(height: 80), // Space for FAB
+                        ],
+                      ),
+              ],
+            ),
+          );
+        },
+      ),
           // Draggable FAB
           Positioned(
             right: _fabPosition.dx,
@@ -205,10 +205,10 @@ class _SaleListScreenState extends State<SaleListScreen> {
               },
               child: FloatingActionButton.extended(
                 onPressed: () => context.push('/sale-form'),
-                icon: const Icon(Icons.add),
-                label: const Text('เพิ่มรายการขาย'),
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('เพิ่มรายการขาย'),
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
               ),
             ),
           ),
