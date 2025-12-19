@@ -46,6 +46,10 @@ class _MainScreenState extends State<MainScreen> {
       icon: Icon(Icons.description),
       label: 'เสนอราคา',
     ),
+    const BottomNavigationBarItem(
+      icon: Icon(Icons.file_download),
+      label: 'Export',
+    ),
   ];
 
   @override
@@ -250,6 +254,11 @@ class _MainScreenState extends State<MainScreen> {
                     _buildSubNavItem('Non-VAT', '/quotations?vat=false'),
                   ],
                 ),
+                
+                const Divider(height: 24, indent: 16, endIndent: 16),
+                
+                // Export
+                _buildNavItem(5, Icons.file_download, 'Export'),
               ],
             ),
           ),
@@ -403,6 +412,9 @@ class _MainScreenState extends State<MainScreen> {
           break;
         case 4:
           context.go('/quotations');
+          break;
+        case 5:
+          context.go('/export');
           break;
       }
     } else {

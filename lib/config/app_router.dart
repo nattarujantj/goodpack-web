@@ -16,6 +16,7 @@ import '../screens/sale_detail_screen.dart';
 import '../screens/quotation_list_screen.dart';
 import '../screens/quotation_detail_screen.dart';
 import '../screens/quotation_form_screen.dart';
+import '../screens/export_screen.dart';
 
 class AppRouter {
   // Helper function to build page with no animation
@@ -273,6 +274,14 @@ class AppRouter {
                 state,
               );
             },
+          ),
+          // Export route
+          GoRoute(
+            path: '/export',
+            pageBuilder: (context, state) => _noAnimationPage(
+              const ExportScreen(),
+              state,
+            ),
           ),
         ],
       ),
