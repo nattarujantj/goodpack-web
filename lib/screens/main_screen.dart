@@ -27,6 +27,10 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<BottomNavigationBarItem> _bottomNavItems = [
     const BottomNavigationBarItem(
+      icon: Icon(Icons.dashboard),
+      label: 'สรุป',
+    ),
+    const BottomNavigationBarItem(
       icon: Icon(Icons.inventory_2),
       label: 'สินค้า',
     ),
@@ -208,10 +212,15 @@ class _MainScreenState extends State<MainScreen> {
           Expanded(
             child: ListView(
               children: [
+                // สรุป Dashboard
+                _buildNavItem(0, Icons.dashboard, 'สรุปภาพรวม'),
+                
+                const Divider(height: 8, indent: 16, endIndent: 16),
+                
                 // สินค้า
-                _buildNavItem(0, Icons.inventory_2, 'สินค้า'),
+                _buildNavItem(1, Icons.inventory_2, 'สินค้า'),
                 // ลูกค้า
-                _buildNavItem(1, Icons.business, 'ลูกค้า'),
+                _buildNavItem(2, Icons.business, 'ลูกค้า'),
                 
                 // ซื้อ - มีเมนูย่อย
                 _buildExpandableNavItem(
@@ -219,7 +228,7 @@ class _MainScreenState extends State<MainScreen> {
                   title: 'ซื้อ',
                   isExpanded: _isPurchaseExpanded,
                   onExpand: (expanded) => setState(() => _isPurchaseExpanded = expanded),
-                  isSelected: _currentIndex == 2,
+                  isSelected: _currentIndex == 3,
                   children: [
                     _buildSubNavItem('ทั้งหมด', '/purchases'),
                     _buildSubNavItem('VAT', '/purchases?vat=true'),
@@ -233,7 +242,7 @@ class _MainScreenState extends State<MainScreen> {
                   title: 'ขาย',
                   isExpanded: _isSaleExpanded,
                   onExpand: (expanded) => setState(() => _isSaleExpanded = expanded),
-                  isSelected: _currentIndex == 3,
+                  isSelected: _currentIndex == 4,
                   children: [
                     _buildSubNavItem('ทั้งหมด', '/sales'),
                     _buildSubNavItem('VAT', '/sales?vat=true'),
@@ -247,7 +256,7 @@ class _MainScreenState extends State<MainScreen> {
                   title: 'เสนอราคา',
                   isExpanded: _isQuotationExpanded,
                   onExpand: (expanded) => setState(() => _isQuotationExpanded = expanded),
-                  isSelected: _currentIndex == 4,
+                  isSelected: _currentIndex == 5,
                   children: [
                     _buildSubNavItem('ทั้งหมด', '/quotations'),
                     _buildSubNavItem('VAT', '/quotations?vat=true'),
@@ -258,7 +267,7 @@ class _MainScreenState extends State<MainScreen> {
                 const Divider(height: 24, indent: 16, endIndent: 16),
                 
                 // Export
-                _buildNavItem(5, Icons.file_download, 'Export'),
+                _buildNavItem(6, Icons.file_download, 'Export'),
               ],
             ),
           ),
@@ -399,21 +408,24 @@ class _MainScreenState extends State<MainScreen> {
     if (widget.child != null) {
       switch (index) {
         case 0:
-          context.go('/');
+          context.go('/dashboard');
           break;
         case 1:
-          context.go('/customers');
+          context.go('/');
           break;
         case 2:
-          context.go('/purchases');
+          context.go('/customers');
           break;
         case 3:
-          context.go('/sales');
+          context.go('/purchases');
           break;
         case 4:
-          context.go('/quotations');
+          context.go('/sales');
           break;
         case 5:
+          context.go('/quotations');
+          break;
+        case 6:
           context.go('/export');
           break;
       }
@@ -435,17 +447,17 @@ class _MainScreenState extends State<MainScreen> {
     IconData icon;
     
     switch (menuIndex) {
-      case 2:
+      case 3:
         title = 'รายการซื้อ';
         basePath = '/purchases';
         icon = Icons.shopping_cart;
         break;
-      case 3:
+      case 4:
         title = 'รายการขาย';
         basePath = '/sales';
         icon = Icons.point_of_sale;
         break;
-      case 4:
+      case 5:
         title = 'เสนอราคา';
         basePath = '/quotations';
         icon = Icons.description;

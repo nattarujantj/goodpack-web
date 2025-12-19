@@ -17,6 +17,7 @@ import '../screens/quotation_list_screen.dart';
 import '../screens/quotation_detail_screen.dart';
 import '../screens/quotation_form_screen.dart';
 import '../screens/export_screen.dart';
+import '../screens/dashboard_screen.dart';
 
 class AppRouter {
   // Helper function to build page with no animation
@@ -280,6 +281,14 @@ class AppRouter {
             path: '/export',
             pageBuilder: (context, state) => _noAnimationPage(
               const ExportScreen(),
+              state,
+            ),
+          ),
+          // Dashboard route
+          GoRoute(
+            path: '/dashboard',
+            pageBuilder: (context, state) => _noAnimationPage(
+              const DashboardScreen(),
               state,
             ),
           ),
