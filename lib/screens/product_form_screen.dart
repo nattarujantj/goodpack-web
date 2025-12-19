@@ -642,15 +642,18 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       // Create Stock object (with default values)
       final stock = Stock(
         vat: StockInfo(
+          initialStock: 0,
           purchased: 0,
           sold: 0,
           remaining: 0,
         ),
         nonVAT: StockInfo(
+          initialStock: 0,
           purchased: 0,
           sold: 0,
           remaining: 0,
         ),
+        actualStockInitial: 0,
         actualStock: 0,
       );
 
