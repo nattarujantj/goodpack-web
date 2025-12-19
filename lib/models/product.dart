@@ -158,11 +158,13 @@ class Price {
 
 // StockInfo represents stock information for VAT and Non-VAT
 class StockInfo {
+  final int initialStock; // สินค้ายกยอดมา
   final int purchased;
   final int sold;
   final int remaining;
 
   StockInfo({
+    required this.initialStock,
     required this.purchased,
     required this.sold,
     required this.remaining,
@@ -170,6 +172,7 @@ class StockInfo {
 
   factory StockInfo.fromJson(Map<String, dynamic> json) {
     return StockInfo(
+      initialStock: json['initialStock'] as int? ?? 0,
       purchased: json['purchased'] as int? ?? 0,
       sold: json['sold'] as int? ?? 0,
       remaining: json['remaining'] as int? ?? 0,
@@ -178,6 +181,7 @@ class StockInfo {
 
   Map<String, dynamic> toJson() {
     return {
+      'initialStock': initialStock,
       'purchased': purchased,
       'sold': sold,
       'remaining': remaining,
@@ -189,11 +193,13 @@ class StockInfo {
 class Stock {
   final StockInfo vat;
   final StockInfo nonVAT;
+  final int actualStockInitial; // ยกยอด ActualStock
   final int actualStock;
 
   Stock({
     required this.vat,
     required this.nonVAT,
+    required this.actualStockInitial,
     required this.actualStock,
   });
 
@@ -201,6 +207,7 @@ class Stock {
     return Stock(
       vat: StockInfo.fromJson(json['vat'] as Map<String, dynamic>? ?? {}),
       nonVAT: StockInfo.fromJson(json['nonVAT'] as Map<String, dynamic>? ?? {}),
+      actualStockInitial: json['actualStockInitial'] as int? ?? 0,
       actualStock: json['actualStock'] as int? ?? 0,
     );
   }
@@ -209,6 +216,7 @@ class Stock {
     return {
       'vat': vat.toJson(),
       'nonVAT': nonVAT.toJson(),
+      'actualStockInitial': actualStockInitial,
       'actualStock': actualStock,
     };
   }

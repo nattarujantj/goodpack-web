@@ -642,6 +642,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               children: [
                 Expanded(
                   child: _buildReadOnlyField(
+                    label: 'ยกยอด',
+                    value: NumberFormatter.formatQuantity(product.stock.vat.initialStock),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildReadOnlyField(
                     label: 'ซื้อ',
                     value: NumberFormatter.formatQuantity(product.stock.vat.purchased),
                   ),
@@ -680,6 +687,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               children: [
                 Expanded(
                   child: _buildReadOnlyField(
+                    label: 'ยกยอด',
+                    value: NumberFormatter.formatQuantity(product.stock.nonVAT.initialStock),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildReadOnlyField(
                     label: 'ซื้อ',
                     value: NumberFormatter.formatQuantity(product.stock.nonVAT.purchased),
                   ),
@@ -704,11 +718,33 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             
             const SizedBox(height: 16),
             
-            // Actual Stock
-            _buildReadOnlyField(
-              label: 'สินค้าคงเหลือจริง',
-              value: NumberFormatter.formatQuantity(product.stock.actualStock),
-              isNegative: true,
+            // Actual Stock Section
+            ResponsiveText(
+              'สินค้าคงคลัง',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.orange,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildReadOnlyField(
+                    label: 'ยกยอด',
+                    value: NumberFormatter.formatQuantity(product.stock.actualStockInitial),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildReadOnlyField(
+                    label: 'คงเหลือจริง',
+                    value: NumberFormatter.formatQuantity(product.stock.actualStock),
+                    isNegative: true,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
