@@ -256,7 +256,13 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
                       label: _buildSortableHeader('ชื่อผู้ติดต่อ', 'contactName'),
                     ),
                     DataColumn(
-                      label: _buildSortableHeader('จำนวนสินค้า', 'itemCount'),
+                      label: Container(
+                        width: 200,
+                        child: Text(
+                          'สินค้า',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        ),
+                      ),
                     ),
                     DataColumn(
                       label: _buildSortableHeader('ยอดรวม', 'totalAmount'),
@@ -330,11 +336,11 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
                         ),
                         DataCell(
                           Container(
-                            width: 100,
+                            width: 200,
                             child: Text(
-                              '${purchase.items.length} รายการ',
-                              style: const TextStyle(fontSize: 16),
-                              textAlign: TextAlign.center,
+                              _getProductNames(purchase),
+                              style: const TextStyle(fontSize: 14),
+                              textAlign: TextAlign.left,
                             ),
                           ),
                         ),
@@ -600,6 +606,21 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  String _getProductNames(Purchase purchase) {
+    if (purchase.items.isEmpty) return '-';
+    
+    // แสดงแค่ 3 รายการแรก
+    final itemsToShow = purchase.items.take(3).toList();
+    final names = itemsToShow.map((item) => item.productName).join('\n');
+    
+    // ถ้ามีมากกว่า 3 รายการ แสดง ... ต่อท้าย
+    if (purchase.items.length > 3) {
+      return '$names\n... (+${purchase.items.length - 3} รายการ)';
+    }
+    
+    return names;
   }
 
   void _showDeleteDialog(Purchase purchase) {

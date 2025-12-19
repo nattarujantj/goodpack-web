@@ -287,6 +287,15 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
                       label: _buildSortableHeader('ชื่อผู้ติดต่อ', 'contactName'),
                     ),
                     DataColumn(
+                      label: Container(
+                        width: 200,
+                        child: Text(
+                          'สินค้า',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ),
+                    DataColumn(
                       label: _buildSortableHeader('ยอดรวม', 'grandTotal'),
                     ),
                     DataColumn(
@@ -362,6 +371,16 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
                             child: Text(
                               quotation.contactName ?? '-',
                               style: const TextStyle(fontSize: 16),
+                              textAlign: TextAlign.left,
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          Container(
+                            width: 200,
+                            child: Text(
+                              _getProductNames(quotation),
+                              style: const TextStyle(fontSize: 14),
                               textAlign: TextAlign.left,
                             ),
                           ),
@@ -680,6 +699,21 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
 
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+
+  String _getProductNames(Quotation quotation) {
+    if (quotation.items.isEmpty) return '-';
+    
+    // แสดงแค่ 3 รายการแรก
+    final itemsToShow = quotation.items.take(3).toList();
+    final names = itemsToShow.map((item) => item.productName).join('\n');
+    
+    // ถ้ามีมากกว่า 3 รายการ แสดง ... ต่อท้าย
+    if (quotation.items.length > 3) {
+      return '$names\n... (+${quotation.items.length - 3} รายการ)';
+    }
+    
+    return names;
   }
 
   Color _getStatusColor(String status) {
