@@ -20,98 +20,30 @@ import '../screens/quotation_form_screen.dart';
 class AppRouter {
   static final GoRouter _router = GoRouter(
     routes: [
-      // Product detail route (outside shell for direct access)
-      GoRoute(
-        path: '/product/:id',
-        builder: (context, state) {
-          final productId = state.pathParameters['id']!;
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('รายละเอียดสินค้า'),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.go('/'),
-              ),
-            ),
-            body: ProductDetailScreen(productId: productId),
-          );
-        },
-      ),
-      // Customer detail route (outside shell for direct access)
-      GoRoute(
-        path: '/customer/:id',
-        builder: (context, state) {
-          final customerId = state.pathParameters['id']!;
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('รายละเอียดลูกค้า'),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.go('/customers'),
-              ),
-            ),
-            body: CustomerDetailScreen(customerId: customerId),
-          );
-        },
-      ),
-      // Purchase detail route (outside shell for direct access)
-      GoRoute(
-        path: '/purchase/:id',
-        builder: (context, state) {
-          final purchaseId = state.pathParameters['id']!;
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('รายละเอียดการซื้อ'),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.go('/purchases'),
-              ),
-            ),
-            body: PurchaseDetailScreen(purchaseId: purchaseId),
-          );
-        },
-      ),
-      // Sale detail route (outside shell for direct access)
-      GoRoute(
-        path: '/sale/:id',
-        builder: (context, state) {
-          final saleId = state.pathParameters['id']!;
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('รายละเอียดการขาย'),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.go('/sales'),
-              ),
-            ),
-            body: SaleDetailScreen(saleId: saleId),
-          );
-        },
-      ),
-      // Quotation detail route (outside shell for direct access)
-      GoRoute(
-        path: '/quotation/:id',
-        builder: (context, state) {
-          final quotationId = state.pathParameters['id']!;
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('รายละเอียดเสนอราคา'),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.go('/quotations'),
-              ),
-            ),
-            body: QuotationDetailScreen(quotationId: quotationId),
-          );
-        },
-      ),
-      // Main route with bottom navigation
+      // Main route with sidebar navigation - includes all pages
       ShellRoute(
         builder: (context, state, child) => MainScreen(child: child),
         routes: [
           GoRoute(
             path: '/',
             builder: (context, state) => const ProductListScreen(),
+          ),
+          // Product detail route
+          GoRoute(
+            path: '/product/:id',
+            builder: (context, state) {
+              final productId = state.pathParameters['id']!;
+              return Scaffold(
+                appBar: AppBar(
+                  title: const Text('รายละเอียดสินค้า'),
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => context.go('/'),
+                  ),
+                ),
+                body: ProductDetailScreen(productId: productId),
+              );
+            },
           ),
           // Product form route
           GoRoute(
@@ -128,6 +60,23 @@ class AppRouter {
             path: '/customers',
             builder: (context, state) => const CustomerListScreen(),
           ),
+          // Customer detail route
+          GoRoute(
+            path: '/customer/:id',
+            builder: (context, state) {
+              final customerId = state.pathParameters['id']!;
+              return Scaffold(
+                appBar: AppBar(
+                  title: const Text('รายละเอียดลูกค้า'),
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => context.go('/customers'),
+                  ),
+                ),
+                body: CustomerDetailScreen(customerId: customerId),
+              );
+            },
+          ),
           GoRoute(
             path: '/customer-form',
             builder: (context, state) {
@@ -142,6 +91,23 @@ class AppRouter {
             path: '/purchases',
             builder: (context, state) => const PurchaseListScreen(),
           ),
+          // Purchase detail route
+          GoRoute(
+            path: '/purchase/:id',
+            builder: (context, state) {
+              final purchaseId = state.pathParameters['id']!;
+              return Scaffold(
+                appBar: AppBar(
+                  title: const Text('รายละเอียดการซื้อ'),
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => context.go('/purchases'),
+                  ),
+                ),
+                body: PurchaseDetailScreen(purchaseId: purchaseId),
+              );
+            },
+          ),
           GoRoute(
             path: '/purchase-form',
             builder: (context, state) {
@@ -155,6 +121,23 @@ class AppRouter {
           GoRoute(
             path: '/sales',
             builder: (context, state) => const SaleListScreen(),
+          ),
+          // Sale detail route
+          GoRoute(
+            path: '/sale/:id',
+            builder: (context, state) {
+              final saleId = state.pathParameters['id']!;
+              return Scaffold(
+                appBar: AppBar(
+                  title: const Text('รายละเอียดการขาย'),
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => context.go('/sales'),
+                  ),
+                ),
+                body: SaleDetailScreen(saleId: saleId),
+              );
+            },
           ),
           GoRoute(
             path: '/sale-form',
@@ -173,6 +156,23 @@ class AppRouter {
           GoRoute(
             path: '/quotations',
             builder: (context, state) => const QuotationListScreen(),
+          ),
+          // Quotation detail route
+          GoRoute(
+            path: '/quotation/:id',
+            builder: (context, state) {
+              final quotationId = state.pathParameters['id']!;
+              return Scaffold(
+                appBar: AppBar(
+                  title: const Text('รายละเอียดเสนอราคา'),
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => context.go('/quotations'),
+                  ),
+                ),
+                body: QuotationDetailScreen(quotationId: quotationId),
+              );
+            },
           ),
           GoRoute(
             path: '/quotation-form',

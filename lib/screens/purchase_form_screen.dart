@@ -126,9 +126,18 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final purchaseId = widget.purchase?.id ?? widget.purchaseId;
+    
     return Scaffold(
       appBar: ResponsiveAppBar(
         title: _isEdit ? 'แก้ไขรายการซื้อ' : 'เพิ่มรายการซื้อใหม่',
+        leading: _isEdit && purchaseId != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => context.go('/purchase/$purchaseId'),
+                tooltip: 'กลับไปหน้ารายละเอียด',
+              )
+            : null,
         actions: [
           if (_isLoading)
             const Padding(

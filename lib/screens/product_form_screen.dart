@@ -169,9 +169,18 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   @override
   Widget build(BuildContext context) {
     
+    final productId = widget.product?.id ?? widget.productId;
+    
     return Scaffold(
       appBar: ResponsiveAppBar(
         title: _isEdit ? 'แก้ไขสินค้า' : 'เพิ่มสินค้าใหม่',
+        leading: _isEdit && productId != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => context.go('/product/$productId'),
+                tooltip: 'กลับไปหน้ารายละเอียด',
+              )
+            : null,
         actions: [
           if (_isLoading)
             const Padding(

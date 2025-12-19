@@ -154,9 +154,18 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final quotationId = widget.quotation?.id ?? widget.quotationId;
+    
     return Scaffold(
       appBar: ResponsiveAppBar(
         title: _isEdit ? 'แก้ไขเสนอราคา' : 'เพิ่มเสนอราคา',
+        leading: _isEdit && quotationId != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => context.go('/quotation/$quotationId'),
+                tooltip: 'กลับไปหน้ารายละเอียด',
+              )
+            : null,
         actions: [
           if (_isEdit)
             IconButton(

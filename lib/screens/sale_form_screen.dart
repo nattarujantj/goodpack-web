@@ -278,9 +278,18 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final saleId = widget.sale?.id ?? widget.saleId;
+    
     return Scaffold(
       appBar: ResponsiveAppBar(
         title: _isEdit ? 'แก้ไขรายการขาย' : 'เพิ่มรายการขายใหม่',
+        leading: _isEdit && saleId != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => context.go('/sale/$saleId'),
+                tooltip: 'กลับไปหน้ารายละเอียด',
+              )
+            : null,
         actions: [
           if (_isLoading)
             const Padding(

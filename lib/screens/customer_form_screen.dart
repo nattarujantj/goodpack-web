@@ -82,9 +82,18 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final customerId = widget.customer?.id ?? widget.customerId;
+    
     return Scaffold(
       appBar: ResponsiveAppBar(
         title: _isEdit ? 'แก้ไขลูกค้า' : 'เพิ่มลูกค้าใหม่',
+        leading: _isEdit && customerId != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => context.go('/customer/$customerId'),
+                tooltip: 'กลับไปหน้ารายละเอียด',
+              )
+            : null,
         actions: [
           if (_isLoading)
             const Padding(

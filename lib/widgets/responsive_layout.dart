@@ -157,6 +157,8 @@ class ResponsiveAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool centerTitle;
   final Color? backgroundColor;
   final Color? foregroundColor;
+  final Widget? leading;
+  final bool automaticallyImplyLeading;
 
   const ResponsiveAppBar({
     Key? key,
@@ -165,6 +167,8 @@ class ResponsiveAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.centerTitle = true,
     this.backgroundColor,
     this.foregroundColor,
+    this.leading,
+    this.automaticallyImplyLeading = true,
   }) : super(key: key);
 
   @override
@@ -172,6 +176,8 @@ class ResponsiveAppBar extends StatelessWidget implements PreferredSizeWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         return AppBar(
+          leading: leading,
+          automaticallyImplyLeading: automaticallyImplyLeading,
           title: ResponsiveText(
             title,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
