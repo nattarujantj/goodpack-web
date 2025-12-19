@@ -639,8 +639,15 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
   Widget _buildCustomerDropdown() {
     return Consumer<CustomerProvider>(
       builder: (context, customerProvider, child) {
-        // แสดง loading indicator ถ้ากำลังโหลด
-        if (customerProvider.isLoading) {
+        // แสดง loading indicator ถ้ากำลังโหลด หรือยังไม่มีข้อมูล
+        if (customerProvider.isLoading || customerProvider.allCustomers.isEmpty) {
+          // โหลดข้อมูลถ้ายังไม่ได้โหลด
+          if (!customerProvider.isLoading && customerProvider.allCustomers.isEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              customerProvider.loadCustomers();
+            });
+          }
+          
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -671,11 +678,6 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
               ),
             ],
           );
-        }
-        
-        // โหลดข้อมูลถ้ายังไม่มี
-        if (customerProvider.allCustomers.isEmpty) {
-          customerProvider.loadCustomers();
         }
         
         return SearchableDropdown<String>(
@@ -1114,8 +1116,15 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
   Widget _buildAddItemDialog() {
     return Consumer<ProductProvider>(
       builder: (context, productProvider, child) {
-        // แสดง loading indicator ถ้ากำลังโหลด
-        if (productProvider.isLoading) {
+        // แสดง loading indicator ถ้ากำลังโหลด หรือยังไม่มีข้อมูล
+        if (productProvider.isLoading || productProvider.allProducts.isEmpty) {
+          // โหลดข้อมูลถ้ายังไม่ได้โหลด
+          if (!productProvider.isLoading && productProvider.allProducts.isEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              productProvider.loadProducts();
+            });
+          }
+          
           return AlertDialog(
             title: const Text('เพิ่มสินค้า'),
             content: const SizedBox(
@@ -1132,11 +1141,6 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
               ),
             ),
           );
-        }
-        
-        // โหลดข้อมูลถ้ายังไม่มี
-        if (productProvider.allProducts.isEmpty) {
-          productProvider.loadProducts();
         }
         
         return AlertDialog(
@@ -1193,8 +1197,15 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
   Widget _buildAddWarehouseItemDialog() {
     return Consumer<ProductProvider>(
       builder: (context, productProvider, child) {
-        // แสดง loading indicator ถ้ากำลังโหลด
-        if (productProvider.isLoading) {
+        // แสดง loading indicator ถ้ากำลังโหลด หรือยังไม่มีข้อมูล
+        if (productProvider.isLoading || productProvider.allProducts.isEmpty) {
+          // โหลดข้อมูลถ้ายังไม่ได้โหลด
+          if (!productProvider.isLoading && productProvider.allProducts.isEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              productProvider.loadProducts();
+            });
+          }
+          
           return AlertDialog(
             title: const Text('เพิ่มสินค้าคลัง'),
             content: const SizedBox(
@@ -1211,11 +1222,6 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
               ),
             ),
           );
-        }
-        
-        // โหลดข้อมูลถ้ายังไม่มี
-        if (productProvider.allProducts.isEmpty) {
-          productProvider.loadProducts();
         }
         
         return AlertDialog(
