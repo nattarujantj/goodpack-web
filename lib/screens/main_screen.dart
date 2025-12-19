@@ -15,7 +15,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   late PageController _pageController;
-  
+
   // สำหรับ ExpansionTile
   bool _isPurchaseExpanded = false;
   bool _isSaleExpanded = false;
@@ -239,7 +239,7 @@ class _MainScreenState extends State<MainScreen> {
                     _buildSubNavItem('VAT', '/sales?vat=true'),
                     _buildSubNavItem('Non-VAT', '/sales?vat=false'),
                   ],
-                ),
+                    ),
                 
                 // เสนอราคา - มีเมนูย่อย
                 _buildExpandableNavItem(

@@ -30,6 +30,9 @@ class _SaleListScreenState extends State<SaleListScreen> {
   
   // Customer filter
   String? _selectedCustomerId;
+  
+  // Draggable FAB position
+  Offset _fabPosition = const Offset(16, 16); // Bottom-right offset
 
   @override
   void initState() {
@@ -85,120 +88,141 @@ class _SaleListScreenState extends State<SaleListScreen> {
           ),
         ],
       ),
-      body: Consumer<SaleProvider>(
-        builder: (context, saleProvider, child) {
-          if (saleProvider.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+      body: Stack(
+        children: [
+          Consumer<SaleProvider>(
+            builder: (context, saleProvider, child) {
+              if (saleProvider.isLoading) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
 
-          if (saleProvider.error != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Colors.red[300],
-                  ),
-                  const SizedBox(height: 16),
-                  ResponsiveText(
-                    saleProvider.error!,
-                    style: TextStyle(
-                      color: Colors.red[700],
-                      fontSize: 16,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () => saleProvider.loadSales(),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('ลองใหม่'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          final filteredSales = _getFilteredSales(saleProvider.sales);
-          final searchedSales = _getSearchedSales(filteredSales);
-          final sortedSales = _getSortedSales(searchedSales);
-
-          return SingleChildScrollView(
-              child: Column(
-              children: [
-                // Filters Section
-                _buildFiltersSection(saleProvider),
-                
-                // Sale Count
-                ResponsivePadding(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ResponsiveText(
-                        'แสดง ${sortedSales.length} จาก ${saleProvider.sales.length} รายการ',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                      if (_hasActiveFilters())
-                        TextButton.icon(
-                          onPressed: _clearFilters,
-                          icon: const Icon(Icons.clear, size: 16),
-                          label: const Text('ล้างตัวกรอง'),
-                  ),
-                ],
-              ),
-                ),
-                
-                // Sale Table
-                sortedSales.isEmpty
-                    ? _buildEmptyState()
-                    : Column(
-                        children: [
-                          // Scroll indicator
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            child: Row(
-            children: [
-                                Icon(Icons.swipe_left, size: 16, color: Colors.grey[600]),
-                                const SizedBox(width: 8),
-                                ResponsiveText(
-                                  'เลื่อนซ้าย-ขวาเพื่อดูคอลัมน์ทั้งหมด',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          _buildSalesTable(sortedSales),
-                        ],
+              if (saleProvider.error != null) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red[300],
                       ),
-              ],
+                      const SizedBox(height: 16),
+                      ResponsiveText(
+                        saleProvider.error!,
+                        style: TextStyle(
+                          color: Colors.red[700],
+                          fontSize: 16,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () => saleProvider.loadSales(),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('ลองใหม่'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              final filteredSales = _getFilteredSales(saleProvider.sales);
+              final searchedSales = _getSearchedSales(filteredSales);
+              final sortedSales = _getSortedSales(searchedSales);
+
+              return SingleChildScrollView(
+                  child: Column(
+                  children: [
+                    // Filters Section
+                    _buildFiltersSection(saleProvider),
+                    
+                    // Sale Count
+                    ResponsivePadding(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ResponsiveText(
+                            'แสดง ${sortedSales.length} จาก ${saleProvider.sales.length} รายการ',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                          if (_hasActiveFilters())
+                            TextButton.icon(
+                              onPressed: _clearFilters,
+                              icon: const Icon(Icons.clear, size: 16),
+                              label: const Text('ล้างตัวกรอง'),
+                      ),
+                    ],
+                  ),
+                    ),
+                    
+                    // Sale Table
+                    sortedSales.isEmpty
+                        ? _buildEmptyState()
+                        : Column(
+                            children: [
+                              // Scroll indicator
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                child: Row(
+                children: [
+                                    Icon(Icons.swipe_left, size: 16, color: Colors.grey[600]),
+                                    const SizedBox(width: 8),
+                                    ResponsiveText(
+                                      'เลื่อนซ้าย-ขวาเพื่อดูคอลัมน์ทั้งหมด',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              _buildSalesTable(sortedSales),
+                              const SizedBox(height: 80), // Space for FAB
+                            ],
+                          ),
+                  ],
+                ),
+              );
+            },
+          ),
+          // Draggable FAB
+          Positioned(
+            right: _fabPosition.dx,
+            bottom: _fabPosition.dy,
+            child: GestureDetector(
+              onPanUpdate: (details) {
+                setState(() {
+                  _fabPosition = Offset(
+                    (_fabPosition.dx - details.delta.dx).clamp(0.0, MediaQuery.of(context).size.width - 180),
+                    (_fabPosition.dy - details.delta.dy).clamp(0.0, MediaQuery.of(context).size.height - 200),
+                  );
+                });
+              },
+              child: FloatingActionButton.extended(
+                onPressed: () => context.push('/sale-form'),
+                icon: const Icon(Icons.add),
+                label: const Text('เพิ่มรายการขาย'),
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+              ),
             ),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go('/sale-form'),
-        icon: const Icon(Icons.add),
-        label: const Text('เพิ่มรายการขาย'),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
+          ),
+        ],
       ),
     );
   }
+  
 
   Widget _buildFiltersSection(SaleProvider saleProvider) {
     return Card(
       margin: const EdgeInsets.all(16),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -250,30 +274,30 @@ class _SaleListScreenState extends State<SaleListScreen> {
             
             // VAT Filter
             Row(
-              children: [
+        children: [
                 Expanded(
                   child: ResponsiveText(
                     'ประเภท VAT:',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
                     ),
-                  ),
-                ),
+            ),
+          ),
                 Expanded(
                   flex: 2,
                   child: DropdownButton<String?>(
-                    value: _vatFilter,
+            value: _vatFilter,
                     isExpanded: true,
                     onChanged: (value) {
                       setState(() {
                         _vatFilter = value;
                       });
                     },
-                    items: const [
-                      DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
+            items: const [
+              DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
                       DropdownMenuItem<String?>(value: 'VAT', child: Text('VAT')),
                       DropdownMenuItem<String?>(value: 'Non-VAT', child: Text('Non-VAT')),
-                    ],
+            ],
                   ),
                 ),
               ],
@@ -612,11 +636,11 @@ class _SaleListScreenState extends State<SaleListScreen> {
                         DataCell(
                           Container(
                             width: 150,
-                            child: Text(
-                              sale.saleCode,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
+                              child: Text(
+                                sale.saleCode,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -625,13 +649,13 @@ class _SaleListScreenState extends State<SaleListScreen> {
                         DataCell(
                           Container(
                             width: 200,
-                            child: Text(
-                              sale.customerName,
+                    child: Text(
+                                sale.customerName,
                               style: const TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 16,
-                              ),
-                              textAlign: TextAlign.left,
+                        fontWeight: FontWeight.w500,
+                                  fontSize: 16,
+                                ),
+                                textAlign: TextAlign.left,
                             ),
                           ),
                         ),

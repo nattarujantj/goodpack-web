@@ -44,24 +44,24 @@ class AppRouter {
             ),
           ),
           // Product detail route
-          GoRoute(
-            path: '/product/:id',
+      GoRoute(
+        path: '/product/:id',
             pageBuilder: (context, state) {
-              final productId = state.pathParameters['id']!;
+          final productId = state.pathParameters['id']!;
               return _noAnimationPage(
                 Scaffold(
-                  appBar: AppBar(
-                    title: const Text('รายละเอียดสินค้า'),
-                    leading: IconButton(
-                      icon: const Icon(Icons.arrow_back),
-                      onPressed: () => context.go('/'),
-                    ),
-                  ),
-                  body: ProductDetailScreen(productId: productId),
+            appBar: AppBar(
+              title: const Text('รายละเอียดสินค้า'),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => context.go('/'),
+              ),
+            ),
+            body: ProductDetailScreen(productId: productId),
                 ),
                 state,
-              );
-            },
+          );
+        },
           ),
           // Product form route
           GoRoute(
@@ -71,7 +71,7 @@ class AppRouter {
               final duplicateId = state.uri.queryParameters['duplicateId'];
               return _noAnimationPage(
                 ProductFormScreen(
-                  productId: productId,
+                productId: productId,
                   duplicateId: duplicateId,
                 ),
                 state,
@@ -113,7 +113,7 @@ class AppRouter {
               final duplicateId = state.uri.queryParameters['duplicateId'];
               return _noAnimationPage(
                 CustomerFormScreen(
-                  customerId: customerId,
+                customerId: customerId,
                   duplicateId: duplicateId,
                 ),
                 state,
@@ -164,7 +164,7 @@ class AppRouter {
               final duplicateId = state.uri.queryParameters['duplicateId'];
               return _noAnimationPage(
                 PurchaseFormScreen(
-                  purchaseId: purchaseId,
+                purchaseId: purchaseId,
                   duplicateId: duplicateId,
                 ),
                 state,
@@ -216,8 +216,8 @@ class AppRouter {
               final duplicateId = state.uri.queryParameters['duplicateId'];
               return _noAnimationPage(
                 SaleFormScreen(
-                  saleId: saleId,
-                  quotationId: quotationId,
+                saleId: saleId,
+                quotationId: quotationId,
                   duplicateId: duplicateId,
                 ),
                 state,
@@ -268,7 +268,7 @@ class AppRouter {
               final duplicateId = state.uri.queryParameters['duplicateId'];
               return _noAnimationPage(
                 QuotationFormScreen(
-                  quotationId: quotationId,
+                quotationId: quotationId,
                   duplicateId: duplicateId,
                 ),
                 state,

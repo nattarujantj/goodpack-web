@@ -772,11 +772,11 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
             
             return _AddItemDialog(
               products: productProvider.allProducts,
-              onAdd: (item) {
-                setState(() {
-                  _quotationItems.add(item);
-                });
-              },
+        onAdd: (item) {
+          setState(() {
+            _quotationItems.add(item);
+          });
+        },
             );
           },
         );

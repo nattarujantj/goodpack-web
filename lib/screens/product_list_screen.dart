@@ -340,15 +340,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   DataCell(
                     Container(
                       width: 150,
-                      child: Text(
-                        product.name,
+                        child: Text(
+                          product.name,
                         style: const TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                          ),
+                          textAlign: TextAlign.left,
                         ),
-                        textAlign: TextAlign.left,
                       ),
-                    ),
                     onTap: () => _navigateToProductDetail(product.id),
                   ),
                   DataCell(
@@ -835,15 +835,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       DataCell(
                         Container(
                           width: 150,
-                          child: Text(
-                            product.name,
+                            child: Text(
+                              product.name,
                             style: const TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
+                              textAlign: TextAlign.left,
                             ),
-                            textAlign: TextAlign.left,
                           ),
-                        ),
                         onTap: () => _navigateToProductDetail(product.id),
                       ),
                       DataCell(

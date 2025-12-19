@@ -596,7 +596,7 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
     );
     
     final confirmed = await showDialog<bool>(
-      context: context,
+        context: context,
       builder: (context) => AlertDialog(
         title: const Text('ระบุชื่อผู้ลงนาม'),
         content: TextField(
@@ -616,8 +616,8 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('พิมพ์ PDF'),
           ),
-        ],
-      ),
+            ],
+          ),
     );
     
     if (confirmed != true) return;

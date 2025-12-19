@@ -801,8 +801,8 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     );
     
     final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
+        context: context,
+        builder: (context) => AlertDialog(
         title: const Text('ระบุชื่อผู้ลงนาม'),
         content: TextField(
           controller: signerNameController,

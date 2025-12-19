@@ -214,17 +214,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Widget _buildSquareImage(Product product, double size) {
     return GestureDetector(
-      onTap: () => _showImageOptions(product),
-      child: Container(
+              onTap: () => _showImageOptions(product),
+              child: Container(
         height: size,
         width: size,
-        decoration: BoxDecoration(
+                decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           color: Colors.grey[100],
-          border: Border.all(
-            color: Colors.grey[300]!,
-            width: 1,
-          ),
+                  border: Border.all(
+                    color: Colors.grey[300]!,
+                    width: 1,
+                  ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.08),
@@ -232,74 +232,74 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               offset: const Offset(0, 2),
             ),
           ],
-        ),
-        child: Stack(
-          children: [
-            // Image or placeholder
-            ClipRRect(
+                ),
+                child: Stack(
+                  children: [
+                    // Image or placeholder
+                    ClipRRect(
               borderRadius: BorderRadius.circular(11),
-              child: product.imageUrl != null
-                  ? Image.network(
-                      ImageUploadService.getImageUrl(product.imageUrl),
-                      fit: BoxFit.cover,
+                      child: product.imageUrl != null
+                          ? Image.network(
+                              ImageUploadService.getImageUrl(product.imageUrl),
+                              fit: BoxFit.cover,
                       width: size,
                       height: size,
                       errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage(size),
-                    )
+                            )
                   : _buildPlaceholderImage(size),
-            ),
-            
-            // Upload progress overlay
-            if (_isUploadingImage)
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.black54,
+                    ),
+                    
+                    // Upload progress overlay
+                    if (_isUploadingImage)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
                   borderRadius: BorderRadius.circular(11),
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(
-                        value: _uploadProgress,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'กำลังอัพโหลด... ${(_uploadProgress * 100).toInt()}%',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(
+                                value: _uploadProgress,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'กำลังอัพโหลด... ${(_uploadProgress * 100).toInt()}%',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ],
-                  ),
+                    
+                    // Upload button overlay
+                    if (!_isUploadingImage)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            onPressed: () => _showImageOptions(product),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-            
-            // Upload button overlay
-            if (!_isUploadingImage)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.camera_alt,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    onPressed: () => _showImageOptions(product),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -320,13 +320,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
+              style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
         ),
-      ],
+          ],
     );
   }
 
@@ -339,10 +339,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         color: Colors.grey[100],
       ),
       child: Center(
-        child: Icon(
-          Icons.inventory_2,
+      child: Icon(
+        Icons.inventory_2,
           size: size * 0.35,
-          color: Colors.grey[400],
+        color: Colors.grey[400],
         ),
       ),
     );
@@ -852,8 +852,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 Expanded(
                   child: _buildReadOnlyField(
                     label: 'คงเหลือจริง',
-                    value: NumberFormatter.formatQuantity(product.stock.actualStock),
-                    isNegative: true,
+              value: NumberFormatter.formatQuantity(product.stock.actualStock),
+              isNegative: true,
                   ),
                 ),
               ],
@@ -1396,7 +1396,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                         fontSize: 16,
                                       ),
                                     ),
-                                  ),
+                                    ),
                                 ],
                               ),
                               subtitle: Column(

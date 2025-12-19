@@ -133,12 +133,12 @@ class ConfigService {
 
   Future<void> _loadCategories() async {
     try {
-      final response = await http.get(
-        Uri.parse('${AppConfig.baseUrl}/config/categories'),
-        headers: {'Content-Type': 'application/json'},
+    final response = await http.get(
+      Uri.parse('${AppConfig.baseUrl}/config/categories'),
+      headers: {'Content-Type': 'application/json'},
       ).timeout(const Duration(seconds: 10));
 
-      if (response.statusCode == 200) {
+    if (response.statusCode == 200) {
         if (response.body.isNotEmpty && response.body != 'null') {
           final decoded = json.decode(response.body);
           if (decoded is List) {
@@ -155,12 +155,12 @@ class ConfigService {
 
   Future<void> _loadColors() async {
     try {
-      final response = await http.get(
-        Uri.parse('${AppConfig.baseUrl}/config/colors'),
-        headers: {'Content-Type': 'application/json'},
+    final response = await http.get(
+      Uri.parse('${AppConfig.baseUrl}/config/colors'),
+      headers: {'Content-Type': 'application/json'},
       ).timeout(const Duration(seconds: 10));
 
-      if (response.statusCode == 200) {
+    if (response.statusCode == 200) {
         if (response.body.isNotEmpty && response.body != 'null') {
           final decoded = json.decode(response.body);
           if (decoded is List) {
@@ -177,12 +177,12 @@ class ConfigService {
 
   Future<void> _loadAccounts() async {
     try {
-      final response = await http.get(
-        Uri.parse('${AppConfig.baseUrl}/config/accounts'),
-        headers: {'Content-Type': 'application/json'},
+    final response = await http.get(
+      Uri.parse('${AppConfig.baseUrl}/config/accounts'),
+      headers: {'Content-Type': 'application/json'},
       ).timeout(const Duration(seconds: 10));
 
-      if (response.statusCode == 200) {
+    if (response.statusCode == 200) {
         if (response.body.isNotEmpty && response.body != 'null') {
           final decoded = json.decode(response.body);
           if (decoded is List) {

@@ -447,10 +447,10 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
               onChanged: _isEdit 
                 ? null  // Disable ในหน้า edit
                 : (value) {
-                    setState(() {
-                      _isVAT = value ?? false;
-                    });
-                  },
+                setState(() {
+                  _isVAT = value ?? false;
+                });
+              },
               controlAffinity: ListTileControlAffinity.leading,
             ),
             
@@ -1106,23 +1106,23 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     final hasOnTap = onTap != null;
     
     Widget textField = TextFormField(
-      controller: controller,
-      decoration: InputDecoration(
-        hintText: hint,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 12,
-        ),
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: hint,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
         filled: isReadOnly,
         fillColor: isReadOnly ? Colors.grey.shade200 : null,
-      ),
-      maxLines: maxLines,
-      keyboardType: keyboardType,
-      validator: validator,
-      onTap: onTap,
+          ),
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          validator: validator,
+          onTap: onTap,
       readOnly: isReadOnly || hasOnTap,
       style: isReadOnly ? TextStyle(color: Colors.grey.shade600) : null,
     );

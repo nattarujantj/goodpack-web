@@ -25,10 +25,10 @@ class PdfServiceThaiEnhanced {
         // ไม่ revoke URL ทันทีเพราะจะทำให้ tab ใหม่โหลด PDF ไม่ได้
       } else {
         // สำหรับ mobile/desktop ใช้ Printing.layoutPdf
-        await Printing.layoutPdf(
+      await Printing.layoutPdf(
           onLayout: (PdfPageFormat format) async => pdfBytes,
-          name: 'ใบเสนอราคา_${quotation.quotationCode}.pdf',
-        );
+        name: 'ใบเสนอราคา_${quotation.quotationCode}.pdf',
+      );
       }
     } catch (e) {
       throw Exception('เกิดข้อผิดพลาดในการสร้าง PDF: $e');

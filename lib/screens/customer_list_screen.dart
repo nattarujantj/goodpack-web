@@ -252,13 +252,13 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                         DataCell(
                           Container(
                             width: 200,
-                            child: Text(
-                              customer.companyName,
+                              child: Text(
+                                customer.companyName,
                               style: const TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 16,
-                              ),
-                              textAlign: TextAlign.left,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 16,
+                                ),
+                                textAlign: TextAlign.left,
                             ),
                           ),
                         ),
