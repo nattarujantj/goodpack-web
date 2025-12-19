@@ -988,6 +988,22 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
+  DateTime _parseDate(String dateStr) {
+    try {
+      final parts = dateStr.split('/');
+      if (parts.length == 3) {
+        return DateTime(
+          int.parse(parts[2]), // year
+          int.parse(parts[1]), // month
+          int.parse(parts[0]), // day
+        );
+      }
+    } catch (e) {
+      // Fall back to now if parsing fails
+    }
+    return DateTime.now();
+  }
+
   String _formatCustomerDisplay(Customer customer) {
     final parts = <String>[];
     
@@ -1331,7 +1347,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 
     try {
       final purchaseRequest = PurchaseRequest(
-        purchaseDate: DateTime.now(), // TODO: Parse from controller
+        purchaseDate: _parseDate(_purchaseDateController.text),
         customerId: _selectedCustomerId!,
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         items: _purchaseItems,

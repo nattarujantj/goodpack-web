@@ -1087,6 +1087,22 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
+  DateTime _parseDate(String dateStr) {
+    try {
+      final parts = dateStr.split('/');
+      if (parts.length == 3) {
+        return DateTime(
+          int.parse(parts[2]), // year
+          int.parse(parts[1]), // month
+          int.parse(parts[0]), // day
+        );
+      }
+    } catch (e) {
+      // Fall back to now if parsing fails
+    }
+    return DateTime.now();
+  }
+
   String _formatCustomerDisplay(Customer customer) {
     final parts = <String>[];
     
@@ -1428,7 +1444,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
 
     try {
       final saleRequest = SaleRequest(
-        saleDate: DateTime.now(),
+        saleDate: _parseDate(_saleDateController.text),
         customerId: _selectedCustomerId!,
         items: _saleItems,
         isVAT: _isVAT,
