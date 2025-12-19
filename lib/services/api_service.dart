@@ -28,7 +28,24 @@ class ApiService {
           .timeout(Duration(milliseconds: AppConfig.connectTimeout));
 
       if (response.statusCode == 200) {
-        final List<dynamic> jsonList = json.decode(response.body);
+        // Handle null, empty, or "null" string response
+        if (response.body.isEmpty || response.body == 'null') {
+          return [];
+        }
+        
+        final decoded = json.decode(response.body);
+        
+        // Handle null after decode
+        if (decoded == null) {
+          return [];
+        }
+        
+        // Handle if decoded is not a List
+        if (decoded is! List) {
+          return [];
+        }
+        
+        final List<dynamic> jsonList = decoded;
         return jsonList.map((json) => Product.fromJson(json)).toList();
       } else {
         throw ApiException('Failed to load products: ${response.statusCode}');
