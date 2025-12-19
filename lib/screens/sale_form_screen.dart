@@ -944,7 +944,39 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     VoidCallback? onTap,
     bool readOnly = false,
   }) {
-    final isReadOnly = readOnly || onTap != null;
+    final isReadOnly = readOnly && onTap == null;
+    final hasOnTap = onTap != null;
+    
+    Widget textField = TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        hintText: hint,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 12,
+        ),
+        filled: isReadOnly,
+        fillColor: isReadOnly ? Colors.grey.shade200 : null,
+      ),
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      validator: validator,
+      onTap: onTap,
+      readOnly: isReadOnly || hasOnTap,
+      style: isReadOnly ? TextStyle(color: Colors.grey.shade600) : null,
+    );
+    
+    // Wrap with IgnorePointer if readOnly to completely block interaction
+    if (isReadOnly) {
+      textField = IgnorePointer(
+        ignoring: true,
+        child: textField,
+      );
+    }
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -956,27 +988,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: hint,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 12,
-            ),
-            filled: isReadOnly,
-            fillColor: isReadOnly ? Colors.grey.shade100 : null,
-          ),
-          maxLines: maxLines,
-          keyboardType: keyboardType,
-          validator: validator,
-          onTap: onTap,
-          readOnly: isReadOnly,
-          enabled: !isReadOnly,
-        ),
+        textField,
       ],
     );
   }
