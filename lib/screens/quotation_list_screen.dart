@@ -270,6 +270,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
               scrollDirection: Axis.vertical,
               child: IntrinsicWidth(
                 child: DataTable(
+                  showCheckboxColumn: false,
                   columnSpacing: 2,
                   headingRowColor: MaterialStateProperty.all(Colors.grey[100]),
                   columns: [
