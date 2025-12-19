@@ -15,9 +15,22 @@ class PurchaseApiService {
         headers: {'Content-Type': 'application/json'},
       );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonData = json.decode(response.body);
-        return jsonData.map((json) => Purchase.fromJson(json)).toList();
+      // 200 = success, 404 = no data (treat as empty list)
+      if (response.statusCode == 200 || response.statusCode == 404) {
+        if (response.statusCode == 404) {
+          return [];
+        }
+        
+        if (response.body.isEmpty || response.body == 'null') {
+          return [];
+        }
+        
+        final decoded = json.decode(response.body);
+        if (decoded == null || decoded is! List) {
+          return [];
+        }
+        
+        return decoded.map((json) => Purchase.fromJson(json)).toList();
       } else {
         throw Exception('Failed to load purchases: ${response.statusCode}');
       }
