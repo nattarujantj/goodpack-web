@@ -49,7 +49,7 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
 
   void _initializeForm() {
     _quotationDateController.text = _formatDate(DateTime.now());
-    _shippingCostController.text = '0.00';
+    _shippingCostController.text = ''; // ปล่อยว่างให้ user กรอกเอง
     _validUntilController.text = _formatDate(DateTime.now().add(const Duration(days: 30)));
   }
 
