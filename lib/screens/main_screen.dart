@@ -376,6 +376,12 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onTabTapped(int index) {
+    // สำหรับเมนูที่มีเมนูย่อย (ซื้อ, ขาย, เสนอราคา) แสดง Bottom Sheet บนมือถือ/tablet
+    if (MediaQuery.of(context).size.width < 1200 && (index == 2 || index == 3 || index == 4)) {
+      _showVatFilterSheet(index);
+      return;
+    }
+    
     setState(() {
       _currentIndex = index;
     });
@@ -409,5 +415,99 @@ class _MainScreenState extends State<MainScreen> {
         );
       }
     }
+  }
+  
+  void _showVatFilterSheet(int menuIndex) {
+    String title;
+    String basePath;
+    IconData icon;
+    
+    switch (menuIndex) {
+      case 2:
+        title = 'รายการซื้อ';
+        basePath = '/purchases';
+        icon = Icons.shopping_cart;
+        break;
+      case 3:
+        title = 'รายการขาย';
+        basePath = '/sales';
+        icon = Icons.point_of_sale;
+        break;
+      case 4:
+        title = 'เสนอราคา';
+        basePath = '/quotations';
+        icon = Icons.description;
+        break;
+      default:
+        return;
+    }
+    
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(icon, color: Theme.of(context).primaryColor),
+                    const SizedBox(width: 12),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              
+              // Options
+              ListTile(
+                leading: const Icon(Icons.list),
+                title: const Text('ทั้งหมด'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.pop(context);
+                  setState(() => _currentIndex = menuIndex);
+                  context.go(basePath);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.check_circle, color: Colors.green),
+                title: const Text('VAT'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.pop(context);
+                  setState(() => _currentIndex = menuIndex);
+                  context.go('$basePath?vat=true');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.cancel, color: Colors.red),
+                title: const Text('Non-VAT'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.pop(context);
+                  setState(() => _currentIndex = menuIndex);
+                  context.go('$basePath?vat=false');
+                },
+              ),
+              
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
