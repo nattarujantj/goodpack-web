@@ -981,7 +981,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   void _editProduct() {
-    context.go('/product-form?id=${widget.productId}');
+    context.push('/product-form?id=${widget.productId}');
   }
 
   void _showImageOptions(Product product) {

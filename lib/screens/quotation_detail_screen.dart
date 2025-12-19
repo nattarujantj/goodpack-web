@@ -325,7 +325,7 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () => context.go('/quotation-form?id=${quotation.id}'),
+                onPressed: () => context.push('/quotation-form?id=${quotation.id}'),
                 icon: const Icon(Icons.edit, size: 18),
                 label: const Text('แก้ไข'),
                 style: ElevatedButton.styleFrom(

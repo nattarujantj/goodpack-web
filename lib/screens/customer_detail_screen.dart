@@ -175,6 +175,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
   }
 
   void _editCustomer() {
-    context.go('/customer-form?id=${widget.customerId}');
+    context.push('/customer-form?id=${widget.customerId}');
   }
 }

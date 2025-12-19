@@ -159,7 +159,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () => context.go('/sale-form?id=${_sale!.id}'),
+                onPressed: () => context.push('/sale-form?id=${_sale!.id}'),
                 icon: const Icon(Icons.edit, size: 18),
                 label: const Text('แก้ไข'),
                 style: ElevatedButton.styleFrom(

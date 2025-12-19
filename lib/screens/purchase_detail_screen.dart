@@ -504,6 +504,6 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
   }
 
   void _editPurchase() {
-    context.go('/purchase-form?id=${widget.purchaseId}');
+    context.push('/purchase-form?id=${widget.purchaseId}');
   }
 }
