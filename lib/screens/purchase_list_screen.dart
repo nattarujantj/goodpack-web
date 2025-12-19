@@ -130,6 +130,9 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
                 // Filters Section
                 _buildFiltersSection(purchaseProvider),
                 
+                // Summary Section
+                _buildSummarySection(filteredPurchases),
+                
                 // Purchase Count
                 ResponsivePadding(
                   child: Row(
@@ -842,6 +845,141 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildSummarySection(List<Purchase> purchases) {
+    // Calculate totals
+    double totalGrandAmount = 0.0;
+    double totalPaid = 0.0;
+    double totalUnpaid = 0.0;
+    double totalVAT = 0.0;
+    double totalBeforeVAT = 0.0;
+    
+    for (final purchase in purchases) {
+      totalGrandAmount += purchase.grandTotal;
+      totalVAT += purchase.totalVAT;
+      totalBeforeVAT += purchase.totalAmount;
+      
+      if (purchase.payment.isPaid) {
+        totalPaid += purchase.grandTotal;
+      } else {
+        totalUnpaid += purchase.grandTotal;
+      }
+    }
+    
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.blue[50],
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.summarize, color: Colors.blue[700], size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'สรุปยอด (${purchases.length} รายการ)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.blue[700],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(),
+            const SizedBox(height: 8),
+            
+            // Summary Grid
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth > 500;
+                
+                if (isWide) {
+                  // Desktop/Tablet: 2 rows
+                  return Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(child: _buildSummaryItem('ยอดก่อน VAT', totalBeforeVAT, Colors.grey[700]!)),
+                          Expanded(child: _buildSummaryItem('VAT', totalVAT, Colors.orange[700]!)),
+                          Expanded(child: _buildSummaryItem('ยอดรวมทั้งหมด', totalGrandAmount, Colors.blue[700]!)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: _buildSummaryItem('จ่ายแล้ว', totalPaid, Colors.green[700]!)),
+                          Expanded(child: _buildSummaryItem('ยังไม่จ่าย', totalUnpaid, Colors.red[700]!)),
+                          Expanded(child: Container()), // Empty spacer
+                        ],
+                      ),
+                    ],
+                  );
+                } else {
+                  // Mobile: Stack vertically
+                  return Column(
+                    children: [
+                      _buildSummaryItem('ยอดก่อน VAT', totalBeforeVAT, Colors.grey[700]!),
+                      const SizedBox(height: 8),
+                      _buildSummaryItem('VAT', totalVAT, Colors.orange[700]!),
+                      const SizedBox(height: 8),
+                      _buildSummaryItem('ยอดรวมทั้งหมด', totalGrandAmount, Colors.blue[700]!),
+                      const Divider(height: 16),
+                      _buildSummaryItem('จ่ายแล้ว', totalPaid, Colors.green[700]!),
+                      const SizedBox(height: 8),
+                      _buildSummaryItem('ยังไม่จ่าย', totalUnpaid, Colors.red[700]!),
+                    ],
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildSummaryItem(String label, double value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '฿${_formatNumber(value)}',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  String _formatNumber(double value) {
+    return value.toStringAsFixed(2).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
     );
   }
 
