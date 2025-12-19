@@ -44,9 +44,9 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
 
   void _initDefaultDateRange() {
     final now = DateTime.now();
-    // Default: first day of last month to today
+    // Default: first day of last month to last day of this month
     _startDate = DateTime(now.year, now.month - 1, 1);
-    _endDate = now;
+    _endDate = DateTime(now.year, now.month + 1, 0); // Last day of current month
   }
   
   @override
