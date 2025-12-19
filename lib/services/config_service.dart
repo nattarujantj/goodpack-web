@@ -80,21 +80,18 @@ class ConfigService {
   bool get isLoaded => _isLoaded;
 
   void initialize() {
-    if (kIsWeb) {
+    // Don't override dart-define settings - just load config
+    // The API URL is already set via --dart-define=API_BASE_URL
+    // Only configure runtime if dart-define is using default localhost value
+    if (kIsWeb && EnvConfig.apiBaseUrl == 'http://localhost:8080/api') {
       // Check if we're running on web and not localhost
       final hostname = html.window.location.hostname;
       if (hostname != null && hostname != 'localhost' && hostname != '127.0.0.1') {
-        // Running on mobile device or different host, try to use current host as API host
+        // Running on production server, try to use current host as API host
         EnvConfig.configureForMobile(hostname);
-      } else {
-        // Running on localhost
-        EnvConfig.configureForDevelopment();
       }
-    } else {
-      // For non-web platforms, default to development or specific mobile config
-      EnvConfig.configureForDevelopment(); // Or a specific mobile config if needed
     }
-    // You can also load initial config from server here if needed
+    // Load config from server
     loadConfig();
   }
 
@@ -129,44 +126,68 @@ class ConfigService {
   }
 
   Future<void> _loadCategories() async {
-    final response = await http.get(
-      Uri.parse('${AppConfig.baseUrl}/config/categories'),
-      headers: {'Content-Type': 'application/json'},
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('${AppConfig.baseUrl}/config/categories'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
 
-    if (response.statusCode == 200) {
-      final List<dynamic> jsonData = json.decode(response.body);
-      _categories = jsonData.map((json) => ConfigItem.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to load categories: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        if (response.body.isNotEmpty && response.body != 'null') {
+          final decoded = json.decode(response.body);
+          if (decoded is List) {
+            _categories = decoded.map((json) => ConfigItem.fromJson(json)).toList();
+          }
+        }
+      }
+      // Don't throw on error, just keep empty list
+    } catch (e) {
+      print('Error loading categories: $e');
+      // Keep empty list on error
     }
   }
 
   Future<void> _loadColors() async {
-    final response = await http.get(
-      Uri.parse('${AppConfig.baseUrl}/config/colors'),
-      headers: {'Content-Type': 'application/json'},
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('${AppConfig.baseUrl}/config/colors'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
 
-    if (response.statusCode == 200) {
-      final List<dynamic> jsonData = json.decode(response.body);
-      _colors = jsonData.map((json) => ConfigItem.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to load colors: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        if (response.body.isNotEmpty && response.body != 'null') {
+          final decoded = json.decode(response.body);
+          if (decoded is List) {
+            _colors = decoded.map((json) => ConfigItem.fromJson(json)).toList();
+          }
+        }
+      }
+      // Don't throw on error, just keep empty list
+    } catch (e) {
+      print('Error loading colors: $e');
+      // Keep empty list on error
     }
   }
 
   Future<void> _loadAccounts() async {
-    final response = await http.get(
-      Uri.parse('${AppConfig.baseUrl}/config/accounts'),
-      headers: {'Content-Type': 'application/json'},
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('${AppConfig.baseUrl}/config/accounts'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
 
-    if (response.statusCode == 200) {
-      final List<dynamic> jsonData = json.decode(response.body);
-      _accounts = jsonData.map((json) => AccountItem.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to load accounts: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        if (response.body.isNotEmpty && response.body != 'null') {
+          final decoded = json.decode(response.body);
+          if (decoded is List) {
+            _accounts = decoded.map((json) => AccountItem.fromJson(json)).toList();
+          }
+        }
+      }
+      // Don't throw on error, just keep empty list
+    } catch (e) {
+      print('Error loading accounts: $e');
+      // Keep empty list on error
     }
   }
 
