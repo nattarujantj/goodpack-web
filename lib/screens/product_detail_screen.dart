@@ -595,13 +595,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ResponsiveText(
-                  'ข้อมูลสต็อก',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+          children: [
+            ResponsiveText(
+              'ข้อมูลสต็อก',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
                 ),
                 Row(
                   children: [
