@@ -1000,15 +1000,26 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
                 },
                 items: [
                   const DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
-                  ...customers.map((customer) => DropdownMenuItem<String?>(
-                    value: customer.id,
-                    child: Text(
-                      customer.companyName.isNotEmpty 
-                          ? customer.companyName 
-                          : customer.contactName,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  )),
+                  ...customers.map((customer) {
+                    final companyName = customer.companyName.isNotEmpty ? customer.companyName : 'ไม่มีชื่อบริษัท';
+                    final contactName = customer.contactName.isNotEmpty ? customer.contactName : '';
+                    final phoneNumber = customer.phone.isNotEmpty ? customer.phone : '';
+                    final customerCode = customer.customerCode.isNotEmpty ? '[${customer.customerCode}]' : '';
+                    
+                    // Build display text: ชื่อบริษัท [รหัส] - ผู้ติดต่อ (เบอร์โทร)
+                    String displayText = companyName;
+                    if (customerCode.isNotEmpty) displayText += ' $customerCode';
+                    if (contactName.isNotEmpty) displayText += ' - $contactName';
+                    if (phoneNumber.isNotEmpty) displayText += ' ($phoneNumber)';
+                    
+                    return DropdownMenuItem<String?>(
+                      value: customer.id,
+                      child: Text(
+                        displayText,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }),
                 ],
               ),
             ),
