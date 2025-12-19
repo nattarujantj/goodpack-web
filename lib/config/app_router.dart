@@ -18,6 +18,17 @@ import '../screens/quotation_detail_screen.dart';
 import '../screens/quotation_form_screen.dart';
 
 class AppRouter {
+  // Helper function to build page with no animation
+  static Page<void> _noAnimationPage(Widget child, GoRouterState state) {
+    return CustomTransitionPage<void>(
+      key: state.pageKey,
+      child: child,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+      transitionDuration: Duration.zero,
+      reverseTransitionDuration: Duration.zero,
+    );
+  }
+
   static final GoRouter _router = GoRouter(
     routes: [
       // Main route with sidebar navigation - includes all pages
@@ -26,74 +37,92 @@ class AppRouter {
         routes: [
           GoRoute(
             path: '/',
-            builder: (context, state) => const ProductListScreen(),
+            pageBuilder: (context, state) => _noAnimationPage(
+              const ProductListScreen(),
+              state,
+            ),
           ),
           // Product detail route
           GoRoute(
             path: '/product/:id',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final productId = state.pathParameters['id']!;
-              return Scaffold(
-                appBar: AppBar(
-                  title: const Text('รายละเอียดสินค้า'),
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () => context.go('/'),
+              return _noAnimationPage(
+                Scaffold(
+                  appBar: AppBar(
+                    title: const Text('รายละเอียดสินค้า'),
+                    leading: IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () => context.go('/'),
+                    ),
                   ),
+                  body: ProductDetailScreen(productId: productId),
                 ),
-                body: ProductDetailScreen(productId: productId),
+                state,
               );
             },
           ),
           // Product form route
           GoRoute(
             path: '/product-form',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final productId = state.uri.queryParameters['id'];
               final duplicateId = state.uri.queryParameters['duplicateId'];
-              return ProductFormScreen(
-                productId: productId,
-                duplicateId: duplicateId,
+              return _noAnimationPage(
+                ProductFormScreen(
+                  productId: productId,
+                  duplicateId: duplicateId,
+                ),
+                state,
               );
             },
           ),
           // Customer routes
           GoRoute(
             path: '/customers',
-            builder: (context, state) => const CustomerListScreen(),
+            pageBuilder: (context, state) => _noAnimationPage(
+              const CustomerListScreen(),
+              state,
+            ),
           ),
           // Customer detail route
           GoRoute(
             path: '/customer/:id',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final customerId = state.pathParameters['id']!;
-              return Scaffold(
-                appBar: AppBar(
-                  title: const Text('รายละเอียดลูกค้า'),
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () => context.go('/customers'),
+              return _noAnimationPage(
+                Scaffold(
+                  appBar: AppBar(
+                    title: const Text('รายละเอียดลูกค้า'),
+                    leading: IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () => context.go('/customers'),
+                    ),
                   ),
+                  body: CustomerDetailScreen(customerId: customerId),
                 ),
-                body: CustomerDetailScreen(customerId: customerId),
+                state,
               );
             },
           ),
           GoRoute(
             path: '/customer-form',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final customerId = state.uri.queryParameters['id'];
               final duplicateId = state.uri.queryParameters['duplicateId'];
-              return CustomerFormScreen(
-                customerId: customerId,
-                duplicateId: duplicateId,
+              return _noAnimationPage(
+                CustomerFormScreen(
+                  customerId: customerId,
+                  duplicateId: duplicateId,
+                ),
+                state,
               );
             },
           ),
           // Purchase routes
           GoRoute(
             path: '/purchases',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final vatParam = state.uri.queryParameters['vat'];
               String? vatFilter;
               if (vatParam == 'true') {
@@ -101,41 +130,50 @@ class AppRouter {
               } else if (vatParam == 'false') {
                 vatFilter = 'Non-VAT';
               }
-              return PurchaseListScreen(initialVatFilter: vatFilter);
+              return _noAnimationPage(
+                PurchaseListScreen(initialVatFilter: vatFilter),
+                state,
+              );
             },
           ),
           // Purchase detail route
           GoRoute(
             path: '/purchase/:id',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final purchaseId = state.pathParameters['id']!;
-              return Scaffold(
-                appBar: AppBar(
-                  title: const Text('รายละเอียดการซื้อ'),
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () => context.go('/purchases'),
+              return _noAnimationPage(
+                Scaffold(
+                  appBar: AppBar(
+                    title: const Text('รายละเอียดการซื้อ'),
+                    leading: IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () => context.go('/purchases'),
+                    ),
                   ),
+                  body: PurchaseDetailScreen(purchaseId: purchaseId),
                 ),
-                body: PurchaseDetailScreen(purchaseId: purchaseId),
+                state,
               );
             },
           ),
           GoRoute(
             path: '/purchase-form',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final purchaseId = state.uri.queryParameters['id'];
               final duplicateId = state.uri.queryParameters['duplicateId'];
-              return PurchaseFormScreen(
-                purchaseId: purchaseId,
-                duplicateId: duplicateId,
+              return _noAnimationPage(
+                PurchaseFormScreen(
+                  purchaseId: purchaseId,
+                  duplicateId: duplicateId,
+                ),
+                state,
               );
             },
           ),
           // Sale routes
           GoRoute(
             path: '/sales',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final vatParam = state.uri.queryParameters['vat'];
               String? vatFilter;
               if (vatParam == 'true') {
@@ -143,43 +181,52 @@ class AppRouter {
               } else if (vatParam == 'false') {
                 vatFilter = 'Non-VAT';
               }
-              return SaleListScreen(initialVatFilter: vatFilter);
+              return _noAnimationPage(
+                SaleListScreen(initialVatFilter: vatFilter),
+                state,
+              );
             },
           ),
           // Sale detail route
           GoRoute(
             path: '/sale/:id',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final saleId = state.pathParameters['id']!;
-              return Scaffold(
-                appBar: AppBar(
-                  title: const Text('รายละเอียดการขาย'),
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () => context.go('/sales'),
+              return _noAnimationPage(
+                Scaffold(
+                  appBar: AppBar(
+                    title: const Text('รายละเอียดการขาย'),
+                    leading: IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () => context.go('/sales'),
+                    ),
                   ),
+                  body: SaleDetailScreen(saleId: saleId),
                 ),
-                body: SaleDetailScreen(saleId: saleId),
+                state,
               );
             },
           ),
           GoRoute(
             path: '/sale-form',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final saleId = state.uri.queryParameters['id'];
               final quotationId = state.uri.queryParameters['quotationId'];
               final duplicateId = state.uri.queryParameters['duplicateId'];
-              return SaleFormScreen(
-                saleId: saleId,
-                quotationId: quotationId,
-                duplicateId: duplicateId,
+              return _noAnimationPage(
+                SaleFormScreen(
+                  saleId: saleId,
+                  quotationId: quotationId,
+                  duplicateId: duplicateId,
+                ),
+                state,
               );
             },
           ),
           // Quotation routes
           GoRoute(
             path: '/quotations',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final vatParam = state.uri.queryParameters['vat'];
               String? vatFilter;
               if (vatParam == 'true') {
@@ -187,34 +234,43 @@ class AppRouter {
               } else if (vatParam == 'false') {
                 vatFilter = 'Non-VAT';
               }
-              return QuotationListScreen(initialVatFilter: vatFilter);
+              return _noAnimationPage(
+                QuotationListScreen(initialVatFilter: vatFilter),
+                state,
+              );
             },
           ),
           // Quotation detail route
           GoRoute(
             path: '/quotation/:id',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final quotationId = state.pathParameters['id']!;
-              return Scaffold(
-                appBar: AppBar(
-                  title: const Text('รายละเอียดเสนอราคา'),
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () => context.go('/quotations'),
+              return _noAnimationPage(
+                Scaffold(
+                  appBar: AppBar(
+                    title: const Text('รายละเอียดเสนอราคา'),
+                    leading: IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () => context.go('/quotations'),
+                    ),
                   ),
+                  body: QuotationDetailScreen(quotationId: quotationId),
                 ),
-                body: QuotationDetailScreen(quotationId: quotationId),
+                state,
               );
             },
           ),
           GoRoute(
             path: '/quotation-form',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final quotationId = state.uri.queryParameters['id'];
               final duplicateId = state.uri.queryParameters['duplicateId'];
-              return QuotationFormScreen(
-                quotationId: quotationId,
-                duplicateId: duplicateId,
+              return _noAnimationPage(
+                QuotationFormScreen(
+                  quotationId: quotationId,
+                  duplicateId: duplicateId,
+                ),
+                state,
               );
             },
           ),
