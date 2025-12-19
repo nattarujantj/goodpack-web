@@ -317,6 +317,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
                   ],
                   rows: quotations.map((quotation) {
                     return DataRow(
+                      onSelectChanged: (_) => context.go('/quotation/${quotation.id}'),
                       cells: [
                         DataCell(
                           Container(
@@ -331,36 +332,26 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
                         DataCell(
                           Container(
                             width: 150,
-                            child: InkWell(
-                              onTap: () => context.go('/quotation/${quotation.id}'),
-                              child: Text(
-                                quotation.quotationCode,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.blue,
-                                  decoration: TextDecoration.underline,
-                                ),
-                                textAlign: TextAlign.center,
+                            child: Text(
+                              quotation.quotationCode,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
                         ),
                         DataCell(
                           Container(
                             width: 200,
-                            child: InkWell(
-                              onTap: () => context.go('/quotation/${quotation.id}'),
-                              child: Text(
-                                quotation.customerName,
-                                style: TextStyle(
-                                  color: Theme.of(context).primaryColor,
-                                  fontWeight: FontWeight.w500,
-                                  decoration: TextDecoration.underline,
-                                  fontSize: 16,
-                                ),
-                                textAlign: TextAlign.left,
+                            child: Text(
+                              quotation.customerName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
                               ),
+                              textAlign: TextAlign.left,
                             ),
                           ),
                         ),

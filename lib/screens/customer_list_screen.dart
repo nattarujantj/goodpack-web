@@ -236,6 +236,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                   ],
                   rows: customers.map((customer) {
                     return DataRow(
+                      onSelectChanged: (_) => _navigateToCustomerDetail(customer.id),
                       cells: [
                         DataCell(
                           Container(
@@ -250,18 +251,13 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                         DataCell(
                           Container(
                             width: 200,
-                            child: InkWell(
-                              onTap: () => _navigateToCustomerDetail(customer.id),
-                              child: Text(
-                                customer.companyName,
-                                style: TextStyle(
-                                  color: Theme.of(context).primaryColor,
-                                  fontWeight: FontWeight.w500,
-                                  decoration: TextDecoration.underline,
-                                  fontSize: 16,
-                                ),
-                                textAlign: TextAlign.left,
+                            child: Text(
+                              customer.companyName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
                               ),
+                              textAlign: TextAlign.left,
                             ),
                           ),
                         ),

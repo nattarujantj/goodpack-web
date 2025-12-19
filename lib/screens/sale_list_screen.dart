@@ -312,6 +312,7 @@ class _SaleListScreenState extends State<SaleListScreen> {
                   ],
                   rows: sales.map((sale) {
             return DataRow(
+              onSelectChanged: (_) => context.go('/sale/${sale.id}'),
               cells: [
                         DataCell(
                           Container(
@@ -326,36 +327,26 @@ class _SaleListScreenState extends State<SaleListScreen> {
                         DataCell(
                           Container(
                             width: 150,
-                            child: InkWell(
-                              onTap: () => context.go('/sale/${sale.id}'),
-                              child: Text(
-                                sale.saleCode,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.blue,
-                                  decoration: TextDecoration.underline,
-                                ),
-                                textAlign: TextAlign.center,
+                            child: Text(
+                              sale.saleCode,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
                         ),
                         DataCell(
                           Container(
                             width: 200,
-                            child: InkWell(
-                              onTap: () => context.go('/sale/${sale.id}'),
-                    child: Text(
-                                sale.customerName,
-                      style: TextStyle(
-                                  color: Theme.of(context).primaryColor,
-                        fontWeight: FontWeight.w500,
-                                  decoration: TextDecoration.underline,
-                                  fontSize: 16,
-                                ),
-                                textAlign: TextAlign.left,
+                            child: Text(
+                              sale.customerName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
                               ),
+                              textAlign: TextAlign.left,
                             ),
                           ),
                         ),

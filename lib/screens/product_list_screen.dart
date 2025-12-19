@@ -339,21 +339,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   ),
                   DataCell(
                     Container(
-                      width: 150, // กำหนดความกว้างของคอลัมน์ชื่อสินค้า
-                      child: InkWell(
-                        onTap: () => _navigateToProductDetail(product.id),
-                        child: Text(
-                          product.name,
-                          style: TextStyle(
-                            color: Theme.of(context).primaryColor,
-                            fontWeight: FontWeight.w500,
-                            decoration: TextDecoration.underline,
-                            fontSize: 16,
-                          ),
-                          textAlign: TextAlign.left,
+                      width: 150,
+                      child: Text(
+                        product.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
                         ),
+                        textAlign: TextAlign.left,
                       ),
                     ),
+                    onTap: () => _navigateToProductDetail(product.id),
                   ),
                   DataCell(
                     Container(
@@ -832,20 +828,16 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       DataCell(
                         Container(
                           width: 150,
-                          child: InkWell(
-                            onTap: () => _navigateToProductDetail(product.id),
-                            child: Text(
-                              product.name,
-                              style: TextStyle(
-                                color: Theme.of(context).primaryColor,
-                                fontWeight: FontWeight.w500,
-                                decoration: TextDecoration.underline,
-                                fontSize: 16,
-                              ),
-                              textAlign: TextAlign.left,
+                          child: Text(
+                            product.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16,
                             ),
+                            textAlign: TextAlign.left,
                           ),
                         ),
+                        onTap: () => _navigateToProductDetail(product.id),
                       ),
                       DataCell(
                         Container(

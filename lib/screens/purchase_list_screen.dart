@@ -279,6 +279,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
                   ],
                   rows: purchases.map((purchase) {
                     return DataRow(
+                      onSelectChanged: (_) => _navigateToPurchaseDetail(purchase.id),
                       cells: [
                         DataCell(
                           Container(
@@ -293,36 +294,26 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
                         DataCell(
                           Container(
                             width: 150,
-                            child: InkWell(
-                              onTap: () => _navigateToPurchaseDetail(purchase.id),
-                              child: Text(
-                                purchase.purchaseCode,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.blue,
-                                  decoration: TextDecoration.underline,
-                                ),
-                                textAlign: TextAlign.center,
+                            child: Text(
+                              purchase.purchaseCode,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
                         ),
                         DataCell(
                           Container(
                             width: 200,
-                            child: InkWell(
-                              onTap: () => _navigateToPurchaseDetail(purchase.id),
-                              child: Text(
-                                purchase.customerName,
-                                style: TextStyle(
-                                  color: Theme.of(context).primaryColor,
-                                  fontWeight: FontWeight.w500,
-                                  decoration: TextDecoration.underline,
-                                  fontSize: 16,
-                                ),
-                                textAlign: TextAlign.left,
+                            child: Text(
+                              purchase.customerName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
                               ),
+                              textAlign: TextAlign.left,
                             ),
                           ),
                         ),
