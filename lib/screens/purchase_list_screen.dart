@@ -24,8 +24,9 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
   
-  // Month-Year filter (multi-select)
-  Set<String> _selectedMonthYears = {};
+  // Date range filter
+  DateTime? _startDate;
+  DateTime? _endDate;
   
   // Customer filter
   String? _selectedCustomerId;
@@ -34,19 +35,18 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   void initState() {
     super.initState();
     _vatFilter = widget.initialVatFilter ?? 'ทั้งหมด';
-    _initDefaultMonthFilter();
+    _initDefaultDateRange();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PurchaseProvider>().loadPurchasesIfNeeded();
       context.read<CustomerProvider>().loadCustomersIfNeeded();
     });
   }
 
-  void _initDefaultMonthFilter() {
+  void _initDefaultDateRange() {
     final now = DateTime.now();
-    final thisMonth = '${now.month.toString().padLeft(2, '0')}/${now.year}';
-    final lastMonth = DateTime(now.year, now.month - 1);
-    final lastMonthStr = '${lastMonth.month.toString().padLeft(2, '0')}/${lastMonth.year}';
-    _selectedMonthYears = {lastMonthStr, thisMonth};
+    // Default: first day of last month to today
+    _startDate = DateTime(now.year, now.month - 1, 1);
+    _endDate = now;
   }
   
   @override
@@ -211,8 +211,8 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
             
             const SizedBox(height: 16),
             
-            // Month-Year Filter (Multi-select)
-            _buildMonthYearFilter(purchaseProvider.allPurchases),
+            // Date Range Filter
+            _buildDateRangeFilter(),
             
             const SizedBox(height: 16),
             
@@ -515,11 +515,17 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   List<Purchase> _getFilteredPurchases(List<Purchase> purchases) {
     List<Purchase> filtered = List.from(purchases);
 
-    // Filter by month-year
-    if (_selectedMonthYears.isNotEmpty) {
+    // Filter by date range
+    if (_startDate != null) {
       filtered = filtered.where((purchase) {
-        final monthYear = '${purchase.purchaseDate.month.toString().padLeft(2, '0')}/${purchase.purchaseDate.year}';
-        return _selectedMonthYears.contains(monthYear);
+        final purchaseDate = DateTime(purchase.purchaseDate.year, purchase.purchaseDate.month, purchase.purchaseDate.day);
+        return !purchaseDate.isBefore(_startDate!);
+      }).toList();
+    }
+    if (_endDate != null) {
+      filtered = filtered.where((purchase) {
+        final purchaseDate = DateTime(purchase.purchaseDate.year, purchase.purchaseDate.month, purchase.purchaseDate.day);
+        return !purchaseDate.isAfter(_endDate!);
       }).toList();
     }
 
@@ -586,7 +592,8 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   bool _hasActiveFilters() {
     return _searchQuery.isNotEmpty || 
            _vatFilter != 'ทั้งหมด' ||
-           _selectedMonthYears.isNotEmpty ||
+           _startDate != null ||
+           _endDate != null ||
            _selectedCustomerId != null;
   }
 
@@ -594,37 +601,13 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
     setState(() {
       _searchQuery = '';
       _vatFilter = 'ทั้งหมด';
-      _selectedMonthYears.clear();
+      _startDate = null;
+      _endDate = null;
       _selectedCustomerId = null;
     });
   }
 
-  Widget _buildMonthYearFilter(List<Purchase> allPurchases) {
-    // Get unique month-years from purchases data
-    final monthYears = <String>{};
-    for (final purchase in allPurchases) {
-      final date = purchase.purchaseDate;
-      monthYears.add('${date.month.toString().padLeft(2, '0')}/${date.year}');
-    }
-    
-    // Add current and last month if not in data
-    final now = DateTime.now();
-    final thisMonth = '${now.month.toString().padLeft(2, '0')}/${now.year}';
-    final lastMonth = DateTime(now.year, now.month - 1);
-    final lastMonthStr = '${lastMonth.month.toString().padLeft(2, '0')}/${lastMonth.year}';
-    monthYears.add(thisMonth);
-    monthYears.add(lastMonthStr);
-    
-    // Sort descending (newest first)
-    final sortedMonthYears = monthYears.toList()
-      ..sort((a, b) {
-        final partsA = a.split('/');
-        final partsB = b.split('/');
-        final dateA = DateTime(int.parse(partsA[1]), int.parse(partsA[0]));
-        final dateB = DateTime(int.parse(partsB[1]), int.parse(partsB[0]));
-        return dateB.compareTo(dateA);
-      });
-    
+  Widget _buildDateRangeFilter() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -632,14 +615,15 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
           children: [
             const Expanded(
               child: Text(
-                'เดือน-ปี:',
+                'ช่วงวันที่:',
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
             ),
             TextButton.icon(
               onPressed: () {
                 setState(() {
-                  _selectedMonthYears.clear();
+                  _startDate = null;
+                  _endDate = null;
                 });
               },
               icon: const Icon(Icons.clear, size: 16),
@@ -651,41 +635,160 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
           ],
         ),
         const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: () => _selectDate(isStart: true),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_today, size: 18, color: Colors.grey[600]),
+                      const SizedBox(width: 8),
+                      Text(
+                        _startDate != null 
+                            ? _formatDateThai(_startDate!) 
+                            : 'เริ่มต้น',
+                        style: TextStyle(
+                          color: _startDate != null ? Colors.black : Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: Text('ถึง'),
+            ),
+            Expanded(
+              child: InkWell(
+                onTap: () => _selectDate(isStart: false),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_today, size: 18, color: Colors.grey[600]),
+                      const SizedBox(width: 8),
+                      Text(
+                        _endDate != null 
+                            ? _formatDateThai(_endDate!) 
+                            : 'สิ้นสุด',
+                        style: TextStyle(
+                          color: _endDate != null ? Colors.black : Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // Quick select buttons
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: sortedMonthYears.map((monthYear) {
-            final isSelected = _selectedMonthYears.contains(monthYear);
-            return FilterChip(
-              label: Text(_formatMonthYearDisplay(monthYear)),
-              selected: isSelected,
-              onSelected: (selected) {
-                setState(() {
-                  if (selected) {
-                    _selectedMonthYears.add(monthYear);
-                  } else {
-                    _selectedMonthYears.remove(monthYear);
-                  }
-                });
-              },
-              selectedColor: Colors.blue[100],
-              checkmarkColor: Colors.blue[800],
-            );
-          }).toList(),
+          children: [
+            _buildQuickSelectChip('เดือนนี้', () {
+              final now = DateTime.now();
+              setState(() {
+                _startDate = DateTime(now.year, now.month, 1);
+                _endDate = now;
+              });
+            }),
+            _buildQuickSelectChip('เดือนที่แล้ว', () {
+              final now = DateTime.now();
+              final lastMonth = DateTime(now.year, now.month - 1, 1);
+              final lastDayOfLastMonth = DateTime(now.year, now.month, 0);
+              setState(() {
+                _startDate = lastMonth;
+                _endDate = lastDayOfLastMonth;
+              });
+            }),
+            _buildQuickSelectChip('3 เดือนล่าสุด', () {
+              final now = DateTime.now();
+              setState(() {
+                _startDate = DateTime(now.year, now.month - 2, 1);
+                _endDate = now;
+              });
+            }),
+            _buildQuickSelectChip('ปีนี้', () {
+              final now = DateTime.now();
+              setState(() {
+                _startDate = DateTime(now.year, 1, 1);
+                _endDate = now;
+              });
+            }),
+            _buildQuickSelectChip('ปีที่แล้ว', () {
+              final now = DateTime.now();
+              setState(() {
+                _startDate = DateTime(now.year - 1, 1, 1);
+                _endDate = DateTime(now.year - 1, 12, 31);
+              });
+            }),
+          ],
         ),
       ],
     );
   }
 
-  String _formatMonthYearDisplay(String monthYear) {
-    final parts = monthYear.split('/');
-    final month = int.parse(parts[0]);
-    final year = int.parse(parts[1]);
+  Widget _buildQuickSelectChip(String label, VoidCallback onTap) {
+    return ActionChip(
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      onPressed: onTap,
+      backgroundColor: Colors.grey[100],
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+    );
+  }
+
+  Future<void> _selectDate({required bool isStart}) async {
+    final initialDate = isStart 
+        ? (_startDate ?? DateTime.now()) 
+        : (_endDate ?? DateTime.now());
+    
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      locale: const Locale('th', 'TH'),
+    );
+    
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          _startDate = picked;
+          if (_endDate != null && _endDate!.isBefore(picked)) {
+            _endDate = picked;
+          }
+        } else {
+          _endDate = picked;
+          if (_startDate != null && _startDate!.isAfter(picked)) {
+            _startDate = picked;
+          }
+        }
+      });
+    }
+  }
+
+  String _formatDateThai(DateTime date) {
     final thaiMonths = [
       '', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
       'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
     ];
-    return '${thaiMonths[month]} ${year + 543}';
+    return '${date.day} ${thaiMonths[date.month]} ${date.year + 543}';
   }
 
   Widget _buildCustomerFilter() {
