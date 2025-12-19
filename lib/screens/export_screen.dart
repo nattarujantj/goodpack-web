@@ -15,6 +15,7 @@ class _ExportScreenState extends State<ExportScreen> {
   final List<String> _defaultEmails = [
     'nattaruja.ntj@gmail.com',
     'goodpackagingsupply@hotmail.com',
+    'gamyooy@hotmail.com',
   ];
   
   late List<String> _selectedEmails;
