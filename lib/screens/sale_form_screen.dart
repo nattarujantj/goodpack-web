@@ -41,6 +41,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
   String? _selectedCustomerId;
   String? _selectedAccountId;
   bool _isVAT = false;
+  String _vatType = 'exclusive'; // "exclusive" (VAT นอก) or "inclusive" (VAT ใน)
   bool _isPaid = false;
   bool _isWarehouseUpdated = false;
   List<SaleItem> _saleItems = [];
@@ -160,6 +161,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     _quotationCodeController.text = ''; // Don't copy quotation link
     _selectedCustomerId = sale.customerId;
     _isVAT = sale.isVAT;
+    _vatType = sale.vatType;
     _shippingCostController.text = sale.shippingCost > 0 ? sale.shippingCost.toString() : '';
     _notesController.text = sale.notes ?? '';
     
@@ -233,6 +235,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     _quotationCodeController.text = sale.quotationCode ?? '';
     _selectedCustomerId = sale.customerId;
     _isVAT = sale.isVAT;
+    _vatType = sale.vatType;
     _shippingCostController.text = sale.shippingCost.toString();
     _isPaid = sale.payment.isPaid;
     _paymentMethodController.text = sale.payment.paymentMethod ?? '';
@@ -450,6 +453,61 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
                   },
               controlAffinity: ListTileControlAffinity.leading,
             ),
+            
+            // VAT Type selector (only show when VAT is selected)
+            if (_isVAT) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'วิธีคำนวณ VAT${_isEdit ? ' (ไม่สามารถเปลี่ยนได้)' : ''}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: _isEdit ? Colors.grey : null,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: RadioListTile<String>(
+                            title: const Text('VAT นอก', style: TextStyle(fontSize: 14)),
+                            subtitle: const Text('ราคา + VAT 7%', style: TextStyle(fontSize: 12)),
+                            value: 'exclusive',
+                            groupValue: _vatType,
+                            onChanged: _isEdit ? null : (value) {
+                              setState(() {
+                                _vatType = value ?? 'exclusive';
+                              });
+                            },
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                          ),
+                        ),
+                        Expanded(
+                          child: RadioListTile<String>(
+                            title: const Text('VAT ใน', style: TextStyle(fontSize: 14)),
+                            subtitle: const Text('ราคารวม VAT แล้ว', style: TextStyle(fontSize: 12)),
+                            value: 'inclusive',
+                            groupValue: _vatType,
+                            onChanged: _isEdit ? null : (value) {
+                              setState(() {
+                                _vatType = value ?? 'exclusive';
+                              });
+                            },
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -832,8 +890,26 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
 
   Widget _buildSaleItemRow(int index) {
     final item = _saleItems[index];
-    final vatAmount = _isVAT ? item.totalPrice * 0.07 : 0.0;
-    final itemTotalWithVAT = item.totalPrice + vatAmount;
+    
+    // Calculate VAT based on vatType
+    double vatAmount = 0.0;
+    double itemTotalWithVAT = item.totalPrice;
+    double priceBeforeVAT = item.totalPrice;
+    
+    if (_isVAT) {
+      if (_vatType == 'inclusive') {
+        // VAT ใน: ราคารวม VAT แล้ว, ต้องถอด VAT ออก
+        // ราคาก่อน VAT = ราคารวม / 1.07
+        priceBeforeVAT = item.totalPrice / 1.07;
+        vatAmount = item.totalPrice - priceBeforeVAT;
+        itemTotalWithVAT = item.totalPrice; // ราคาที่กรอกคือราคารวม VAT แล้ว
+      } else {
+        // VAT นอก: ราคา + VAT 7%
+        vatAmount = item.totalPrice * 0.07;
+        itemTotalWithVAT = item.totalPrice + vatAmount;
+        priceBeforeVAT = item.totalPrice;
+      }
+    }
     
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -911,10 +987,27 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
   }
 
   Widget _buildTotalSummary() {
-    final totalBeforeVAT = _saleItems.fold(0.0, (sum, item) => sum + item.totalPrice);
-    final totalVAT = _isVAT ? totalBeforeVAT * 0.07 : 0.0;
+    final itemsTotal = _saleItems.fold(0.0, (sum, item) => sum + item.totalPrice);
     final shippingCost = double.tryParse(_shippingCostController.text) ?? 0.0;
-    final grandTotal = totalBeforeVAT + totalVAT + shippingCost;
+    
+    // Calculate VAT based on vatType
+    double totalBeforeVAT = itemsTotal;
+    double totalVAT = 0.0;
+    double grandTotal = itemsTotal + shippingCost;
+    
+    if (_isVAT) {
+      if (_vatType == 'inclusive') {
+        // VAT ใน: ราคาที่กรอกรวม VAT แล้ว
+        totalBeforeVAT = itemsTotal / 1.07;
+        totalVAT = itemsTotal - totalBeforeVAT;
+        grandTotal = itemsTotal + shippingCost; // ราคาที่กรอกคือราคารวม VAT แล้ว
+      } else {
+        // VAT นอก: ราคา + VAT 7%
+        totalBeforeVAT = itemsTotal;
+        totalVAT = itemsTotal * 0.07;
+        grandTotal = itemsTotal + totalVAT + shippingCost;
+      }
+    }
     
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1448,6 +1541,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
         customerId: _selectedCustomerId!,
         items: _saleItems,
         isVAT: _isVAT,
+        vatType: _vatType,
         shippingCost: double.tryParse(_shippingCostController.text) ?? 0.0,
         payment: PaymentInfo(
           isPaid: _isPaid,

@@ -15,6 +15,7 @@ class Sale {
   final String? phone;
   final List<SaleItem> items;
   final bool isVAT;
+  final String vatType; // "exclusive" (VAT นอก) or "inclusive" (VAT ใน)
   final double shippingCost;
   final PaymentInfo payment;
   final WarehouseInfo warehouse;
@@ -40,6 +41,7 @@ class Sale {
     this.phone,
     required this.items,
     required this.isVAT,
+    this.vatType = 'exclusive',
     required this.shippingCost,
     required this.payment,
     required this.warehouse,
@@ -69,6 +71,7 @@ class Sale {
           .map((item) => SaleItem.fromJson(item))
           .toList(),
       isVAT: json['isVAT'],
+      vatType: json['vatType'] ?? 'exclusive',
       shippingCost: (json['shippingCost'] ?? 0.0).toDouble(),
       payment: PaymentInfo.fromJson(json['payment']),
       warehouse: WarehouseInfo.fromJson(json['warehouse']),
@@ -97,6 +100,7 @@ class Sale {
       'phone': phone,
       'items': items.map((item) => item.toJson()).toList(),
       'isVAT': isVAT,
+      'vatType': vatType,
       'shippingCost': shippingCost,
       'payment': payment.toJson(),
       'warehouse': warehouse.toJson(),
@@ -124,6 +128,7 @@ class Sale {
     String? phone,
     List<SaleItem>? items,
     bool? isVAT,
+    String? vatType,
     double? shippingCost,
     PaymentInfo? payment,
     WarehouseInfo? warehouse,
@@ -149,6 +154,7 @@ class Sale {
       phone: phone ?? this.phone,
       items: items ?? this.items,
       isVAT: isVAT ?? this.isVAT,
+      vatType: vatType ?? this.vatType,
       shippingCost: shippingCost ?? this.shippingCost,
       payment: payment ?? this.payment,
       warehouse: warehouse ?? this.warehouse,
@@ -208,6 +214,7 @@ class SaleRequest {
   final String customerId;
   final List<SaleItem> items;
   final bool isVAT;
+  final String vatType; // "exclusive" (VAT นอก) or "inclusive" (VAT ใน)
   final double shippingCost;
   final PaymentInfo payment;
   final WarehouseInfo warehouse;
@@ -223,6 +230,7 @@ class SaleRequest {
     required this.customerId,
     required this.items,
     required this.isVAT,
+    this.vatType = 'exclusive',
     required this.shippingCost,
     required this.payment,
     required this.warehouse,
@@ -240,6 +248,7 @@ class SaleRequest {
       'customerId': customerId,
       'items': items.map((item) => item.toJson()).toList(),
       'isVAT': isVAT,
+      'vatType': vatType,
       'shippingCost': shippingCost,
       'payment': payment.toJson(),
       'warehouse': warehouse.toJson(),
