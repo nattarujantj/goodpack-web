@@ -29,7 +29,6 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _saleDateController = TextEditingController();
   final _paymentMethodController = TextEditingController();
-  final _customerAccountController = TextEditingController();
   final _paymentDateController = TextEditingController();
   final _ourAccountController = TextEditingController();
   final _warehouseNotesController = TextEditingController();
@@ -59,7 +58,6 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
   void dispose() {
     _saleDateController.dispose();
     _paymentMethodController.dispose();
-    _customerAccountController.dispose();
     _paymentDateController.dispose();
     _ourAccountController.dispose();
     _warehouseNotesController.dispose();
@@ -177,7 +175,6 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     // Reset payment and warehouse info for new sale
     _isPaid = false;
     _paymentMethodController.text = '';
-    _customerAccountController.text = '';
     _paymentDateController.text = '';
     _ourAccountController.text = '';
     _selectedAccountId = null;
@@ -239,7 +236,6 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     _isPaid = sale.payment.isPaid;
     _paymentMethodController.text = sale.payment.paymentMethod ?? '';
     _selectedAccountId = sale.payment.ourAccount;
-    _customerAccountController.text = sale.payment.customerAccount ?? '';
     _paymentDateController.text = sale.payment.paymentDate != null 
         ? _formatDate(sale.payment.paymentDate!) 
         : '';
@@ -562,12 +558,6 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
             ),
             const SizedBox(height: 16),
             _buildAccountDropdown(),
-            const SizedBox(height: 16),
-            _buildTextField(
-              controller: _customerAccountController,
-              label: 'บัญชีรับเงินของลูกค้า',
-              hint: 'เลขบัญชีหรือชื่อบัญชีลูกค้า',
-            ),
             const SizedBox(height: 16),
             _buildDateField(
               controller: _paymentDateController,
@@ -1418,7 +1408,6 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
           isPaid: _isPaid,
           paymentMethod: _paymentMethodController.text.trim().isEmpty ? null : _paymentMethodController.text.trim(),
           ourAccount: _selectedAccountId,
-          customerAccount: _customerAccountController.text.trim().isEmpty ? null : _customerAccountController.text.trim(),
           paymentDate: _paymentDateController.text.trim().isEmpty ? null : _parsePaymentDate(),
         ),
         warehouse: WarehouseInfo(

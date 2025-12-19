@@ -11,8 +11,9 @@ import '../utils/error_dialog.dart';
 class ProductFormScreen extends StatefulWidget {
   final Product? product;
   final String? productId;
+  final String? duplicateId;
 
-  const ProductFormScreen({Key? key, this.product, this.productId}) : super(key: key);
+  const ProductFormScreen({Key? key, this.product, this.productId, this.duplicateId}) : super(key: key);
 
   @override
   State<ProductFormScreen> createState() => _ProductFormScreenState();
@@ -51,6 +52,41 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       _populateFields();
     } else if (widget.productId != null) {
       _loadProductFromId();
+    } else if (widget.duplicateId != null) {
+      _loadDuplicateProduct();
+    }
+  }
+
+  void _loadDuplicateProduct() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final productProvider = context.read<ProductProvider>();
+      
+      if (productProvider.allProducts.isEmpty) {
+        await productProvider.loadProducts();
+      }
+      
+      final product = productProvider.getProductById(widget.duplicateId!);
+      if (product != null) {
+        _populateFieldsForDuplicate(product);
+      }
+    });
+  }
+
+  void _populateFieldsForDuplicate(Product product) {
+    // Copy all fields except code (user should enter new code)
+    _nameController.text = '${product.name} (สำเนา)';
+    _codeController.text = ''; // Empty code for new product
+    _descriptionController.text = product.description;
+    _colorController.text = product.color;
+    _sizeController.text = product.size;
+    _categoryController.text = product.category;
+    
+    // Sales tiers
+    _populateSalesTiers(product.price.salesTiers);
+    
+    // Trigger rebuild to update UI
+    if (mounted) {
+      setState(() {});
     }
   }
 

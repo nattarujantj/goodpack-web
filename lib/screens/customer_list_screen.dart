@@ -311,6 +311,13 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                 ),
                                 const SizedBox(width: 2),
                                 _buildHoverIcon(
+                                  icon: Icons.copy,
+                                  onTap: () => context.go('/customer-form?duplicateId=${customer.id}'),
+                                  tooltip: 'คัดลอกลูกค้า',
+                                  color: Colors.blue,
+                                ),
+                                const SizedBox(width: 2),
+                                _buildHoverIcon(
                                   icon: Icons.delete,
                                   onTap: () => _showDeleteDialog(customer),
                                   tooltip: 'ลบ',

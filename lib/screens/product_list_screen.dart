@@ -436,6 +436,13 @@ class _ProductListScreenState extends State<ProductListScreen> {
                           ),
                           const SizedBox(width: 2),
                           _buildHoverIcon(
+                            icon: Icons.copy,
+                            onTap: () => context.go('/product-form?duplicateId=${product.id}'),
+                            tooltip: 'คัดลอกสินค้า',
+                            color: Colors.blue,
+                          ),
+                          const SizedBox(width: 2),
+                          _buildHoverIcon(
                             icon: Icons.delete,
                             onTap: () => _showDeleteDialog(product),
                             tooltip: 'ลบ',

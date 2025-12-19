@@ -50,8 +50,10 @@ class AppRouter {
             path: '/product-form',
             builder: (context, state) {
               final productId = state.uri.queryParameters['id'];
+              final duplicateId = state.uri.queryParameters['duplicateId'];
               return ProductFormScreen(
                 productId: productId,
+                duplicateId: duplicateId,
               );
             },
           ),
@@ -81,8 +83,10 @@ class AppRouter {
             path: '/customer-form',
             builder: (context, state) {
               final customerId = state.uri.queryParameters['id'];
+              final duplicateId = state.uri.queryParameters['duplicateId'];
               return CustomerFormScreen(
                 customerId: customerId,
+                duplicateId: duplicateId,
               );
             },
           ),
@@ -121,8 +125,10 @@ class AppRouter {
             path: '/purchase-form',
             builder: (context, state) {
               final purchaseId = state.uri.queryParameters['id'];
+              final duplicateId = state.uri.queryParameters['duplicateId'];
               return PurchaseFormScreen(
                 purchaseId: purchaseId,
+                duplicateId: duplicateId,
               );
             },
           ),
@@ -205,8 +211,10 @@ class AppRouter {
             path: '/quotation-form',
             builder: (context, state) {
               final quotationId = state.uri.queryParameters['id'];
+              final duplicateId = state.uri.queryParameters['duplicateId'];
               return QuotationFormScreen(
                 quotationId: quotationId,
+                duplicateId: duplicateId,
               );
             },
           ),

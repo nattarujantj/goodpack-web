@@ -503,6 +503,13 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
                                 ),
                                 const SizedBox(width: 2),
                                 _buildHoverIcon(
+                                  icon: Icons.copy,
+                                  onTap: () => context.go('/quotation-form?duplicateId=${quotation.id}'),
+                                  tooltip: 'คัดลอกรายการ',
+                                  color: Colors.blue,
+                                ),
+                                const SizedBox(width: 2),
+                                _buildHoverIcon(
                                   icon: Icons.delete,
                                   onTap: () => _showDeleteDialog(quotation),
                                   tooltip: 'ลบ',
