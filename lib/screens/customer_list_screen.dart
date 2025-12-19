@@ -335,7 +335,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                 const SizedBox(width: 2),
                                 _buildHoverIcon(
                                   icon: Icons.copy,
-                                  onTap: () => context.go('/customer-form?duplicateId=${customer.id}'),
+                                  onTap: () => context.push('/customer-form?duplicateId=${customer.id}'),
                                   tooltip: 'คัดลอกลูกค้า',
                                   color: Colors.blue,
                                 ),
@@ -509,9 +509,9 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
 
   void _navigateToCustomerForm({Customer? customer}) {
     if (customer != null) {
-      context.go('/customer-form?id=${customer.id}');
+      context.push('/customer-form?id=${customer.id}');
     } else {
-      context.go('/customer-form');
+      context.push('/customer-form');
     }
   }
 

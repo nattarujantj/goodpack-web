@@ -550,7 +550,7 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
       await context.read<QuotationProvider>().updateQuotationStatus(quotation.id, 'accepted');
       
       // Navigate to sale form with quotation ID for pre-filling
-      context.go('/sale-form?quotationId=${quotation.id}');
+      context.push('/sale-form?quotationId=${quotation.id}');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

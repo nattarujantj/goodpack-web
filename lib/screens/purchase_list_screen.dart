@@ -475,7 +475,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
                                 const SizedBox(width: 2),
                                 _buildHoverIcon(
                                   icon: Icons.copy,
-                                  onTap: () => context.go('/purchase-form?duplicateId=${purchase.id}'),
+                                  onTap: () => context.push('/purchase-form?duplicateId=${purchase.id}'),
                                   tooltip: 'คัดลอกรายการ',
                                   color: Colors.blue,
                                 ),
@@ -1070,9 +1070,9 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
 
   void _navigateToPurchaseForm({Purchase? purchase}) {
     if (purchase != null) {
-      context.go('/purchase-form?id=${purchase.id}');
+      context.push('/purchase-form?id=${purchase.id}');
     } else {
-      context.go('/purchase-form');
+      context.push('/purchase-form');
     }
   }
 

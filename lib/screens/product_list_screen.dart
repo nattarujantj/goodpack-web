@@ -460,7 +460,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                           const SizedBox(width: 2),
                           _buildHoverIcon(
                             icon: Icons.copy,
-                            onTap: () => context.go('/product-form?duplicateId=${product.id}'),
+                            onTap: () => context.push('/product-form?duplicateId=${product.id}'),
                             tooltip: 'คัดลอกสินค้า',
                             color: Colors.blue,
                           ),
@@ -638,9 +638,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   void _navigateToProductForm({Product? product}) {
     if (product != null) {
-      context.go('/product-form?id=${product.id}');
+      context.push('/product-form?id=${product.id}');
     } else {
-      context.go('/product-form');
+      context.push('/product-form');
     }
   }
 

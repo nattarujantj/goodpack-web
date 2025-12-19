@@ -82,7 +82,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () => context.go('/quotation-form'),
+            onPressed: () => context.push('/quotation-form'),
             tooltip: 'เพิ่มเสนอราคาใหม่',
           ),
           IconButton(
@@ -549,13 +549,13 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
                                 const SizedBox(width: 2),
                                 _buildHoverIcon(
                                   icon: Icons.edit,
-                                  onTap: () => context.go('/quotation-form?id=${quotation.id}'),
+                                  onTap: () => context.push('/quotation-form?id=${quotation.id}'),
                                   tooltip: 'แก้ไข',
                                 ),
                                 const SizedBox(width: 2),
                                 _buildHoverIcon(
                                   icon: Icons.copy,
-                                  onTap: () => context.go('/quotation-form?duplicateId=${quotation.id}'),
+                                  onTap: () => context.push('/quotation-form?duplicateId=${quotation.id}'),
                                   tooltip: 'คัดลอกรายการ',
                                   color: Colors.blue,
                                 ),
@@ -1094,7 +1094,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
   void _createSaleFromQuotation(Quotation quotation) async {
     try {
       // Navigate to sale form with quotation ID for pre-filling
-      context.go('/sale-form?quotationId=${quotation.id}');
+      context.push('/sale-form?quotationId=${quotation.id}');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

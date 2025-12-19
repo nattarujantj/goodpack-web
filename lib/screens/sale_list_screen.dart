@@ -78,7 +78,7 @@ class _SaleListScreenState extends State<SaleListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () => context.go('/sale-form'),
+            onPressed: () => context.push('/sale-form'),
             tooltip: 'เพิ่มรายการขายใหม่',
           ),
           IconButton(
@@ -737,14 +737,14 @@ class _SaleListScreenState extends State<SaleListScreen> {
                                 const SizedBox(width: 2),
                                 _buildHoverIcon(
                                   icon: Icons.copy,
-                                  onTap: () => context.go('/sale-form?duplicateId=${sale.id}'),
+                                  onTap: () => context.push('/sale-form?duplicateId=${sale.id}'),
                         tooltip: 'คัดลอกรายการ',
                                   color: Colors.blue,
                                 ),
                                 const SizedBox(width: 2),
                                 _buildHoverIcon(
                                   icon: Icons.edit,
-                                  onTap: () => context.go('/sale-form?id=${sale.id}'),
+                                  onTap: () => context.push('/sale-form?id=${sale.id}'),
                         tooltip: 'แก้ไข',
                                 ),
                                 const SizedBox(width: 2),
