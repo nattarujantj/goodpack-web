@@ -243,8 +243,8 @@ class _SaleListScreenState extends State<SaleListScreen> {
                     },
             items: const [
               DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
-              DropdownMenuItem<String?>(value: 'vat', child: Text('VAT')),
-              DropdownMenuItem<String?>(value: 'nonvat', child: Text('Non-VAT')),
+              DropdownMenuItem<String?>(value: 'VAT', child: Text('VAT')),
+              DropdownMenuItem<String?>(value: 'Non-VAT', child: Text('Non-VAT')),
             ],
                   ),
                 ),
@@ -606,9 +606,9 @@ class _SaleListScreenState extends State<SaleListScreen> {
   List<Sale> _getFilteredSales(List<Sale> sales) {
     if (_vatFilter == null) return sales;
     
-    if (_vatFilter == 'vat') {
+    if (_vatFilter == 'VAT') {
       return sales.where((sale) => sale.isVAT).toList();
-    } else if (_vatFilter == 'nonvat') {
+    } else if (_vatFilter == 'Non-VAT') {
       return sales.where((sale) => !sale.isVAT).toList();
     }
     
