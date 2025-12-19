@@ -15,6 +15,11 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   late PageController _pageController;
+  
+  // สำหรับ ExpansionTile
+  bool _isPurchaseExpanded = false;
+  bool _isSaleExpanded = false;
+  bool _isQuotationExpanded = false;
 
   final List<Widget> _screens = [
     const ProductListScreen(),
@@ -198,33 +203,54 @@ class _MainScreenState extends State<MainScreen> {
           // Navigation Items
           Expanded(
             child: ListView(
-              children: _bottomNavItems.asMap().entries.map((entry) {
-                final index = entry.key;
-                final item = entry.value;
-                final isSelected = _currentIndex == index;
+              children: [
+                // สินค้า
+                _buildNavItem(0, Icons.inventory_2, 'สินค้า'),
+                // ลูกค้า
+                _buildNavItem(1, Icons.business, 'ลูกค้า'),
                 
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  child: ListTile(
-                    leading: item.icon,
-                    title: Text(
-                      item.label!,
-                      style: TextStyle(
-                        color: isSelected 
-                            ? Theme.of(context).primaryColor 
-                            : Colors.grey[700],
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                    selected: isSelected,
-                    selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    onTap: () => _onTabTapped(index),
-                  ),
-                );
-              }).toList(),
+                // ซื้อ - มีเมนูย่อย
+                _buildExpandableNavItem(
+                  icon: Icons.shopping_cart,
+                  title: 'ซื้อ',
+                  isExpanded: _isPurchaseExpanded,
+                  onExpand: (expanded) => setState(() => _isPurchaseExpanded = expanded),
+                  isSelected: _currentIndex == 2,
+                  children: [
+                    _buildSubNavItem('ทั้งหมด', '/purchases'),
+                    _buildSubNavItem('VAT', '/purchases?vat=true'),
+                    _buildSubNavItem('Non-VAT', '/purchases?vat=false'),
+                  ],
+                ),
+                
+                // ขาย - มีเมนูย่อย
+                _buildExpandableNavItem(
+                  icon: Icons.point_of_sale,
+                  title: 'ขาย',
+                  isExpanded: _isSaleExpanded,
+                  onExpand: (expanded) => setState(() => _isSaleExpanded = expanded),
+                  isSelected: _currentIndex == 3,
+                  children: [
+                    _buildSubNavItem('ทั้งหมด', '/sales'),
+                    _buildSubNavItem('VAT', '/sales?vat=true'),
+                    _buildSubNavItem('Non-VAT', '/sales?vat=false'),
+                  ],
+                ),
+                
+                // เสนอราคา - มีเมนูย่อย
+                _buildExpandableNavItem(
+                  icon: Icons.description,
+                  title: 'เสนอราคา',
+                  isExpanded: _isQuotationExpanded,
+                  onExpand: (expanded) => setState(() => _isQuotationExpanded = expanded),
+                  isSelected: _currentIndex == 4,
+                  children: [
+                    _buildSubNavItem('ทั้งหมด', '/quotations'),
+                    _buildSubNavItem('VAT', '/quotations?vat=true'),
+                    _buildSubNavItem('Non-VAT', '/quotations?vat=false'),
+                  ],
+                ),
+              ],
             ),
           ),
           
@@ -246,6 +272,105 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String title) {
+    final isSelected = _currentIndex == index;
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: ListTile(
+        leading: Icon(icon),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: isSelected 
+                ? Theme.of(context).primaryColor 
+                : Colors.grey[700],
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        selected: isSelected,
+        selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.1),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        onTap: () => _onTabTapped(index),
+      ),
+    );
+  }
+  
+  Widget _buildExpandableNavItem({
+    required IconData icon,
+    required String title,
+    required bool isExpanded,
+    required Function(bool) onExpand,
+    required bool isSelected,
+    required List<Widget> children,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          leading: Icon(
+            icon,
+            color: isSelected ? Theme.of(context).primaryColor : Colors.grey[700],
+          ),
+          title: Text(
+            title,
+            style: TextStyle(
+              color: isSelected 
+                  ? Theme.of(context).primaryColor 
+                  : Colors.grey[700],
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+          initiallyExpanded: isExpanded,
+          onExpansionChanged: onExpand,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+          childrenPadding: const EdgeInsets.only(left: 16),
+          children: children,
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildSubNavItem(String title, String route) {
+    final currentPath = GoRouterState.of(context).uri.toString();
+    final isSelected = currentPath == route || currentPath.startsWith('$route&');
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: ListTile(
+        dense: true,
+        leading: Icon(
+          isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+          size: 18,
+          color: isSelected ? Theme.of(context).primaryColor : Colors.grey[500],
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            color: isSelected 
+                ? Theme.of(context).primaryColor 
+                : Colors.grey[600],
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        selected: isSelected,
+        selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.05),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        onTap: () => context.go(route),
       ),
     );
   }

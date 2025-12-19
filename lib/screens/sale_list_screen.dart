@@ -6,7 +6,9 @@ import '../providers/sale_provider.dart';
 import '../widgets/responsive_layout.dart';
 
 class SaleListScreen extends StatefulWidget {
-  const SaleListScreen({Key? key}) : super(key: key);
+  final String? initialVatFilter;
+  
+  const SaleListScreen({Key? key, this.initialVatFilter}) : super(key: key);
 
   @override
   State<SaleListScreen> createState() => _SaleListScreenState();
@@ -24,9 +26,20 @@ class _SaleListScreenState extends State<SaleListScreen> {
   @override
   void initState() {
     super.initState();
+    _vatFilter = widget.initialVatFilter;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SaleProvider>().loadSales();
     });
+  }
+  
+  @override
+  void didUpdateWidget(SaleListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialVatFilter != oldWidget.initialVatFilter) {
+      setState(() {
+        _vatFilter = widget.initialVatFilter;
+      });
+    }
   }
 
   @override

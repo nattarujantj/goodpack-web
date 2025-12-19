@@ -7,7 +7,9 @@ import '../widgets/responsive_layout.dart';
 import '../widgets/search_bar.dart';
 
 class PurchaseListScreen extends StatefulWidget {
-  const PurchaseListScreen({Key? key}) : super(key: key);
+  final String? initialVatFilter;
+  
+  const PurchaseListScreen({Key? key, this.initialVatFilter}) : super(key: key);
 
   @override
   State<PurchaseListScreen> createState() => _PurchaseListScreenState();
@@ -17,16 +19,27 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   String _searchQuery = '';
   String _sortBy = 'purchaseDate';
   bool _sortAscending = false; // Newest first
-  String _vatFilter = 'ทั้งหมด'; // ใหม่: filter VAT/Non-VAT
+  late String _vatFilter;
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _vatFilter = widget.initialVatFilter ?? 'ทั้งหมด';
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PurchaseProvider>().loadPurchases();
     });
+  }
+  
+  @override
+  void didUpdateWidget(PurchaseListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialVatFilter != oldWidget.initialVatFilter) {
+      setState(() {
+        _vatFilter = widget.initialVatFilter ?? 'ทั้งหมด';
+      });
+    }
   }
 
   @override

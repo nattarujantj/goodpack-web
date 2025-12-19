@@ -7,7 +7,9 @@ import '../providers/sale_provider.dart';
 import '../widgets/responsive_layout.dart';
 
 class QuotationListScreen extends StatefulWidget {
-  const QuotationListScreen({Key? key}) : super(key: key);
+  final String? initialVatFilter;
+  
+  const QuotationListScreen({Key? key, this.initialVatFilter}) : super(key: key);
 
   @override
   State<QuotationListScreen> createState() => _QuotationListScreenState();
@@ -17,6 +19,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
   String _sortColumn = 'quotationDate';
   bool _sortAscending = false;
   String _statusFilter = 'ทั้งหมด';
+  String _vatFilter = 'ทั้งหมด';
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _horizontalScrollController = ScrollController();
@@ -25,9 +28,22 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialVatFilter != null) {
+      _vatFilter = widget.initialVatFilter!;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<QuotationProvider>().loadQuotations();
     });
+  }
+  
+  @override
+  void didUpdateWidget(QuotationListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialVatFilter != oldWidget.initialVatFilter) {
+      setState(() {
+        _vatFilter = widget.initialVatFilter ?? 'ทั้งหมด';
+      });
+    }
   }
 
   @override
@@ -637,8 +653,23 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
   }
 
   List<Quotation> _getFilteredQuotations(List<Quotation> quotations) {
-    if (_statusFilter == 'ทั้งหมด') return quotations;
-    return quotations.where((quotation) => quotation.status == _statusFilter).toList();
+    var filtered = quotations.toList();
+    
+    // Filter by status
+    if (_statusFilter != 'ทั้งหมด') {
+      filtered = filtered.where((quotation) => quotation.status == _statusFilter).toList();
+    }
+    
+    // Filter by VAT
+    if (_vatFilter != 'ทั้งหมด') {
+      if (_vatFilter == 'VAT') {
+        filtered = filtered.where((quotation) => quotation.isVAT).toList();
+      } else if (_vatFilter == 'Non-VAT') {
+        filtered = filtered.where((quotation) => !quotation.isVAT).toList();
+      }
+    }
+    
+    return filtered;
   }
 
   List<Quotation> _getSearchedQuotations(List<Quotation> quotations) {
@@ -686,12 +717,13 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
   }
 
   bool _hasActiveFilters() {
-    return _statusFilter != 'ทั้งหมด' || _searchQuery.isNotEmpty;
+    return _statusFilter != 'ทั้งหมด' || _vatFilter != 'ทั้งหมด' || _searchQuery.isNotEmpty;
   }
 
   void _clearFilters() {
     setState(() {
       _statusFilter = 'ทั้งหมด';
+      _vatFilter = 'ทั้งหมด';
       _searchQuery = '';
       _searchController.clear();
     });

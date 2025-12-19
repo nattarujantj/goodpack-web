@@ -89,7 +89,16 @@ class AppRouter {
           // Purchase routes
           GoRoute(
             path: '/purchases',
-            builder: (context, state) => const PurchaseListScreen(),
+            builder: (context, state) {
+              final vatParam = state.uri.queryParameters['vat'];
+              String? vatFilter;
+              if (vatParam == 'true') {
+                vatFilter = 'VAT';
+              } else if (vatParam == 'false') {
+                vatFilter = 'Non-VAT';
+              }
+              return PurchaseListScreen(initialVatFilter: vatFilter);
+            },
           ),
           // Purchase detail route
           GoRoute(
@@ -120,7 +129,16 @@ class AppRouter {
           // Sale routes
           GoRoute(
             path: '/sales',
-            builder: (context, state) => const SaleListScreen(),
+            builder: (context, state) {
+              final vatParam = state.uri.queryParameters['vat'];
+              String? vatFilter;
+              if (vatParam == 'true') {
+                vatFilter = 'VAT';
+              } else if (vatParam == 'false') {
+                vatFilter = 'Non-VAT';
+              }
+              return SaleListScreen(initialVatFilter: vatFilter);
+            },
           ),
           // Sale detail route
           GoRoute(
@@ -155,7 +173,16 @@ class AppRouter {
           // Quotation routes
           GoRoute(
             path: '/quotations',
-            builder: (context, state) => const QuotationListScreen(),
+            builder: (context, state) {
+              final vatParam = state.uri.queryParameters['vat'];
+              String? vatFilter;
+              if (vatParam == 'true') {
+                vatFilter = 'VAT';
+              } else if (vatParam == 'false') {
+                vatFilter = 'Non-VAT';
+              }
+              return QuotationListScreen(initialVatFilter: vatFilter);
+            },
           ),
           // Quotation detail route
           GoRoute(
