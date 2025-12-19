@@ -282,6 +282,15 @@ class _SaleListScreenState extends State<SaleListScreen> {
                       label: _buildSortableHeader('ชื่อผู้ติดต่อ', 'contactName'),
             ),
             DataColumn(
+                      label: Container(
+                        width: 200,
+                        child: Text(
+                          'สินค้า',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+            ),
+            DataColumn(
                       label: _buildSortableHeader('ยอดรวม', 'grandTotal'),
             ),
             DataColumn(
@@ -356,6 +365,16 @@ class _SaleListScreenState extends State<SaleListScreen> {
                             child: Text(
                               sale.contactName ?? '-',
                               style: const TextStyle(fontSize: 16),
+                              textAlign: TextAlign.left,
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          Container(
+                            width: 200,
+                            child: Text(
+                              _getProductNames(sale),
+                              style: const TextStyle(fontSize: 14),
                               textAlign: TextAlign.left,
                             ),
                           ),
@@ -656,6 +675,21 @@ class _SaleListScreenState extends State<SaleListScreen> {
 
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+
+  String _getProductNames(Sale sale) {
+    if (sale.items.isEmpty) return '-';
+    
+    // แสดงแค่ 3 รายการแรก
+    final itemsToShow = sale.items.take(3).toList();
+    final names = itemsToShow.map((item) => item.productName).join('\n');
+    
+    // ถ้ามีมากกว่า 3 รายการ แสดง ... ต่อท้าย
+    if (sale.items.length > 3) {
+      return '$names\n... (+${sale.items.length - 3} รายการ)';
+    }
+    
+    return names;
   }
 
 }
