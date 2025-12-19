@@ -28,6 +28,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
   // Scroll controllers for selected products table
   final ScrollController _selectedTableHorizontalScrollController = ScrollController();
   final ScrollController _selectedTableVerticalScrollController = ScrollController();
+  
+  // Draggable FAB position
+  Offset _fabPosition = const Offset(16, 16);
 
   @override
   void initState() {
@@ -64,123 +67,143 @@ class _ProductListScreenState extends State<ProductListScreen> {
           ),
         ],
       ),
-      body: Consumer<ProductProvider>(
-        builder: (context, productProvider, child) {
-          if (productProvider.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+      body: Stack(
+        children: [
+          Consumer<ProductProvider>(
+            builder: (context, productProvider, child) {
+              if (productProvider.isLoading) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
 
-          if (productProvider.error.isNotEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Colors.red[300],
-                  ),
-                  const SizedBox(height: 16),
-                  ResponsiveText(
-                    productProvider.error,
-                    style: TextStyle(
-                      color: Colors.red[700],
-                      fontSize: 16,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () => productProvider.refresh(),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('ลองใหม่'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          final filteredProducts = _getFilteredProducts(productProvider.allProducts);
-
-          return SingleChildScrollView(
-            child: Column(
-              children: [
-                // Selected Products Summary (if any selected)
-                if (_selectedProducts.isNotEmpty) _buildSelectedProductsSection(),
-                
-                // Filters Section
-                _buildFiltersSection(productProvider),
-                
-                // Product Count
-                ResponsivePadding(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              if (productProvider.error.isNotEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      ResponsiveText(
-                        'แสดง ${filteredProducts.length} จาก ${productProvider.allProducts.length} รายการ',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red[300],
                       ),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          if (_selectedProductIds.isNotEmpty)
-                            TextButton.icon(
-                              onPressed: _clearSelection,
-                              icon: const Icon(Icons.clear, size: 16),
-                              label: Text('ล้างการเลือก (${_selectedProductIds.length})'),
-                            ),
-                          if (_hasActiveFilters())
-                            TextButton.icon(
-                              onPressed: _clearFilters,
-                              icon: const Icon(Icons.clear, size: 16),
-                              label: const Text('ล้างตัวกรอง'),
-                            ),
-                        ],
+                      const SizedBox(height: 16),
+                      ResponsiveText(
+                        productProvider.error,
+                        style: TextStyle(
+                          color: Colors.red[700],
+                          fontSize: 16,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () => productProvider.refresh(),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('ลองใหม่'),
                       ),
                     ],
                   ),
-                ),
-                
-                // Product Table
-                filteredProducts.isEmpty
-                    ? _buildEmptyState()
-                    : Column(
+                );
+              }
+
+              final filteredProducts = _getFilteredProducts(productProvider.allProducts);
+
+              return SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // Selected Products Summary (if any selected)
+                    if (_selectedProducts.isNotEmpty) _buildSelectedProductsSection(),
+                    
+                    // Filters Section
+                    _buildFiltersSection(productProvider),
+                    
+                    // Product Count
+                    ResponsivePadding(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Scroll indicator
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            child: Row(
-                              children: [
-                                Icon(Icons.swipe_left, size: 16, color: Colors.grey[600]),
-                                const SizedBox(width: 8),
-                                ResponsiveText(
-                                  'เลื่อนซ้าย-ขวาเพื่อดูคอลัมน์ทั้งหมด',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+                          ResponsiveText(
+                            'แสดง ${filteredProducts.length} จาก ${productProvider.allProducts.length} รายการ',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey[600],
                             ),
                           ),
-                          _buildProductTable(filteredProducts),
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              if (_selectedProductIds.isNotEmpty)
+                                TextButton.icon(
+                                  onPressed: _clearSelection,
+                                  icon: const Icon(Icons.clear, size: 16),
+                                  label: Text('ล้างการเลือก (${_selectedProductIds.length})'),
+                                ),
+                              if (_hasActiveFilters())
+                                TextButton.icon(
+                                  onPressed: _clearFilters,
+                                  icon: const Icon(Icons.clear, size: 16),
+                                  label: const Text('ล้างตัวกรอง'),
+                                ),
+                            ],
+                          ),
                         ],
                       ),
-              ],
+                    ),
+                    
+                    // Product Table
+                    filteredProducts.isEmpty
+                        ? _buildEmptyState()
+                        : Column(
+                            children: [
+                              // Scroll indicator
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.swipe_left, size: 16, color: Colors.grey[600]),
+                                    const SizedBox(width: 8),
+                                    ResponsiveText(
+                                      'เลื่อนซ้าย-ขวาเพื่อดูคอลัมน์ทั้งหมด',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              _buildProductTable(filteredProducts),
+                              const SizedBox(height: 80), // Space for FAB
+                            ],
+                          ),
+                  ],
+                ),
+              );
+            },
+          ),
+          // Draggable FAB
+          Positioned(
+            right: _fabPosition.dx,
+            bottom: _fabPosition.dy,
+            child: GestureDetector(
+              onPanUpdate: (details) {
+                setState(() {
+                  _fabPosition = Offset(
+                    (_fabPosition.dx - details.delta.dx).clamp(0.0, MediaQuery.of(context).size.width - 150),
+                    (_fabPosition.dy - details.delta.dy).clamp(0.0, MediaQuery.of(context).size.height - 200),
+                  );
+                });
+              },
+              child: FloatingActionButton.extended(
+                onPressed: () => _navigateToProductForm(),
+                icon: const Icon(Icons.add),
+                label: const Text('เพิ่มสินค้า'),
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+              ),
             ),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _navigateToProductForm(),
-        icon: const Icon(Icons.add),
-        label: const Text('เพิ่มสินค้า'),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
+          ),
+        ],
       ),
     );
   }

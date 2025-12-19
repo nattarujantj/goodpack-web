@@ -19,6 +19,9 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   bool _sortAscending = true;
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
+  
+  // Draggable FAB position
+  Offset _fabPosition = const Offset(16, 16);
 
   @override
   void initState() {
@@ -53,109 +56,129 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
           ),
         ],
       ),
-      body: Consumer<CustomerProvider>(
-        builder: (context, customerProvider, child) {
-          if (customerProvider.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+      body: Stack(
+        children: [
+          Consumer<CustomerProvider>(
+            builder: (context, customerProvider, child) {
+              if (customerProvider.isLoading) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
 
-          if (customerProvider.error.isNotEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Colors.red[300],
-                  ),
-                  const SizedBox(height: 16),
-                  ResponsiveText(
-                    customerProvider.error,
-                    style: TextStyle(
-                      color: Colors.red[700],
-                      fontSize: 16,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () => customerProvider.refresh(),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('ลองใหม่'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          final filteredCustomers = _getFilteredCustomers(customerProvider.allCustomers);
-
-          return SingleChildScrollView(
-            child: Column(
-              children: [
-                // Filters Section
-                _buildFiltersSection(customerProvider),
-                
-                // Customer Count
-                ResponsivePadding(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              if (customerProvider.error.isNotEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      ResponsiveText(
-                        'แสดง ${filteredCustomers.length} จาก ${customerProvider.allCustomers.length} รายการ',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red[300],
                       ),
-                      if (_hasActiveFilters())
-                        TextButton.icon(
-                          onPressed: _clearFilters,
-                          icon: const Icon(Icons.clear, size: 16),
-                          label: const Text('ล้างตัวกรอง'),
+                      const SizedBox(height: 16),
+                      ResponsiveText(
+                        customerProvider.error,
+                        style: TextStyle(
+                          color: Colors.red[700],
+                          fontSize: 16,
                         ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () => customerProvider.refresh(),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('ลองใหม่'),
+                      ),
                     ],
                   ),
-                ),
-                
-                // Customer Table
-                filteredCustomers.isEmpty
-                    ? _buildEmptyState()
-                    : Column(
+                );
+              }
+
+              final filteredCustomers = _getFilteredCustomers(customerProvider.allCustomers);
+
+              return SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // Filters Section
+                    _buildFiltersSection(customerProvider),
+                    
+                    // Customer Count
+                    ResponsivePadding(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Scroll indicator
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            child: Row(
-                              children: [
-                                Icon(Icons.swipe_left, size: 16, color: Colors.grey[600]),
-                                const SizedBox(width: 8),
-                                ResponsiveText(
-                                  'เลื่อนซ้าย-ขวาเพื่อดูคอลัมน์ทั้งหมด',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+                          ResponsiveText(
+                            'แสดง ${filteredCustomers.length} จาก ${customerProvider.allCustomers.length} รายการ',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey[600],
                             ),
                           ),
-                          _buildCustomerTable(filteredCustomers),
+                          if (_hasActiveFilters())
+                            TextButton.icon(
+                              onPressed: _clearFilters,
+                              icon: const Icon(Icons.clear, size: 16),
+                              label: const Text('ล้างตัวกรอง'),
+                            ),
                         ],
                       ),
-              ],
+                    ),
+                    
+                    // Customer Table
+                    filteredCustomers.isEmpty
+                        ? _buildEmptyState()
+                        : Column(
+                            children: [
+                              // Scroll indicator
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.swipe_left, size: 16, color: Colors.grey[600]),
+                                    const SizedBox(width: 8),
+                                    ResponsiveText(
+                                      'เลื่อนซ้าย-ขวาเพื่อดูคอลัมน์ทั้งหมด',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              _buildCustomerTable(filteredCustomers),
+                              const SizedBox(height: 80), // Space for FAB
+                            ],
+                          ),
+                  ],
+                ),
+              );
+            },
+          ),
+          // Draggable FAB
+          Positioned(
+            right: _fabPosition.dx,
+            bottom: _fabPosition.dy,
+            child: GestureDetector(
+              onPanUpdate: (details) {
+                setState(() {
+                  _fabPosition = Offset(
+                    (_fabPosition.dx - details.delta.dx).clamp(0.0, MediaQuery.of(context).size.width - 150),
+                    (_fabPosition.dy - details.delta.dy).clamp(0.0, MediaQuery.of(context).size.height - 200),
+                  );
+                });
+              },
+              child: FloatingActionButton.extended(
+                onPressed: () => _navigateToCustomerForm(),
+                icon: const Icon(Icons.add),
+                label: const Text('เพิ่มลูกค้า'),
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+              ),
             ),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _navigateToCustomerForm(),
-        icon: const Icon(Icons.add),
-        label: const Text('เพิ่มลูกค้า'),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
+          ),
+        ],
       ),
     );
   }
