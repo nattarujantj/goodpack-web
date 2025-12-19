@@ -27,7 +27,13 @@ class ApiService {
           )
           .timeout(Duration(milliseconds: AppConfig.connectTimeout));
 
-      if (response.statusCode == 200) {
+      // 200 = success, 404 = no data (treat as empty list)
+      if (response.statusCode == 200 || response.statusCode == 404) {
+        // 404 means no products found - return empty list
+        if (response.statusCode == 404) {
+          return [];
+        }
+        
         // Handle null, empty, or "null" string response
         if (response.body.isEmpty || response.body == 'null') {
           return [];
