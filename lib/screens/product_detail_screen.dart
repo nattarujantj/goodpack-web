@@ -88,6 +88,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildProductHeader(Product product) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 900;
+    final imageSize = isDesktop ? 280.0 : 220.0;
+    
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -117,121 +121,229 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             
             const SizedBox(height: 16),
             
-            // Product Image
-            GestureDetector(
-              onTap: () => _showImageOptions(product),
-              child: Container(
-                height: 200,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.grey[200],
-                  border: Border.all(
-                    color: Colors.grey[300]!,
-                    width: 1,
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    // Image or placeholder
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: product.imageUrl != null
-                          ? Image.network(
-                              ImageUploadService.getImageUrl(product.imageUrl),
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: double.infinity,
-                              errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage(),
-                            )
-                          : _buildPlaceholderImage(),
+            // Image and Info Layout
+            if (isDesktop)
+              // Desktop: Image on left, Info on right
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Product Image (Square)
+                  _buildSquareImage(product, imageSize),
+                  
+                  const SizedBox(width: 24),
+                  
+                  // Product Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Product Name
+                        ResponsiveText(
+                          product.name,
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 12),
+                        
+                        // Product Code
+                        if (product.code.isNotEmpty)
+                          _buildInfoRow('รหัสสินค้า', product.code),
+                        
+                        const SizedBox(height: 8),
+                        
+                        // Category
+                        if (product.category.isNotEmpty)
+                          _buildInfoRow('หมวดหมู่', product.category),
+                        
+                        const SizedBox(height: 8),
+                        
+                        // Size
+                        if (product.size.isNotEmpty)
+                          _buildInfoRow('ขนาด', product.size),
+                        
+                        const SizedBox(height: 8),
+                        
+                        // Color
+                        if (product.color.isNotEmpty)
+                          _buildInfoRow('สี', product.color),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Stock Status
+                        _buildStockStatus(product),
+                      ],
                     ),
-                    
-                    // Upload progress overlay
-                    if (_isUploadingImage)
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircularProgressIndicator(
-                                value: _uploadProgress,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'กำลังอัพโหลด... ${(_uploadProgress * 100).toInt()}%',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    
-                    // Upload button overlay
-                    if (!_isUploadingImage)
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.camera_alt,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                            onPressed: () => _showImageOptions(product),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                  ),
+                ],
+              )
+            else
+              // Mobile: Image on top, Info below
+              Column(
+                children: [
+                  // Product Image (Square - Centered)
+                  Center(
+                    child: _buildSquareImage(product, imageSize),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Product Name
+                  ResponsiveText(
+                    product.name,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  
+                  const SizedBox(height: 8),
+                  
+                  // Stock Status
+                  _buildStockStatus(product),
+                ],
               ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Product Name
-            ResponsiveText(
-              product.name,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            
-            const SizedBox(height: 8),
-            
-            // Stock Status
-            _buildStockStatus(product),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPlaceholderImage() {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: Colors.grey[200],
+  Widget _buildSquareImage(Product product, double size) {
+    return GestureDetector(
+      onTap: () => _showImageOptions(product),
+      child: Container(
+        height: size,
+        width: size,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.grey[100],
+          border: Border.all(
+            color: Colors.grey[300]!,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Image or placeholder
+            ClipRRect(
+              borderRadius: BorderRadius.circular(11),
+              child: product.imageUrl != null
+                  ? Image.network(
+                      ImageUploadService.getImageUrl(product.imageUrl),
+                      fit: BoxFit.cover,
+                      width: size,
+                      height: size,
+                      errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage(size),
+                    )
+                  : _buildPlaceholderImage(size),
+            ),
+            
+            // Upload progress overlay
+            if (_isUploadingImage)
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(
+                        value: _uploadProgress,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'กำลังอัพโหลด... ${(_uploadProgress * 100).toInt()}%',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            
+            // Upload button overlay
+            if (!_isUploadingImage)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.camera_alt,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    onPressed: () => _showImageOptions(product),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
-      child: Icon(
-        Icons.inventory_2,
-        size: 80,
-        color: Colors.grey[400],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 100,
+          child: Text(
+            '$label:',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlaceholderImage(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(11),
+        color: Colors.grey[100],
+      ),
+      child: Center(
+        child: Icon(
+          Icons.inventory_2,
+          size: size * 0.35,
+          color: Colors.grey[400],
+        ),
       ),
     );
   }
