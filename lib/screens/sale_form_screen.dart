@@ -291,7 +291,8 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
               _buildTextField(
                 controller: _saleCodeController,
                 label: 'รหัสรายการขาย',
-                hint: 'แก้ไขรหัสรายการขาย',
+                hint: 'รหัสรายการขาย',
+                readOnly: true,
               ),
               const SizedBox(height: 16),
             ],
@@ -300,6 +301,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
               controller: _quotationCodeController,
               label: 'รหัส Quotation',
               hint: 'รหัส Quotation (ถ้ามี)',
+              readOnly: true,
             ),
             
             const SizedBox(height: 16),
@@ -884,7 +886,9 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     TextInputType? keyboardType,
     String? Function(String?)? validator,
     VoidCallback? onTap,
+    bool readOnly = false,
   }) {
+    final isReadOnly = readOnly || onTap != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -907,12 +911,15 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
               horizontal: 12,
               vertical: 12,
             ),
+            filled: isReadOnly,
+            fillColor: isReadOnly ? Colors.grey.shade100 : null,
           ),
           maxLines: maxLines,
           keyboardType: keyboardType,
           validator: validator,
           onTap: onTap,
-          readOnly: onTap != null,
+          readOnly: isReadOnly,
+          enabled: !isReadOnly,
         ),
       ],
     );
