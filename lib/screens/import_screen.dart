@@ -1,9 +1,8 @@
 import 'dart:convert';
 import 'dart:html' as html;
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:file_picker/file_picker.dart';
 import '../widgets/responsive_layout.dart';
 import '../config/env_config.dart';
 
@@ -17,7 +16,8 @@ class ImportScreen extends StatefulWidget {
 class _ImportScreenState extends State<ImportScreen> {
   bool _isLoading = false;
   String? _selectedType;
-  PlatformFile? _selectedFile;
+  String? _selectedFileName;
+  Uint8List? _selectedFileBytes;
   String? _resultMessage;
   String? _resultCsv;
   int _successCount = 0;
@@ -182,9 +182,9 @@ class _ImportScreenState extends State<ImportScreen> {
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              _selectedFile?.name ?? 'ยังไม่ได้เลือกไฟล์',
+                              _selectedFileName ?? 'ยังไม่ได้เลือกไฟล์',
                               style: TextStyle(
-                                color: _selectedFile != null ? Colors.black : Colors.grey,
+                                color: _selectedFileName != null ? Colors.black : Colors.grey,
                               ),
                             ),
                           ),
@@ -203,7 +203,7 @@ class _ImportScreenState extends State<ImportScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: _isLoading || _selectedFile == null || _selectedType == null
+                        onPressed: _isLoading || _selectedFileBytes == null || _selectedType == null
                             ? null
                             : _uploadFile,
                         icon: _isLoading
@@ -289,38 +289,38 @@ class _ImportScreenState extends State<ImportScreen> {
     );
   }
 
-  Future<void> _pickFile() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-        withData: true,
-      );
+  void _pickFile() {
+    final uploadInput = html.FileUploadInputElement();
+    uploadInput.accept = '.csv';
+    uploadInput.click();
 
-      if (result != null && result.files.isNotEmpty) {
-        setState(() {
-          _selectedFile = result.files.first;
-          _resultMessage = null;
-          _resultCsv = null;
+    uploadInput.onChange.listen((event) {
+      final files = uploadInput.files;
+      if (files != null && files.isNotEmpty) {
+        final file = files.first;
+        final reader = html.FileReader();
+
+        reader.onLoadEnd.listen((event) {
+          setState(() {
+            _selectedFileName = file.name;
+            _selectedFileBytes = reader.result as Uint8List;
+            _resultMessage = null;
+            _resultCsv = null;
+          });
         });
+
+        reader.readAsArrayBuffer(file);
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
-      );
-    }
+    });
   }
 
-  Future<void> _downloadTemplate(String type) async {
+  void _downloadTemplate(String type) {
     final url = '${EnvConfig.apiUrl}/import/$type/template';
-    
-    if (kIsWeb) {
-      html.window.open(url, '_blank');
-    }
+    html.window.open(url, '_blank');
   }
 
   Future<void> _uploadFile() async {
-    if (_selectedFile == null || _selectedType == null) return;
+    if (_selectedFileBytes == null || _selectedType == null) return;
 
     setState(() {
       _isLoading = true;
@@ -336,8 +336,8 @@ class _ImportScreenState extends State<ImportScreen> {
       request.files.add(
         http.MultipartFile.fromBytes(
           'file',
-          _selectedFile!.bytes!,
-          filename: _selectedFile!.name,
+          _selectedFileBytes!,
+          filename: _selectedFileName ?? 'import.csv',
         ),
       );
 
