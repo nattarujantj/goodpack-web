@@ -3,6 +3,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:html' as html;
 import '../models/quotation.dart';
 import '../models/bank_account.dart';
 
@@ -13,12 +15,21 @@ class PdfServiceThaiEnhanced {
     try {
       // สร้าง PDF document
       final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName);
+      final pdfBytes = await pdf.save();
       
-      // แสดง dialog สำหรับการพิมพ์หรือบันทึก
-      await Printing.layoutPdf(
-        onLayout: (PdfPageFormat format) async => pdf.save(),
-        name: 'ใบเสนอราคา_${quotation.quotationCode}.pdf',
-      );
+      // เปิด PDF ใน tab ใหม่สำหรับ Web
+      if (kIsWeb) {
+        final blob = html.Blob([pdfBytes], 'application/pdf');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        html.window.open(url, '_blank');
+        // ไม่ revoke URL ทันทีเพราะจะทำให้ tab ใหม่โหลด PDF ไม่ได้
+      } else {
+        // สำหรับ mobile/desktop ใช้ Printing.layoutPdf
+        await Printing.layoutPdf(
+          onLayout: (PdfPageFormat format) async => pdfBytes,
+          name: 'ใบเสนอราคา_${quotation.quotationCode}.pdf',
+        );
+      }
     } catch (e) {
       throw Exception('เกิดข้อผิดพลาดในการสร้าง PDF: $e');
     }
