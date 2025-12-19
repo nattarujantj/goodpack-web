@@ -402,13 +402,20 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
             const SizedBox(height: 16),
             
             CheckboxListTile(
-              title: const Text('รายการขายนี้เป็น VAT (7%)'),
+              title: Text(
+                'รายการขายนี้เป็น VAT (7%)${_isEdit ? ' (ไม่สามารถเปลี่ยนได้)' : ''}',
+                style: TextStyle(
+                  color: _isEdit ? Colors.grey : null,
+                ),
+              ),
               value: _isVAT,
-              onChanged: (value) {
-                setState(() {
-                  _isVAT = value ?? false;
-                });
-              },
+              onChanged: _isEdit 
+                ? null  // Disable ในหน้า edit
+                : (value) {
+                    setState(() {
+                      _isVAT = value ?? false;
+                    });
+                  },
               controlAffinity: ListTileControlAffinity.leading,
             ),
           ],
