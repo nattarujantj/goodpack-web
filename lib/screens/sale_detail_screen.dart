@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:html' as html;
 import '../models/sale.dart';
 import '../models/customer.dart';
 import '../models/bank_account.dart';
@@ -83,6 +85,19 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       }
     } catch (e) {
       print('Error loading additional data: $e');
+    }
+  }
+
+  void _openProductDetail(String productId) {
+    if (productId.isEmpty) return;
+    
+    if (kIsWeb) {
+      // Open in new tab for web
+      final baseUrl = Uri.base.origin;
+      html.window.open('$baseUrl/#/product/$productId', '_blank');
+    } else {
+      // Navigate within app for mobile
+      context.push('/product/$productId');
     }
   }
 
@@ -325,12 +340,16 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '${item.productName} (${item.productCode})',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Colors.green,
+          InkWell(
+            onTap: () => _openProductDetail(item.productId),
+            child: Text(
+              '${item.productName} (${item.productCode})',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.blue,
+                decoration: TextDecoration.underline,
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -546,11 +565,15 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            item.productName,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.orange,
+          InkWell(
+            onTap: () => _openProductDetail(item.productId),
+            child: Text(
+              item.productName,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
+                decoration: TextDecoration.underline,
+              ),
             ),
           ),
           const SizedBox(height: 4),

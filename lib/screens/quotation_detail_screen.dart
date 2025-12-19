@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:html' as html;
 import '../models/quotation.dart';
 import '../providers/quotation_provider.dart';
 import '../providers/sale_provider.dart';
@@ -45,6 +47,19 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  void _openProductDetail(String productId) {
+    if (productId.isEmpty) return;
+    
+    if (kIsWeb) {
+      // Open in new tab for web
+      final baseUrl = Uri.base.origin;
+      html.window.open('$baseUrl/#/product/$productId', '_blank');
+    } else {
+      // Navigate within app for mobile
+      context.push('/product/$productId');
     }
   }
 
@@ -451,7 +466,16 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
                   DataCell(
                     ConstrainedBox(
                       constraints: const BoxConstraints(minWidth: 80),
-                      child: Text(item.productName),
+                      child: InkWell(
+                        onTap: () => _openProductDetail(item.productId),
+                        child: Text(
+                          item.productName,
+                          style: const TextStyle(
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                   DataCell(

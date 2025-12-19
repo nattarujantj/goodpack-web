@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:html' as html;
 import '../providers/purchase_provider.dart';
 import '../models/purchase.dart';
 import '../widgets/responsive_layout.dart';
@@ -27,6 +29,19 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
         provider.loadPurchases();
       }
     });
+  }
+
+  void _openProductDetail(String productId) {
+    if (productId.isEmpty) return;
+    
+    if (kIsWeb) {
+      // Open in new tab for web
+      final baseUrl = Uri.base.origin;
+      html.window.open('$baseUrl/#/product/$productId', '_blank');
+    } else {
+      // Navigate within app for mobile
+      context.push('/product/$productId');
+    }
   }
 
   @override
@@ -269,11 +284,15 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  '${index + 1}. ${item.productName}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                child: InkWell(
+                  onTap: () => _openProductDetail(item.productId),
+                  child: Text(
+                    '${index + 1}. ${item.productName}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
                   ),
                 ),
               ),
@@ -396,7 +415,16 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
       child: Row(
         children: [
           Expanded(
-            child: Text('${index + 1}. ${item.productName}'),
+            child: InkWell(
+              onTap: () => _openProductDetail(item.productId),
+              child: Text(
+                '${index + 1}. ${item.productName}',
+                style: const TextStyle(
+                  color: Colors.blue,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
           ),
           Text('จำนวน: ${NumberFormatter.formatQuantity(item.quantity)}'),
           const SizedBox(width: 16),
