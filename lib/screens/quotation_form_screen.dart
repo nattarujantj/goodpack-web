@@ -457,6 +457,45 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
   Widget _buildCustomerDropdown() {
     return Consumer<CustomerProvider>(
       builder: (context, customerProvider, child) {
+        // แสดง loading indicator ถ้ากำลังโหลด
+        if (customerProvider.isLoading) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'ลูกค้า *',
+                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.person, color: Colors.grey),
+                    SizedBox(width: 12),
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 8),
+                    Text('กำลังโหลดข้อมูลลูกค้า...', style: TextStyle(color: Colors.grey)),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+        
+        // โหลดข้อมูลถ้ายังไม่มี
+        if (customerProvider.allCustomers.isEmpty) {
+          customerProvider.loadCustomers();
+        }
+        
         return SearchableDropdown<String>(
           value: _selectedCustomerId,
           items: customerProvider.allCustomers.map((customer) => customer.id).toList(),
@@ -594,14 +633,45 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
   void _addItem() {
     showDialog(
       context: context,
-      builder: (context) => _AddItemDialog(
-        products: context.read<ProductProvider>().allProducts,
-        onAdd: (item) {
-          setState(() {
-            _quotationItems.add(item);
-          });
-        },
-      ),
+      builder: (dialogContext) {
+        return Consumer<ProductProvider>(
+          builder: (context, productProvider, child) {
+            // แสดง loading indicator ถ้ากำลังโหลด
+            if (productProvider.isLoading) {
+              return AlertDialog(
+                title: const Text('เพิ่มสินค้า'),
+                content: const SizedBox(
+                  height: 100,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('กำลังโหลดข้อมูลสินค้า...'),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+            
+            // โหลดข้อมูลถ้ายังไม่มี
+            if (productProvider.allProducts.isEmpty) {
+              productProvider.loadProducts();
+            }
+            
+            return _AddItemDialog(
+              products: productProvider.allProducts,
+              onAdd: (item) {
+                setState(() {
+                  _quotationItems.add(item);
+                });
+              },
+            );
+          },
+        );
+      },
     );
   }
 
