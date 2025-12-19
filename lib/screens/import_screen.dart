@@ -345,9 +345,25 @@ class _ImportScreenState extends State<ImportScreen> {
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
-        // Parse headers for counts
-        final successCount = int.tryParse(response.headers['x-import-success'] ?? '0') ?? 0;
-        final failCount = int.tryParse(response.headers['x-import-failed'] ?? '0') ?? 0;
+        // Try parse headers for counts first
+        var successCount = int.tryParse(response.headers['x-import-success'] ?? '0') ?? 0;
+        var failCount = int.tryParse(response.headers['x-import-failed'] ?? '0') ?? 0;
+        
+        // Fallback: parse from CSV body if headers are 0
+        if (successCount == 0 && failCount == 0 && response.body.isNotEmpty) {
+          final lines = response.body.split('\n');
+          // Skip header row, count success/failed from status column
+          for (int i = 1; i < lines.length; i++) {
+            final line = lines[i].trim();
+            if (line.isEmpty) continue;
+            if (line.contains(',success,') || line.endsWith(',success,')) {
+              successCount++;
+            } else if (line.contains(',failed,')) {
+              failCount++;
+            }
+          }
+        }
+        
         final total = successCount + failCount;
 
         setState(() {

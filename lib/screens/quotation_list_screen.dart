@@ -95,105 +95,105 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
       body: Stack(
         children: [
           Consumer<QuotationProvider>(
-            builder: (context, quotationProvider, child) {
-              if (quotationProvider.isLoading) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
+        builder: (context, quotationProvider, child) {
+          if (quotationProvider.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
 
-              if (quotationProvider.error != null) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+          if (quotationProvider.error != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red[300],
+                  ),
+                  const SizedBox(height: 16),
+                  ResponsiveText(
+                    quotationProvider.error!,
+                    style: TextStyle(
+                      color: Colors.red[700],
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => quotationProvider.loadQuotations(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('ลองใหม่'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final filteredQuotations = _getFilteredQuotations(quotationProvider.quotations);
+          final searchedQuotations = _getSearchedQuotations(filteredQuotations);
+          final sortedQuotations = _getSortedQuotations(searchedQuotations);
+
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                // Filters Section
+                _buildFiltersSection(quotationProvider),
+
+                // Quotation Count
+                ResponsivePadding(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.red[300],
-                      ),
-                      const SizedBox(height: 16),
                       ResponsiveText(
-                        quotationProvider.error!,
-                        style: TextStyle(
-                          color: Colors.red[700],
-                          fontSize: 16,
+                        'แสดง ${sortedQuotations.length} จาก ${quotationProvider.quotations.length} รายการ',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[600],
                         ),
-                        textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () => quotationProvider.loadQuotations(),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('ลองใหม่'),
-                      ),
+                      if (_hasActiveFilters())
+                        TextButton.icon(
+                          onPressed: _clearFilters,
+                          icon: const Icon(Icons.clear, size: 16),
+                          label: const Text('ล้างตัวกรอง'),
+                        ),
                     ],
                   ),
-                );
-              }
+                ),
 
-              final filteredQuotations = _getFilteredQuotations(quotationProvider.quotations);
-              final searchedQuotations = _getSearchedQuotations(filteredQuotations);
-              final sortedQuotations = _getSortedQuotations(searchedQuotations);
-
-              return SingleChildScrollView(
-                child: Column(
-                  children: [
-                    // Filters Section
-                    _buildFiltersSection(quotationProvider),
-
-                    // Quotation Count
-                    ResponsivePadding(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                // Quotation Table
+                sortedQuotations.isEmpty
+                    ? _buildEmptyState()
+                    : Column(
                         children: [
-                          ResponsiveText(
-                            'แสดง ${sortedQuotations.length} จาก ${quotationProvider.quotations.length} รายการ',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey[600],
+                          // Scroll indicator
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Row(
+                              children: [
+                                Icon(Icons.swipe_left, size: 16, color: Colors.grey[600]),
+                                const SizedBox(width: 8),
+                                ResponsiveText(
+                                  'เลื่อนซ้าย-ขวาเพื่อดูคอลัมน์ทั้งหมด',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          if (_hasActiveFilters())
-                            TextButton.icon(
-                              onPressed: _clearFilters,
-                              icon: const Icon(Icons.clear, size: 16),
-                              label: const Text('ล้างตัวกรอง'),
-                            ),
+                          _buildQuotationsTable(sortedQuotations),
+                              const SizedBox(height: 80), // Space for FAB
                         ],
                       ),
-                    ),
-
-                    // Quotation Table
-                    sortedQuotations.isEmpty
-                        ? _buildEmptyState()
-                        : Column(
-                            children: [
-                              // Scroll indicator
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.swipe_left, size: 16, color: Colors.grey[600]),
-                                    const SizedBox(width: 8),
-                                    ResponsiveText(
-                                      'เลื่อนซ้าย-ขวาเพื่อดูคอลัมน์ทั้งหมด',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              _buildQuotationsTable(sortedQuotations),
-                              const SizedBox(height: 80), // Space for FAB
-                            ],
-                          ),
-                  ],
-                ),
-              );
-            },
-          ),
+              ],
+            ),
+          );
+        },
+      ),
           // Draggable FAB
           Positioned(
             right: _fabPosition.dx,
@@ -209,10 +209,10 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
               },
               child: FloatingActionButton.extended(
                 onPressed: () => context.push('/quotation-form'),
-                icon: const Icon(Icons.add),
-                label: const Text('เพิ่มเสนอราคา'),
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('เพิ่มเสนอราคา'),
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
               ),
             ),
           ),

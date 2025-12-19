@@ -115,8 +115,8 @@ class PdfServiceSale {
             children: [
               // Company Header (only show for VAT sales)
               if (sale.isVAT) ...[
-                _buildCompanyHeader(thaiFont, logoImage),
-                pw.SizedBox(height: 5),
+              _buildCompanyHeader(thaiFont, logoImage),
+              pw.SizedBox(height: 5),
               ],
               
               // Document Title
