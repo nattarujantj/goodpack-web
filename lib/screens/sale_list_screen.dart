@@ -440,7 +440,6 @@ class _SaleListScreenState extends State<SaleListScreen> {
       initialDate: initialDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      locale: const Locale('th', 'TH'),
     );
     
     if (picked != null) {
