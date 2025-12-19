@@ -113,9 +113,11 @@ class PdfServiceSale {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // Company Header
-              _buildCompanyHeader(thaiFont, logoImage),
-              pw.SizedBox(height: 5),
+              // Company Header (only show for VAT sales)
+              if (sale.isVAT) ...[
+                _buildCompanyHeader(thaiFont, logoImage),
+                pw.SizedBox(height: 5),
+              ],
               
               // Document Title
               _buildDocumentTitle(thaiFont, documentType),
