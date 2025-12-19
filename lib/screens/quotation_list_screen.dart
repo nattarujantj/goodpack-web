@@ -40,8 +40,8 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
     }
     _initDefaultMonthFilter();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<QuotationProvider>().loadQuotations();
-      context.read<CustomerProvider>().loadCustomers();
+      context.read<QuotationProvider>().loadQuotationsIfNeeded();
+      context.read<CustomerProvider>().loadCustomersIfNeeded();
     });
   }
 

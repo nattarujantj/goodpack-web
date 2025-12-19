@@ -10,6 +10,13 @@ class CustomerProvider with ChangeNotifier {
   List<Customer> get allCustomers => _customers;
   bool get isLoading => _isLoading;
   String get error => _error;
+  bool get hasData => _customers.isNotEmpty;
+
+  /// Load customers only if data is not already loaded
+  Future<void> loadCustomersIfNeeded() async {
+    if (_customers.isNotEmpty || _isLoading) return;
+    await loadCustomers();
+  }
 
   // Load all customers
   Future<void> loadCustomers() async {

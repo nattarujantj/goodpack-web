@@ -10,6 +10,13 @@ class PurchaseProvider with ChangeNotifier {
   List<Purchase> get allPurchases => _purchases;
   bool get isLoading => _isLoading;
   String get error => _error;
+  bool get hasData => _purchases.isNotEmpty;
+
+  /// Load purchases only if data is not already loaded
+  Future<void> loadPurchasesIfNeeded() async {
+    if (_purchases.isNotEmpty || _isLoading) return;
+    await loadPurchases();
+  }
 
   // Load all purchases
   Future<void> loadPurchases() async {

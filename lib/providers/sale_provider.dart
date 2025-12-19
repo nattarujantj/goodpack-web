@@ -12,6 +12,13 @@ class SaleProvider with ChangeNotifier {
   List<Sale> get sales => _sales;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get hasData => _sales.isNotEmpty;
+
+  /// Load sales only if data is not already loaded
+  Future<void> loadSalesIfNeeded() async {
+    if (_sales.isNotEmpty || _isLoading) return;
+    await loadSales();
+  }
 
   Future<void> loadSales() async {
     _isLoading = true;

@@ -36,8 +36,8 @@ class _SaleListScreenState extends State<SaleListScreen> {
     _vatFilter = widget.initialVatFilter;
     _initDefaultMonthFilter();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<SaleProvider>().loadSales();
-      context.read<CustomerProvider>().loadCustomers();
+      context.read<SaleProvider>().loadSalesIfNeeded();
+      context.read<CustomerProvider>().loadCustomersIfNeeded();
     });
   }
 

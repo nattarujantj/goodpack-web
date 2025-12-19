@@ -12,6 +12,13 @@ class QuotationProvider with ChangeNotifier {
   List<Quotation> get quotations => _quotations;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get hasData => _quotations.isNotEmpty;
+
+  /// Load quotations only if data is not already loaded
+  Future<void> loadQuotationsIfNeeded() async {
+    if (_quotations.isNotEmpty || _isLoading) return;
+    await loadQuotations();
+  }
 
   Future<void> loadQuotations() async {
     _isLoading = true;

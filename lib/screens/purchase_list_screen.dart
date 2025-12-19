@@ -36,8 +36,8 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
     _vatFilter = widget.initialVatFilter ?? 'ทั้งหมด';
     _initDefaultMonthFilter();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PurchaseProvider>().loadPurchases();
-      context.read<CustomerProvider>().loadCustomers();
+      context.read<PurchaseProvider>().loadPurchasesIfNeeded();
+      context.read<CustomerProvider>().loadCustomersIfNeeded();
     });
   }
 
