@@ -31,9 +31,16 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
   }
 
   void _loadQuotation() async {
+    final quotationProvider = context.read<QuotationProvider>();
+    
+    // If quotation is already in cache, don't reload
+    if (quotationProvider.getQuotationById(widget.quotationId) != null) {
+      return;
+    }
+    
     setState(() => _isLoading = true);
     try {
-      await context.read<QuotationProvider>().loadQuotations();
+      await quotationProvider.loadQuotations();
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
