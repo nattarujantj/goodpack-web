@@ -68,6 +68,11 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     // Load data first
     await _loadData();
     
+    // Force rebuild after data loaded
+    if (mounted) {
+      setState(() {});
+    }
+    
     // Then populate fields
     if (widget.purchase != null) {
       _populateFields();
@@ -77,11 +82,27 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   }
 
   Future<void> _loadData() async {
-    await Future.wait([
-      context.read<CustomerProvider>().loadCustomers(),
-      context.read<ProductProvider>().loadProducts(),
-      ConfigService().loadConfig(),
-    ]);
+    final customerProvider = context.read<CustomerProvider>();
+    final productProvider = context.read<ProductProvider>();
+    
+    // Load only if not already loaded
+    final futures = <Future>[];
+    
+    if (customerProvider.allCustomers.isEmpty && !customerProvider.isLoading) {
+      futures.add(customerProvider.loadCustomers());
+    }
+    
+    if (productProvider.allProducts.isEmpty && !productProvider.isLoading) {
+      futures.add(productProvider.loadProducts());
+    }
+    
+    if (!ConfigService().isLoaded) {
+      futures.add(ConfigService().loadConfig());
+    }
+    
+    if (futures.isNotEmpty) {
+      await Future.wait(futures);
+    }
   }
 
   void _loadPurchaseFromId() {
@@ -493,15 +514,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   Widget _buildCustomerDropdown() {
     return Consumer<CustomerProvider>(
       builder: (context, customerProvider, child) {
-        // แสดง loading indicator ถ้ากำลังโหลด หรือยังไม่มีข้อมูล
-        if (customerProvider.isLoading || customerProvider.allCustomers.isEmpty) {
-          // โหลดข้อมูลถ้ายังไม่ได้โหลด
-          if (!customerProvider.isLoading && customerProvider.allCustomers.isEmpty) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              customerProvider.loadCustomers();
-            });
-          }
-          
+        // แสดง loading indicator ถ้ากำลังโหลด
+        if (customerProvider.isLoading) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -945,15 +959,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   Widget _buildAddItemDialog() {
     return Consumer<ProductProvider>(
       builder: (context, productProvider, child) {
-        // แสดง loading indicator ถ้ากำลังโหลด หรือยังไม่มีข้อมูล
-        if (productProvider.isLoading || productProvider.allProducts.isEmpty) {
-          // โหลดข้อมูลถ้ายังไม่ได้โหลด
-          if (!productProvider.isLoading && productProvider.allProducts.isEmpty) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              productProvider.loadProducts();
-            });
-          }
-          
+        // แสดง loading indicator ถ้ากำลังโหลด
+        if (productProvider.isLoading) {
           return AlertDialog(
             title: const Text('เพิ่มสินค้า'),
             content: const SizedBox(
@@ -1026,15 +1033,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   Widget _buildAddWarehouseItemDialog() {
     return Consumer<ProductProvider>(
       builder: (context, productProvider, child) {
-        // แสดง loading indicator ถ้ากำลังโหลด หรือยังไม่มีข้อมูล
-        if (productProvider.isLoading || productProvider.allProducts.isEmpty) {
-          // โหลดข้อมูลถ้ายังไม่ได้โหลด
-          if (!productProvider.isLoading && productProvider.allProducts.isEmpty) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              productProvider.loadProducts();
-            });
-          }
-          
+        // แสดง loading indicator ถ้ากำลังโหลด
+        if (productProvider.isLoading) {
           return AlertDialog(
             title: const Text('เพิ่มสินค้าคลัง'),
             content: const SizedBox(

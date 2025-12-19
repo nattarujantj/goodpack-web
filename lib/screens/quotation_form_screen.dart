@@ -54,15 +54,27 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
   }
 
   void _loadData() async {
+    final customerProvider = context.read<CustomerProvider>();
+    final productProvider = context.read<ProductProvider>();
+    
     if (_isEdit) {
       setState(() => _isLoading = true);
       
       try {
-        // Load customers and products
-        await Future.wait([
-          context.read<CustomerProvider>().loadCustomers(),
-          context.read<ProductProvider>().loadProducts(),
-        ]);
+        // Load customers and products only if not already loaded
+        final futures = <Future>[];
+        
+        if (customerProvider.allCustomers.isEmpty && !customerProvider.isLoading) {
+          futures.add(customerProvider.loadCustomers());
+        }
+        
+        if (productProvider.allProducts.isEmpty && !productProvider.isLoading) {
+          futures.add(productProvider.loadProducts());
+        }
+        
+        if (futures.isNotEmpty) {
+          await Future.wait(futures);
+        }
 
         // Load quotation data if editing
         if (widget.quotationId != null) {
@@ -88,11 +100,24 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
         }
       }
     } else {
-      // Load customers and products for new quotation
-      await Future.wait([
-        context.read<CustomerProvider>().loadCustomers(),
-        context.read<ProductProvider>().loadProducts(),
-      ]);
+      // Load customers and products for new quotation only if not already loaded
+      final futures = <Future>[];
+      
+      if (customerProvider.allCustomers.isEmpty && !customerProvider.isLoading) {
+        futures.add(customerProvider.loadCustomers());
+      }
+      
+      if (productProvider.allProducts.isEmpty && !productProvider.isLoading) {
+        futures.add(productProvider.loadProducts());
+      }
+      
+      if (futures.isNotEmpty) {
+        await Future.wait(futures);
+        // Force rebuild after data loaded
+        if (mounted) {
+          setState(() {});
+        }
+      }
     }
   }
 
@@ -457,15 +482,8 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
   Widget _buildCustomerDropdown() {
     return Consumer<CustomerProvider>(
       builder: (context, customerProvider, child) {
-        // แสดง loading indicator ถ้ากำลังโหลด หรือยังไม่มีข้อมูล
-        if (customerProvider.isLoading || customerProvider.allCustomers.isEmpty) {
-          // โหลดข้อมูลถ้ายังไม่ได้โหลด
-          if (!customerProvider.isLoading && customerProvider.allCustomers.isEmpty) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              customerProvider.loadCustomers();
-            });
-          }
-          
+        // แสดง loading indicator ถ้ากำลังโหลด
+        if (customerProvider.isLoading) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -638,15 +656,8 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
       builder: (dialogContext) {
         return Consumer<ProductProvider>(
           builder: (context, productProvider, child) {
-            // แสดง loading indicator ถ้ากำลังโหลด หรือยังไม่มีข้อมูล
-            if (productProvider.isLoading || productProvider.allProducts.isEmpty) {
-              // โหลดข้อมูลถ้ายังไม่ได้โหลด
-              if (!productProvider.isLoading && productProvider.allProducts.isEmpty) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  productProvider.loadProducts();
-                });
-              }
-              
+            // แสดง loading indicator ถ้ากำลังโหลด
+            if (productProvider.isLoading) {
               return AlertDialog(
                 title: const Text('เพิ่มสินค้า'),
                 content: const SizedBox(
