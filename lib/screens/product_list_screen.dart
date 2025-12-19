@@ -269,6 +269,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
             child: DataTable(
               columnSpacing: 2,
               headingRowColor: MaterialStateProperty.all(Colors.grey[100]),
+              showCheckboxColumn: false, // ซ่อน checkbox, กดที่ row ไปหน้า view แทน
             columns: [
               DataColumn(
                 label: _buildSortableHeader('ชื่อสินค้า', 'name'),
@@ -300,8 +301,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
               final isSelected = _selectedProductIds.contains(product.id);
               return DataRow(
                 selected: isSelected,
-                onSelectChanged: (selected) {
-                  _toggleProductSelection(product);
+                onSelectChanged: (_) {
+                  // กดที่ row ไปหน้ารายละเอียดสินค้า
+                  _navigateToProductDetail(product.id);
                 },
                 cells: [
                   DataCell(
