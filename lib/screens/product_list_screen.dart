@@ -269,8 +269,33 @@ class _ProductListScreenState extends State<ProductListScreen> {
             child: DataTable(
               columnSpacing: 2,
               headingRowColor: MaterialStateProperty.all(Colors.grey[100]),
-              showCheckboxColumn: false, // ซ่อน checkbox, กดที่ row ไปหน้า view แทน
+              showCheckboxColumn: false,
             columns: [
+              // Column สำหรับ Checkbox
+              DataColumn(
+                label: Container(
+                  width: 40,
+                  child: Checkbox(
+                    value: _selectedProductIds.isNotEmpty,
+                    tristate: true,
+                    onChanged: (value) {
+                      // Select all / Deselect all
+                      setState(() {
+                        if (_selectedProductIds.isEmpty) {
+                          // Select all visible products
+                          final allProducts = context.read<ProductProvider>().products;
+                          _selectedProductIds = allProducts.map((p) => p.id).toSet();
+                          _selectedProducts = List.from(allProducts);
+                        } else {
+                          // Deselect all
+                          _selectedProductIds.clear();
+                          _selectedProducts.clear();
+                        }
+                      });
+                    },
+                  ),
+                ),
+              ),
               DataColumn(
                 label: _buildSortableHeader('ชื่อสินค้า', 'name'),
               ),
@@ -301,11 +326,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
               final isSelected = _selectedProductIds.contains(product.id);
               return DataRow(
                 selected: isSelected,
-                onSelectChanged: (_) {
-                  // กดที่ row ไปหน้ารายละเอียดสินค้า
-                  _navigateToProductDetail(product.id);
-                },
                 cells: [
+                  // Checkbox cell
+                  DataCell(
+                    Container(
+                      width: 40,
+                      child: Checkbox(
+                        value: isSelected,
+                        onChanged: (_) => _toggleProductSelection(product),
+                      ),
+                    ),
+                  ),
                   DataCell(
                     Container(
                       width: 150, // กำหนดความกว้างของคอลัมน์ชื่อสินค้า
