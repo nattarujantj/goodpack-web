@@ -401,7 +401,8 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onTabTapped(int index) {
     // สำหรับเมนูที่มีเมนูย่อย (ซื้อ, ขาย, เสนอราคา) แสดง Bottom Sheet บนมือถือ/tablet
-    if (MediaQuery.of(context).size.width < 1200 && (index == 2 || index == 3 || index == 4)) {
+    // index 3 = ซื้อ, index 4 = ขาย, index 5 = เสนอราคา
+    if (MediaQuery.of(context).size.width < 1200 && (index == 3 || index == 4 || index == 5)) {
       _showVatFilterSheet(index);
       return;
     }
