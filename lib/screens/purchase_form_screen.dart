@@ -415,13 +415,13 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              children: [
-                ResponsiveText(
+          children: [
+            ResponsiveText(
                   'ข้อมูล VAT *',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
                 ),
                 if (_isEdit)
                   Padding(
@@ -434,16 +434,16 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             
             // VAT Radio buttons
             Row(
-              children: [
+                children: [
                 Expanded(
                   child: RadioListTile<bool>(
                     title: Text(
                       'ไม่มี VAT',
-                      style: TextStyle(
+                    style: TextStyle(
                         fontSize: 14,
-                        color: _isEdit ? Colors.grey : null,
-                      ),
+                      color: _isEdit ? Colors.grey : null,
                     ),
+                  ),
                     value: false,
                     groupValue: _isVAT,
                     onChanged: _isEdit ? null : (value) {
@@ -462,15 +462,15 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                       style: TextStyle(
                         fontSize: 14,
                         color: _isEdit ? Colors.grey : null,
-                      ),
                     ),
+              ),
                     value: true,
                     groupValue: _isVAT,
-                    onChanged: _isEdit ? null : (value) {
-                      setState(() {
-                        _isVAT = value ?? false;
-                      });
-                    },
+              onChanged: _isEdit ? null : (value) {
+                setState(() {
+                  _isVAT = value ?? false;
+                });
+              },
                     contentPadding: EdgeInsets.zero,
                     dense: true,
                   ),
@@ -524,7 +524,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                             },
                             contentPadding: EdgeInsets.zero,
                             dense: true,
-                          ),
+            ),
                         ),
                       ],
                     ),
@@ -567,11 +567,11 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                     title: const Text('ค้างชำระ', style: TextStyle(fontSize: 14)),
                     value: false,
                     groupValue: _isPaid,
-                    onChanged: (value) {
-                      setState(() {
-                        _isPaid = value ?? false;
-                      });
-                    },
+              onChanged: (value) {
+                setState(() {
+                  _isPaid = value ?? false;
+                });
+              },
                     contentPadding: EdgeInsets.zero,
                     dense: true,
                   ),
@@ -768,22 +768,22 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               itemAsString: (supplierId) {
                 final supplier = supplierProvider.allSuppliers.firstWhere((s) => s.id == supplierId);
                 return _formatSupplierDisplay(supplier);
-              },
+          },
               itemAsValue: (supplierId) => supplierId,
-              onChanged: (value) {
-                setState(() {
+          onChanged: (value) {
+            setState(() {
                   _selectedSupplierId = value;
                   _selectedContactIndex = 0; // Reset to primary contact
-                });
-              },
+            });
+          },
               hint: 'เลือกซัพพลายเออร์',
               label: 'ซัพพลายเออร์ *',
-              validator: (value) {
-                if (value == null || value.isEmpty) {
+          validator: (value) {
+            if (value == null || value.isEmpty) {
                   return 'กรุณาเลือกซัพพลายเออร์';
-                }
-                return null;
-              },
+            }
+            return null;
+          },
               prefixIcon: const Icon(Icons.local_shipping),
             ),
             
@@ -840,7 +840,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           decoration: InputDecoration(
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            prefixIcon: const Icon(Icons.person),
+          prefixIcon: const Icon(Icons.person),
           ),
           items: contacts.asMap().entries.map((entry) {
             final index = entry.key;
@@ -1112,8 +1112,25 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 
   Widget _buildPurchaseItemRow(int index) {
     final item = _purchaseItems[index];
-    final vatAmount = _isVAT ? item.totalPrice * 0.07 : 0.0;
-    final itemTotalWithVAT = item.totalPrice + vatAmount;
+    
+    // Calculate VAT based on VAT type
+    double vatAmount = 0.0;
+    double priceBeforeVAT = item.totalPrice;
+    double itemTotalWithVAT = item.totalPrice;
+    
+    if (_isVAT) {
+      if (_vatType == 'inclusive') {
+        // VAT ใน: ราคารวม VAT แล้ว, ต้องถอด VAT ออก
+        // ราคาก่อน VAT = ราคารวม / 1.07
+        priceBeforeVAT = item.totalPrice / 1.07;
+        vatAmount = item.totalPrice - priceBeforeVAT;
+        itemTotalWithVAT = item.totalPrice; // ราคาที่กรอกคือราคารวม VAT แล้ว
+      } else {
+        // VAT นอก: ราคา + VAT 7%
+        vatAmount = item.totalPrice * 0.07;
+        itemTotalWithVAT = item.totalPrice + vatAmount;
+      }
+    }
     
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1192,8 +1209,26 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 
   Widget _buildTotalSummary() {
     final totalBeforeVAT = _purchaseItems.fold(0.0, (sum, item) => sum + item.totalPrice);
-    final totalVAT = _isVAT ? totalBeforeVAT * 0.07 : 0.0;
-    final grandTotal = totalBeforeVAT + totalVAT;
+    
+    // Calculate VAT based on VAT type
+    double totalVAT = 0.0;
+    double grandTotal = 0.0;
+    
+    if (_isVAT) {
+      if (_vatType == 'inclusive') {
+        // VAT ใน: ราคารวม VAT แล้ว, ต้องถอด VAT ออก
+        // ราคาก่อน VAT = ราคารวม / 1.07
+        // VAT = ราคารวม - ราคาก่อน VAT
+        totalVAT = totalBeforeVAT - (totalBeforeVAT / 1.07);
+        grandTotal = totalBeforeVAT; // ราคาที่กรอกคือราคารวม VAT แล้ว
+      } else {
+        // VAT นอก: ราคา + VAT 7%
+        totalVAT = totalBeforeVAT * 0.07;
+        grandTotal = totalBeforeVAT + totalVAT;
+      }
+    } else {
+      grandTotal = totalBeforeVAT;
+    }
     
     return Container(
       padding: const EdgeInsets.all(16),
