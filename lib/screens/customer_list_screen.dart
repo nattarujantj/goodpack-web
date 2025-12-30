@@ -42,7 +42,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: ResponsiveAppBar(
-        title: 'รายการลูกค้า/ซัพพลายเออร์',
+        title: 'รายการลูกค้า',
         actions: [
           IconButton(
             icon: const Icon(Icons.add),

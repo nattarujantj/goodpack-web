@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../models/purchase.dart';
 import '../models/product.dart';
+import '../models/contact.dart';
 import '../providers/purchase_provider.dart';
 import '../providers/supplier_provider.dart';
 import '../providers/product_provider.dart';
@@ -37,6 +38,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 
   String? _selectedSupplierId;
   String? _selectedAccountId;
+  int _selectedContactIndex = 0; // Index ของผู้ติดต่อที่เลือก (default = 0 = primary)
   bool _isVAT = false;
   bool _isPaid = false;
   bool _isWarehouseUpdated = false;
@@ -616,30 +618,135 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           );
         }
         
-        return SearchableDropdown<String>(
-          value: _selectedSupplierId,
-          items: supplierProvider.allSuppliers.map((supplier) => supplier.id).toList(),
-          itemAsString: (supplierId) {
-            final supplier = supplierProvider.allSuppliers.firstWhere((s) => s.id == supplierId);
-            return _formatSupplierDisplay(supplier);
-          },
-          itemAsValue: (supplierId) => supplierId,
-          onChanged: (value) {
-            setState(() {
-              _selectedSupplierId = value;
-            });
-          },
-          hint: 'เลือกซัพพลายเออร์',
-          label: 'ซัพพลายเออร์ *',
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'กรุณาเลือกซัพพลายเออร์';
-            }
-            return null;
-          },
-          prefixIcon: const Icon(Icons.local_shipping),
+        // ดึงข้อมูลผู้ติดต่อของ supplier ที่เลือก
+        Supplier? selectedSupplier;
+        List<Contact> contacts = [];
+        if (_selectedSupplierId != null) {
+          selectedSupplier = supplierProvider.allSuppliers.firstWhere(
+            (s) => s.id == _selectedSupplierId,
+            orElse: () => supplierProvider.allSuppliers.first,
+          );
+          // ดึง contacts หรือสร้างจาก legacy fields
+          if (selectedSupplier.contacts.isNotEmpty) {
+            contacts = selectedSupplier.contacts;
+          } else if (selectedSupplier.contactName.isNotEmpty) {
+            contacts = [Contact(name: selectedSupplier.contactName, phone: selectedSupplier.phone, isDefault: true)];
+          }
+        }
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SearchableDropdown<String>(
+              value: _selectedSupplierId,
+              items: supplierProvider.allSuppliers.map((supplier) => supplier.id).toList(),
+              itemAsString: (supplierId) {
+                final supplier = supplierProvider.allSuppliers.firstWhere((s) => s.id == supplierId);
+                return _formatSupplierDisplay(supplier);
+              },
+              itemAsValue: (supplierId) => supplierId,
+              onChanged: (value) {
+                setState(() {
+                  _selectedSupplierId = value;
+                  _selectedContactIndex = 0; // Reset to primary contact
+                });
+              },
+              hint: 'เลือกซัพพลายเออร์',
+              label: 'ซัพพลายเออร์ *',
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'กรุณาเลือกซัพพลายเออร์';
+                }
+                return null;
+              },
+              prefixIcon: const Icon(Icons.local_shipping),
+            ),
+            
+            // แสดง dropdown ผู้ติดต่อถ้ามีมากกว่า 1 คน
+            if (contacts.length > 1) ...[
+              const SizedBox(height: 16),
+              _buildContactDropdown(contacts),
+            ] else if (contacts.length == 1) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.person, size: 16, color: Colors.blue),
+                    const SizedBox(width: 8),
+                    Text(
+                      'ผู้ติดต่อ: ${contacts[0].name} (${contacts[0].phone})',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildContactDropdown(List<Contact> contacts) {
+    // หา index ของ primary contact
+    int primaryIndex = contacts.indexWhere((c) => c.isDefault);
+    if (primaryIndex == -1) primaryIndex = 0;
+    
+    // ถ้ายังไม่ได้เลือก ให้เลือก primary
+    if (_selectedContactIndex >= contacts.length) {
+      _selectedContactIndex = primaryIndex;
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'ผู้ติดต่อ',
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<int>(
+          value: _selectedContactIndex,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            prefixIcon: const Icon(Icons.person),
+          ),
+          items: contacts.asMap().entries.map((entry) {
+            final index = entry.key;
+            final contact = entry.value;
+            return DropdownMenuItem<int>(
+              value: index,
+              child: Row(
+                children: [
+                  Text('${contact.name} (${contact.phone})'),
+                  if (contact.isDefault) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text('หลัก', style: TextStyle(color: Colors.white, fontSize: 10)),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedContactIndex = value ?? 0;
+            });
+          },
+        ),
+      ],
     );
   }
 
