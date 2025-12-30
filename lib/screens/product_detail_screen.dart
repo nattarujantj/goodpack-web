@@ -907,40 +907,46 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
           ),
           const SizedBox(height: 8),
+          // แสดง Weighted Average เป็นหลัก (รวมต้นทุนทั้งหมด)
+          _buildPriceRow('เฉลี่ย (ต้นทุน):', NumberFormatter.formatPrice(priceInfo.average), isHighlight: true),
+          const SizedBox(height: 4),
+          _buildPriceRow('เฉลี่ย YTD:', NumberFormatter.formatPrice(priceInfo.averageYTD)),
+          _buildPriceRow('เฉลี่ย MTD:', NumberFormatter.formatPrice(priceInfo.averageMTD)),
+          const SizedBox(height: 8),
+          const Divider(height: 1),
+          const SizedBox(height: 8),
           _buildPriceRow('ล่าสุด:', NumberFormatter.formatPrice(priceInfo.latest)),
           _buildPriceRow('ต่ำสุด:', NumberFormatter.formatPrice(priceInfo.min)),
           _buildPriceRow('สูงสุด:', NumberFormatter.formatPrice(priceInfo.max)),
-          _buildPriceRow('เฉลี่ย:', NumberFormatter.formatPrice(priceInfo.average)),
-          _buildPriceRow('เฉลี่ย YTD:', NumberFormatter.formatPrice(priceInfo.averageYTD)),
-          _buildPriceRow('เฉลี่ย MTD:', NumberFormatter.formatPrice(priceInfo.averageMTD)),
         ],
       ),
     );
   }
 
-  Widget _buildPriceRow(String label, String value) {
+  Widget _buildPriceRow(String label, String value, {bool isHighlight = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 80,
+            width: 100,
             child: ResponsiveText(
               label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-                color: Colors.grey,
+              style: TextStyle(
+                fontWeight: isHighlight ? FontWeight.bold : FontWeight.w500,
+                fontSize: isHighlight ? 15 : 14,
+                color: isHighlight ? Colors.blue[700] : Colors.grey,
               ),
             ),
           ),
           Expanded(
             child: ResponsiveText(
               '฿$value',
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
+              style: TextStyle(
+                fontSize: isHighlight ? 16 : 14,
+                fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal,
+                color: isHighlight ? Colors.blue[900] : Colors.black87,
               ),
             ),
           ),
