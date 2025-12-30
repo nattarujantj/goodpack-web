@@ -54,6 +54,7 @@ class Quotation {
   final String? phone;
   final List<QuotationItem> items;
   final bool isVAT;
+  final String vatType; // "exclusive" (VAT นอก) or "inclusive" (VAT ใน)
   final double shippingCost;
   final String? notes;
   final DateTime? validUntil;
@@ -79,6 +80,7 @@ class Quotation {
     this.phone,
     required this.items,
     required this.isVAT,
+    this.vatType = 'exclusive',
     required this.shippingCost,
     this.notes,
     this.validUntil,
@@ -108,6 +110,7 @@ class Quotation {
           ?.map((item) => QuotationItem.fromJson(item as Map<String, dynamic>))
           .toList() ?? [],
       isVAT: json['isVAT'] as bool? ?? false,
+      vatType: json['vatType'] as String? ?? 'exclusive',
       shippingCost: (json['shippingCost'] as num?)?.toDouble() ?? 0.0,
       notes: json['notes'] as String?,
       validUntil: json['validUntil'] != null 
@@ -130,6 +133,7 @@ class Quotation {
       'customerId': customerId,
       'items': items.map((item) => item.toJson()).toList(),
       'isVAT': isVAT,
+      'vatType': vatType,
       'shippingCost': shippingCost,
       'notes': notes,
       'validUntil': validUntil?.toIso8601String(),
@@ -154,6 +158,7 @@ class Quotation {
     String? phone,
     List<QuotationItem>? items,
     bool? isVAT,
+    String? vatType,
     double? shippingCost,
     String? notes,
     DateTime? validUntil,
@@ -179,6 +184,7 @@ class Quotation {
       phone: phone ?? this.phone,
       items: items ?? this.items,
       isVAT: isVAT ?? this.isVAT,
+      vatType: vatType ?? this.vatType,
       shippingCost: shippingCost ?? this.shippingCost,
       notes: notes ?? this.notes,
       validUntil: validUntil ?? this.validUntil,
@@ -240,6 +246,7 @@ class QuotationRequest {
   final String customerId;
   final List<QuotationItem> items;
   final bool isVAT;
+  final String vatType; // "exclusive" or "inclusive"
   final double shippingCost;
   final String? notes;
   final DateTime? validUntil;
@@ -254,6 +261,7 @@ class QuotationRequest {
     required this.customerId,
     required this.items,
     required this.isVAT,
+    this.vatType = 'exclusive',
     required this.shippingCost,
     this.notes,
     this.validUntil,
@@ -270,6 +278,7 @@ class QuotationRequest {
       'customerId': customerId,
       'items': items.map((item) => item.toJson()).toList(),
       'isVAT': isVAT,
+      'vatType': vatType,
       'shippingCost': shippingCost,
       'notes': notes,
       'validUntil': validUntil?.toIso8601String(),

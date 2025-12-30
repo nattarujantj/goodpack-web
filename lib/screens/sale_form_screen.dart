@@ -427,31 +427,68 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ResponsiveText(
-              'ข้อมูล VAT',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                ResponsiveText(
+                  'ข้อมูล VAT *',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (_isEdit)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Icon(Icons.lock, size: 16, color: Colors.grey[400]),
+                  ),
+              ],
             ),
             const SizedBox(height: 16),
             
-            CheckboxListTile(
-              title: Text(
-                'รายการขายนี้เป็น VAT (7%)${_isEdit ? ' (ไม่สามารถเปลี่ยนได้)' : ''}',
-                style: TextStyle(
-                  color: _isEdit ? Colors.grey : null,
+            // VAT Radio buttons
+            Row(
+              children: [
+                Expanded(
+                  child: RadioListTile<bool>(
+                    title: Text(
+                      'ไม่มี VAT',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: _isEdit ? Colors.grey : null,
+                      ),
+                    ),
+                    value: false,
+                    groupValue: _isVAT,
+                    onChanged: _isEdit ? null : (value) {
+                      setState(() {
+                        _isVAT = value ?? false;
+                      });
+                    },
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
                 ),
-              ),
-              value: _isVAT,
-              onChanged: _isEdit 
-                ? null  // Disable ในหน้า edit
-                : (value) {
-                setState(() {
-                  _isVAT = value ?? false;
-                });
-              },
-              controlAffinity: ListTileControlAffinity.leading,
+                Expanded(
+                  child: RadioListTile<bool>(
+                    title: Text(
+                      'มี VAT (7%)',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: _isEdit ? Colors.grey : null,
+                      ),
+                    ),
+                    value: true,
+                    groupValue: _isVAT,
+                    onChanged: _isEdit ? null : (value) {
+                      setState(() {
+                        _isVAT = value ?? false;
+                      });
+                    },
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+                ),
+              ],
             ),
             
             // VAT Type selector (only show when VAT is selected)

@@ -15,6 +15,7 @@ class Purchase {
   final String? notes;
   final List<PurchaseItem> items;
   final bool isVAT;
+  final String vatType; // "exclusive" (VAT นอก) or "inclusive" (VAT ใน)
   final double shippingCost;
   final PaymentInfo payment;
   final WarehouseInfo warehouse;
@@ -39,6 +40,7 @@ class Purchase {
     this.notes,
     required this.items,
     required this.isVAT,
+    this.vatType = 'exclusive',
     required this.shippingCost,
     required this.payment,
     required this.warehouse,
@@ -67,6 +69,7 @@ class Purchase {
           ?.map((item) => PurchaseItem.fromJson(item))
           .toList() ?? [],
       isVAT: json['isVAT'] ?? false,
+      vatType: json['vatType'] ?? 'exclusive',
       shippingCost: (json['shippingCost'] ?? 0.0).toDouble(),
       payment: PaymentInfo.fromJson(json['payment'] ?? {}),
       warehouse: WarehouseInfo.fromJson(json['warehouse'] ?? {}),
@@ -94,6 +97,7 @@ class Purchase {
       'notes': notes,
       'items': items.map((item) => item.toJson()).toList(),
       'isVAT': isVAT,
+      'vatType': vatType,
       'shippingCost': shippingCost,
       'payment': payment.toJson(),
       'warehouse': warehouse.toJson(),
@@ -120,6 +124,7 @@ class Purchase {
     String? notes,
     List<PurchaseItem>? items,
     bool? isVAT,
+    String? vatType,
     double? shippingCost,
     PaymentInfo? payment,
     WarehouseInfo? warehouse,
@@ -144,6 +149,7 @@ class Purchase {
       notes: notes ?? this.notes,
       items: items ?? this.items,
       isVAT: isVAT ?? this.isVAT,
+      vatType: vatType ?? this.vatType,
       shippingCost: shippingCost ?? this.shippingCost,
       payment: payment ?? this.payment,
       warehouse: warehouse ?? this.warehouse,
@@ -309,6 +315,7 @@ class PurchaseRequest {
   final String? notes;
   final List<PurchaseItem> items;
   final bool isVAT;
+  final String vatType; // "exclusive" or "inclusive"
   final double shippingCost;
   final PaymentInfo payment;
   final WarehouseInfo warehouse;
@@ -320,6 +327,7 @@ class PurchaseRequest {
     this.notes,
     required this.items,
     required this.isVAT,
+    this.vatType = 'exclusive',
     required this.shippingCost,
     required this.payment,
     required this.warehouse,
@@ -333,6 +341,7 @@ class PurchaseRequest {
       'notes': notes,
       'items': items.map((item) => item.toJson()).toList(),
       'isVAT': isVAT,
+      'vatType': vatType,
       'shippingCost': shippingCost,
       'payment': payment.toJson(),
       'warehouse': warehouse.toJson(),

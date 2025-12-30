@@ -36,6 +36,7 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
   String? _selectedCustomerId;
   BankAccount? _selectedBankAccount;
   bool _isVAT = false;
+  String _vatType = 'exclusive'; // "exclusive" (VAT นอก) or "inclusive" (VAT ใน)
   String _status = 'draft';
   List<QuotationItem> _quotationItems = [];
 
@@ -140,6 +141,7 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
     _validUntilController.text = _formatDate(DateTime.now().add(const Duration(days: 10)));
     _selectedCustomerId = quotation.customerId;
     _isVAT = quotation.isVAT;
+    _vatType = quotation.vatType;
     _status = 'draft'; // Reset status to draft
     _shippingCostController.text = quotation.shippingCost > 0 ? quotation.shippingCost.toStringAsFixed(2) : '';
     _notesController.text = quotation.notes ?? '';
@@ -164,6 +166,7 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
     _quotationDateController.text = _formatDate(quotation.quotationDate);
     _selectedCustomerId = quotation.customerId;
     _isVAT = quotation.isVAT;
+    _vatType = quotation.vatType;
     _status = quotation.status;
     _shippingCostController.text = quotation.shippingCost.toStringAsFixed(2);
     _notesController.text = quotation.notes ?? '';
@@ -337,29 +340,124 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
                             ),
                             const SizedBox(height: 16),
 
-                            // VAT Checkbox
-                            Row(
-                              children: [
-                                Checkbox(
-                                  value: _isVAT,
-                                  onChanged: _isEdit ? null : (value) {
-                                    setState(() {
-                                      _isVAT = value ?? false;
-                                    });
-                                  },
+                            // VAT Section
+                            Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Text(
+                                          'ข้อมูล VAT *',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        if (_isEdit)
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 8),
+                                            child: Icon(Icons.lock, size: 16, color: Colors.grey[400]),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    // VAT Radio buttons
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: RadioListTile<bool>(
+                                            title: Text(
+                                              'ไม่มี VAT',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: _isEdit ? Colors.grey : null,
+                                              ),
+                                            ),
+                                            value: false,
+                                            groupValue: _isVAT,
+                                            onChanged: _isEdit ? null : (value) {
+                                              setState(() {
+                                                _isVAT = value ?? false;
+                                              });
+                                            },
+                                            contentPadding: EdgeInsets.zero,
+                                            dense: true,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: RadioListTile<bool>(
+                                            title: Text(
+                                              'มี VAT (7%)',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: _isEdit ? Colors.grey : null,
+                                              ),
+                                            ),
+                                            value: true,
+                                            groupValue: _isVAT,
+                                            onChanged: _isEdit ? null : (value) {
+                                              setState(() {
+                                                _isVAT = value ?? false;
+                                              });
+                                            },
+                                            contentPadding: EdgeInsets.zero,
+                                            dense: true,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    // VAT Type selector (only show when VAT is selected)
+                                    if (_isVAT) ...[
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'วิธีคำนวณ VAT${_isEdit ? ' (ไม่สามารถเปลี่ยนได้)' : ''}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          color: _isEdit ? Colors.grey : null,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: RadioListTile<String>(
+                                              title: const Text('VAT นอก', style: TextStyle(fontSize: 14)),
+                                              subtitle: const Text('ราคา + VAT 7%', style: TextStyle(fontSize: 12)),
+                                              value: 'exclusive',
+                                              groupValue: _vatType,
+                                              onChanged: _isEdit ? null : (value) {
+                                                setState(() {
+                                                  _vatType = value ?? 'exclusive';
+                                                });
+                                              },
+                                              contentPadding: EdgeInsets.zero,
+                                              dense: true,
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: RadioListTile<String>(
+                                              title: const Text('VAT ใน', style: TextStyle(fontSize: 14)),
+                                              subtitle: const Text('ราคารวม VAT แล้ว', style: TextStyle(fontSize: 12)),
+                                              value: 'inclusive',
+                                              groupValue: _vatType,
+                                              onChanged: _isEdit ? null : (value) {
+                                                setState(() {
+                                                  _vatType = value ?? 'exclusive';
+                                                });
+                                              },
+                                              contentPadding: EdgeInsets.zero,
+                                              dense: true,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
                                 ),
-                                Text(
-                                  'มี VAT (7%)',
-                                  style: TextStyle(
-                                    color: _isEdit ? Colors.grey : null,
-                                  ),
-                                ),
-                                if (_isEdit)
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 8),
-                                    child: Icon(Icons.lock, size: 16, color: Colors.grey[400]),
-                                  ),
-                              ],
+                              ),
                             ),
                             const SizedBox(height: 16),
 
@@ -796,6 +894,7 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
         customerId: _selectedCustomerId!,
         items: _quotationItems,
         isVAT: _isVAT,
+        vatType: _vatType,
         shippingCost: double.tryParse(_shippingCostController.text) ?? 0.0,
         notes: _notesController.text.isNotEmpty ? _notesController.text : null,
         validUntil: _validUntilController.text.isNotEmpty 
