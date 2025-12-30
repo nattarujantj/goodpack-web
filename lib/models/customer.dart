@@ -1,4 +1,5 @@
 import 'contact.dart';
+import 'customer_bank_account.dart';
 
 class Customer {
   final String id;
@@ -10,6 +11,7 @@ class Customer {
   final String address;
   final String contactMethod;
   final List<Contact> contacts; // รายการผู้ติดต่อทั้งหมด
+  final List<CustomerBankAccount> bankAccounts; // รายการบัญชีธนาคาร
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -23,6 +25,7 @@ class Customer {
     required this.address,
     required this.contactMethod,
     this.contacts = const [],
+    this.bankAccounts = const [],
     required this.createdAt,
     required this.updatedAt,
   });
@@ -42,11 +45,27 @@ class Customer {
     );
   }
 
+  // ดึงบัญชีหลัก (default)
+  CustomerBankAccount? get primaryBankAccount {
+    if (bankAccounts.isEmpty) return null;
+    return bankAccounts.firstWhere(
+      (b) => b.isDefault,
+      orElse: () => bankAccounts.first,
+    );
+  }
+
   factory Customer.fromJson(Map<String, dynamic> json) {
     List<Contact> contactList = [];
     if (json['contacts'] != null) {
       contactList = (json['contacts'] as List)
           .map((c) => Contact.fromJson(c))
+          .toList();
+    }
+    
+    List<CustomerBankAccount> bankAccountList = [];
+    if (json['bankAccounts'] != null) {
+      bankAccountList = (json['bankAccounts'] as List)
+          .map((b) => CustomerBankAccount.fromJson(b))
           .toList();
     }
     
@@ -60,6 +79,7 @@ class Customer {
       address: json['address'] ?? '',
       contactMethod: json['contactMethod'] ?? '',
       contacts: contactList,
+      bankAccounts: bankAccountList,
       createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updatedAt'] ?? '') ?? DateTime.now(),
     );
@@ -76,6 +96,7 @@ class Customer {
       'address': address,
       'contactMethod': contactMethod,
       'contacts': contacts.map((c) => c.toJson()).toList(),
+      'bankAccounts': bankAccounts.map((b) => b.toJson()).toList(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -91,6 +112,7 @@ class Customer {
     String? address,
     String? contactMethod,
     List<Contact>? contacts,
+    List<CustomerBankAccount>? bankAccounts,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -104,6 +126,7 @@ class Customer {
       address: address ?? this.address,
       contactMethod: contactMethod ?? this.contactMethod,
       contacts: contacts ?? this.contacts,
+      bankAccounts: bankAccounts ?? this.bankAccounts,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -111,7 +134,7 @@ class Customer {
 
   @override
   String toString() {
-    return 'Customer(id: $id, customerCode: $customerCode, companyName: $companyName, contactName: $contactName, taxId: $taxId, phone: $phone, address: $address, contactMethod: $contactMethod, contacts: ${contacts.length})';
+    return 'Customer(id: $id, customerCode: $customerCode, companyName: $companyName, contactName: $contactName, taxId: $taxId, phone: $phone, address: $address, contactMethod: $contactMethod, contacts: ${contacts.length}, bankAccounts: ${bankAccounts.length})';
   }
 }
 
@@ -123,6 +146,7 @@ class CustomerRequest {
   final String address;
   final String contactMethod;
   final List<Contact> contacts;
+  final List<CustomerBankAccount> bankAccounts;
 
   CustomerRequest({
     required this.companyName,
@@ -132,6 +156,7 @@ class CustomerRequest {
     required this.address,
     required this.contactMethod,
     this.contacts = const [],
+    this.bankAccounts = const [],
   });
 
   Map<String, dynamic> toJson() {
@@ -143,6 +168,7 @@ class CustomerRequest {
       'address': address,
       'contactMethod': contactMethod,
       'contacts': contacts.map((c) => c.toJson()).toList(),
+      'bankAccounts': bankAccounts.map((b) => b.toJson()).toList(),
     };
   }
 }

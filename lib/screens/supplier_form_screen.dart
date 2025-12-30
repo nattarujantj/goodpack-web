@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../models/supplier.dart';
 import '../models/contact.dart';
+import '../models/customer_bank_account.dart';
 import '../providers/supplier_provider.dart';
 import '../widgets/responsive_layout.dart';
 import '../utils/error_dialog.dart';
@@ -27,6 +28,9 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
 
   // รายการผู้ติดต่อ
   List<Contact> _contacts = [];
+  
+  // รายการบัญชีธนาคาร
+  List<CustomerBankAccount> _bankAccounts = [];
 
   bool _isLoading = false;
   bool get _isEdit => widget.supplier != null || widget.supplierId != null;
@@ -47,6 +51,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     } else {
       // สร้างผู้ติดต่อหลักเริ่มต้นสำหรับซัพพลายเออร์ใหม่
       _contacts = [Contact(name: '', phone: '', isDefault: true)];
+      _bankAccounts = [];
     }
   }
 
@@ -84,6 +89,15 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
       _contacts = [Contact(name: '', phone: '', isDefault: true)];
     }
     
+    // Copy bank accounts
+    _bankAccounts = supplier.bankAccounts.map((b) => CustomerBankAccount(
+      bankName: b.bankName,
+      accountName: b.accountName,
+      accountNumber: b.accountNumber,
+      branchName: b.branchName,
+      isDefault: b.isDefault,
+    )).toList();
+    
     if (mounted) setState(() {});
   }
 
@@ -115,6 +129,15 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     } else {
       _contacts = [Contact(name: '', phone: '', isDefault: true)];
     }
+    
+    // Load bank accounts
+    _bankAccounts = supplier.bankAccounts.map((b) => CustomerBankAccount(
+      bankName: b.bankName,
+      accountName: b.accountName,
+      accountNumber: b.accountNumber,
+      branchName: b.branchName,
+      isDefault: b.isDefault,
+    )).toList();
     
     if (mounted) setState(() {});
   }
@@ -173,6 +196,11 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
                 
                 // ผู้ติดต่อ
                 _buildContactsCard(),
+                
+                const SizedBox(height: 16),
+                
+                // บัญชีธนาคาร
+                _buildBankAccountsCard(),
                 
                 const SizedBox(height: 32),
                 
@@ -405,6 +433,219 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     });
   }
 
+  // ================== Bank Accounts Section ==================
+
+  Widget _buildBankAccountsCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ResponsiveText(
+                  'บัญชีธนาคาร',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _addBankAccount,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('เพิ่มบัญชี'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            
+            if (_bankAccounts.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.grey.shade600, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'ยังไม่มีบัญชีธนาคาร',
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ..._bankAccounts.asMap().entries.map((entry) {
+                final index = entry.key;
+                final account = entry.value;
+                return _buildBankAccountItem(index, account);
+              }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBankAccountItem(int index, CustomerBankAccount account) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: account.isDefault ? Colors.green : Colors.grey.shade300,
+          width: account.isDefault ? 2 : 1,
+        ),
+        borderRadius: BorderRadius.circular(8),
+        color: account.isDefault ? Colors.green.shade50 : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with default badge and actions
+          Row(
+            children: [
+              if (account.isDefault)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    '⭐ หลัก',
+                    style: TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                )
+              else
+                TextButton.icon(
+                  onPressed: () => _setDefaultBankAccount(index),
+                  icon: const Icon(Icons.star_border, size: 16),
+                  label: const Text('ตั้งเป็นหลัก', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              const Spacer(),
+              IconButton(
+                onPressed: () => _removeBankAccount(index),
+                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                tooltip: 'ลบบัญชี',
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.all(4),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 8),
+          
+          // Bank Name
+          TextFormField(
+            initialValue: account.bankName,
+            decoration: InputDecoration(
+              labelText: 'ชื่อธนาคาร',
+              hintText: 'เช่น กสิกรไทย, ไทยพาณิชย์',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              isDense: true,
+            ),
+            onChanged: (value) {
+              _bankAccounts[index] = account.copyWith(bankName: value);
+            },
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Account Name
+          TextFormField(
+            initialValue: account.accountName,
+            decoration: InputDecoration(
+              labelText: 'ชื่อบัญชี',
+              hintText: 'กรอกชื่อบัญชี',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              isDense: true,
+            ),
+            onChanged: (value) {
+              _bankAccounts[index] = account.copyWith(accountName: value);
+            },
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Account Number
+          TextFormField(
+            initialValue: account.accountNumber,
+            decoration: InputDecoration(
+              labelText: 'เลขบัญชี',
+              hintText: 'กรอกเลขบัญชี',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              isDense: true,
+            ),
+            keyboardType: TextInputType.number,
+            onChanged: (value) {
+              _bankAccounts[index] = account.copyWith(accountNumber: value);
+            },
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Branch Name
+          TextFormField(
+            initialValue: account.branchName,
+            decoration: InputDecoration(
+              labelText: 'สาขา (ถ้ามี)',
+              hintText: 'กรอกชื่อสาขา',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              isDense: true,
+            ),
+            onChanged: (value) {
+              _bankAccounts[index] = account.copyWith(branchName: value);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addBankAccount() {
+    setState(() {
+      _bankAccounts.add(CustomerBankAccount(
+        bankName: '',
+        accountName: '',
+        accountNumber: '',
+        isDefault: _bankAccounts.isEmpty, // First one is default
+      ));
+    });
+  }
+
+  void _removeBankAccount(int index) {
+    final wasDefault = _bankAccounts[index].isDefault;
+    setState(() {
+      _bankAccounts.removeAt(index);
+      // If removed account was default, set first one as default
+      if (wasDefault && _bankAccounts.isNotEmpty) {
+        _bankAccounts[0] = _bankAccounts[0].copyWith(isDefault: true);
+      }
+    });
+  }
+
+  void _setDefaultBankAccount(int index) {
+    setState(() {
+      _bankAccounts = _bankAccounts.asMap().entries.map((entry) {
+        return entry.value.copyWith(isDefault: entry.key == index);
+      }).toList();
+    });
+  }
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -504,6 +745,11 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
       // Get primary contact for legacy fields
       final primaryContact = validContacts.firstWhere((c) => c.isDefault, orElse: () => validContacts.first);
       
+      // Filter out empty bank accounts
+      final validBankAccounts = _bankAccounts.where((b) => 
+        b.bankName.trim().isNotEmpty || b.accountNumber.trim().isNotEmpty
+      ).toList();
+      
       final supplierRequest = SupplierRequest(
         companyName: _companyNameController.text.trim(),
         contactName: primaryContact.name.trim(),
@@ -512,6 +758,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
         address: _addressController.text.trim(),
         contactMethod: _contactMethodController.text.trim(),
         contacts: validContacts,
+        bankAccounts: validBankAccounts,
       );
 
       final supplierProvider = context.read<SupplierProvider>();
