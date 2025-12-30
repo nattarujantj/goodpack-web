@@ -635,15 +635,43 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
             ),
             const SizedBox(height: 16),
             
-            CheckboxListTile(
-              title: const Text('รับเงินแล้ว'),
-              value: _isPaid,
-              onChanged: (value) {
-                setState(() {
-                  _isPaid = value ?? false;
-                });
-              },
-              controlAffinity: ListTileControlAffinity.leading,
+            // Payment Status Radio
+            const Text(
+              'สถานะการชำระเงิน *',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: RadioListTile<bool>(
+                    title: const Text('ค้างชำระ', style: TextStyle(fontSize: 14)),
+                    value: false,
+                    groupValue: _isPaid,
+                    onChanged: (value) {
+                      setState(() {
+                        _isPaid = value ?? false;
+                      });
+                    },
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+                ),
+                Expanded(
+                  child: RadioListTile<bool>(
+                    title: const Text('รับเงินแล้ว', style: TextStyle(fontSize: 14)),
+                    value: true,
+                    groupValue: _isPaid,
+                    onChanged: (value) {
+                      setState(() {
+                        _isPaid = value ?? false;
+                      });
+                    },
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+                ),
+              ],
             ),
             
             const SizedBox(height: 16),
