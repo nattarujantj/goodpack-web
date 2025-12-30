@@ -114,7 +114,7 @@ class PurchaseProvider with ChangeNotifier {
     if (query.isEmpty) return _purchases;
     
     return _purchases.where((purchase) {
-      return purchase.customerName.toLowerCase().contains(query.toLowerCase()) ||
+      return purchase.supplierName.toLowerCase().contains(query.toLowerCase()) ||
              purchase.id.toLowerCase().contains(query.toLowerCase());
     }).toList();
   }
