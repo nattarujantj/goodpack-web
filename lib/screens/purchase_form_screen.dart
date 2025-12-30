@@ -1963,7 +1963,8 @@ class _AddItemFormState extends State<_AddItemForm> {
     final quantity = int.parse(_quantityController.text);
     final unitPrice = double.parse(_unitPriceController.text);
     
-    // Calculate total price: (unitPrice + preformUnitPrice) * quantity
+    // Calculate total price: unitPrice * quantity (ไม่รวม preform cost)
+    // Preform cost จะถูกใช้ในการคำนวณต้นทุนเฉลี่ยที่ backend เท่านั้น
     double preformUnitPrice = 0.0;
     if (_selectedPreform != null) {
       // Use the latest purchase price of preform
@@ -1974,7 +1975,9 @@ class _AddItemFormState extends State<_AddItemForm> {
       }
     }
     
-    final totalPrice = (unitPrice + preformUnitPrice) * quantity;
+    // totalPrice แสดงราคาไม่รวม preform (สำหรับแสดงใน UI)
+    // แต่ preformUnitPrice จะถูกส่งไป backend เพื่อคำนวณต้นทุนเฉลี่ย
+    final totalPrice = unitPrice * quantity;
 
     final item = PurchaseItem(
       productId: _selectedProduct!.id,
