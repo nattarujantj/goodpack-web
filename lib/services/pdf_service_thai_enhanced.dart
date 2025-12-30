@@ -102,9 +102,11 @@ class PdfServiceThaiEnhanced {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // Company Header
-              _buildCompanyHeader(thaiFont, logoImage),
-              pw.SizedBox(height: 5),
+              // Company Header - แสดงเฉพาะเมื่อเป็น VAT
+              if (quotation.isVAT) ...[
+                _buildCompanyHeader(thaiFont, logoImage),
+                pw.SizedBox(height: 5),
+              ],
               
               // Document Title
               _buildDocumentTitle(thaiFont),

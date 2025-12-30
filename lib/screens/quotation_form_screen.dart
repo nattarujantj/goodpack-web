@@ -940,6 +940,9 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
       }
 
       if (resultQuotationId != null && mounted) {
+        // Reload quotations to ensure the new quotation is in the list
+        await context.read<QuotationProvider>().loadQuotations();
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_isEdit ? 'อัปเดตเสนอราคาเรียบร้อยแล้ว' : 'เพิ่มเสนอราคาเรียบร้อยแล้ว'),
