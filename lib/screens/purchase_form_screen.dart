@@ -1821,8 +1821,14 @@ class _AddItemForm extends StatefulWidget {
 class _AddItemFormState extends State<_AddItemForm> {
   final _formKey = GlobalKey<FormState>();
   Product? _selectedProduct;
+  Product? _selectedPreform;
   final _quantityController = TextEditingController();
   final _unitPriceController = TextEditingController();
+
+  // Get preform products (category = "พรีฟอร์ม")
+  List<Product> get _preformProducts {
+    return widget.products.where((product) => product.category == 'พรีฟอร์ม').toList();
+  }
 
   @override
   void dispose() {
@@ -1902,6 +1908,24 @@ class _AddItemFormState extends State<_AddItemForm> {
             },
           ),
           
+          const SizedBox(height: 16),
+          
+          // Preform Selection (Optional)
+          if (_preformProducts.isNotEmpty)
+            SearchableDropdown<Product>(
+              value: _selectedPreform,
+              items: _preformProducts,
+              itemAsString: (product) => '${product.name} (${product.code})',
+              onChanged: (product) {
+                setState(() {
+                  _selectedPreform = product;
+                });
+              },
+              hint: 'เลือกพรีฟอร์ม (ไม่บังคับ)',
+              label: 'พรีฟอร์ม',
+              prefixIcon: const Icon(Icons.inventory_2),
+            ),
+          
           const SizedBox(height: 24),
           
           // Action Buttons
@@ -1938,7 +1962,19 @@ class _AddItemFormState extends State<_AddItemForm> {
 
     final quantity = int.parse(_quantityController.text);
     final unitPrice = double.parse(_unitPriceController.text);
-    final totalPrice = quantity * unitPrice;
+    
+    // Calculate total price: (unitPrice + preformUnitPrice) * quantity
+    double preformUnitPrice = 0.0;
+    if (_selectedPreform != null) {
+      // Use the latest purchase price of preform
+      if (_selectedPreform!.price.purchaseVAT.latest > 0) {
+        preformUnitPrice = _selectedPreform!.price.purchaseVAT.latest;
+      } else if (_selectedPreform!.price.purchaseNonVAT.latest > 0) {
+        preformUnitPrice = _selectedPreform!.price.purchaseNonVAT.latest;
+      }
+    }
+    
+    final totalPrice = (unitPrice + preformUnitPrice) * quantity;
 
     final item = PurchaseItem(
       productId: _selectedProduct!.id,
@@ -1946,6 +1982,8 @@ class _AddItemFormState extends State<_AddItemForm> {
       productCode: _selectedProduct!.code,
       quantity: quantity,
       unitPrice: unitPrice,
+      preformProductId: _selectedPreform?.id,
+      preformUnitPrice: _selectedPreform != null ? preformUnitPrice : null,
       totalPrice: totalPrice,
     );
 

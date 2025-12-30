@@ -166,6 +166,8 @@ class PurchaseItem {
   final String productCode;
   final int quantity;
   final double unitPrice;
+  final String? preformProductId;
+  final double? preformUnitPrice;
   final double totalPrice;
 
   PurchaseItem({
@@ -174,6 +176,8 @@ class PurchaseItem {
     required this.productCode,
     required this.quantity,
     required this.unitPrice,
+    this.preformProductId,
+    this.preformUnitPrice,
     required this.totalPrice,
   });
 
@@ -184,6 +188,8 @@ class PurchaseItem {
       productCode: json['productCode'] ?? '',
       quantity: json['quantity'] ?? 0,
       unitPrice: (json['unitPrice'] ?? 0.0).toDouble(),
+      preformProductId: json['preformProductId'],
+      preformUnitPrice: json['preformUnitPrice'] != null ? (json['preformUnitPrice'] as num).toDouble() : null,
       totalPrice: (json['totalPrice'] ?? 0.0).toDouble(),
     );
   }
@@ -195,6 +201,8 @@ class PurchaseItem {
       'productCode': productCode,
       'quantity': quantity,
       'unitPrice': unitPrice,
+      if (preformProductId != null) 'preformProductId': preformProductId,
+      if (preformUnitPrice != null) 'preformUnitPrice': preformUnitPrice,
       'totalPrice': totalPrice,
     };
   }

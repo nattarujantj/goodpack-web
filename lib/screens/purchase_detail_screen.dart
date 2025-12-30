@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:html' as html;
 import '../providers/purchase_provider.dart';
+import '../providers/product_provider.dart';
 import '../models/purchase.dart';
 import '../widgets/responsive_layout.dart';
 import '../services/config_service.dart';
@@ -325,6 +326,38 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
               ),
             ],
           ),
+          if (item.preformProductId != null && item.preformUnitPrice != null) ...[
+            const SizedBox(height: 8),
+            Consumer<ProductProvider>(
+              builder: (context, productProvider, child) {
+                final preformProduct = productProvider.getProductById(item.preformProductId!);
+                return Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.purple[50],
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.purple[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.inventory_2, size: 16, color: Colors.purple[700]),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'พรีฟอร์ม: ${preformProduct?.name ?? item.preformProductId} (${NumberFormatter.formatPriceWithCurrency(item.preformUnitPrice!)}/ชิ้น)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.purple[700],
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
         ],
       ),
     );
