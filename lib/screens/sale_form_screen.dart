@@ -1378,11 +1378,9 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
 
   Widget _buildWarehouseItemRow(int index) {
     final item = _warehouseItems[index];
-    final quantityController = TextEditingController(text: item.quantity.toString());
-    final boxesController = TextEditingController(text: item.boxes.toString());
-    final notesController = TextEditingController(text: item.notes ?? '');
     
     return Container(
+      key: ValueKey('warehouse_item_$index'),
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1415,7 +1413,8 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
             children: [
               Expanded(
                 child: TextFormField(
-                  controller: quantityController,
+                  key: ValueKey('warehouse_quantity_$index'),
+                  initialValue: item.quantity.toString(),
                   decoration: const InputDecoration(
                     labelText: 'จำนวน',
                     border: OutlineInputBorder(),
@@ -1425,11 +1424,11 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
                   onChanged: (value) {
                     final quantity = int.tryParse(value) ?? 0;
                     _warehouseItems[index] = WarehouseItem(
-                      productId: item.productId,
-                      productName: item.productName,
+                      productId: _warehouseItems[index].productId,
+                      productName: _warehouseItems[index].productName,
                       quantity: quantity,
-                      boxes: item.boxes,
-                      notes: item.notes,
+                      boxes: _warehouseItems[index].boxes,
+                      notes: _warehouseItems[index].notes,
                     );
                   },
                 ),
@@ -1437,7 +1436,8 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: TextFormField(
-                  controller: boxesController,
+                  key: ValueKey('warehouse_boxes_$index'),
+                  initialValue: item.boxes.toString(),
                   decoration: const InputDecoration(
                     labelText: 'ลัง',
                     border: OutlineInputBorder(),
@@ -1447,11 +1447,11 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
                   onChanged: (value) {
                     final boxes = int.tryParse(value) ?? 0;
                     _warehouseItems[index] = WarehouseItem(
-                      productId: item.productId,
-                      productName: item.productName,
-                      quantity: item.quantity,
+                      productId: _warehouseItems[index].productId,
+                      productName: _warehouseItems[index].productName,
+                      quantity: _warehouseItems[index].quantity,
                       boxes: boxes,
-                      notes: item.notes,
+                      notes: _warehouseItems[index].notes,
                     );
                   },
                 ),
@@ -1460,7 +1460,8 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
           ),
           const SizedBox(height: 8),
           TextFormField(
-            controller: notesController,
+            key: ValueKey('warehouse_notes_$index'),
+            initialValue: item.notes ?? '',
             decoration: const InputDecoration(
               labelText: 'หมายเหตุ',
               border: OutlineInputBorder(),
@@ -1469,10 +1470,10 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
             maxLines: 2,
             onChanged: (value) {
               _warehouseItems[index] = WarehouseItem(
-                productId: item.productId,
-                productName: item.productName,
-                quantity: item.quantity,
-                boxes: item.boxes,
+                productId: _warehouseItems[index].productId,
+                productName: _warehouseItems[index].productName,
+                quantity: _warehouseItems[index].quantity,
+                boxes: _warehouseItems[index].boxes,
                 notes: value.trim().isEmpty ? null : value.trim(),
               );
             },
