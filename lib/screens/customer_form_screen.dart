@@ -307,7 +307,9 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
   }
 
   Widget _buildContactItem(int index, Contact contact) {
+    // ใช้ key เพื่อให้ Flutter รู้ว่า widget ไหนเป็นตัวไหน และไม่ rebuild ผิดตัว
     return Container(
+      key: ValueKey('contact_$index'),
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -361,8 +363,9 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
           
           const SizedBox(height: 8),
           
-          // Name field
+          // Name field - ใช้ key เพื่อให้ initialValue ถูกต้องเมื่อ rebuild
           TextFormField(
+            key: ValueKey('contact_name_$index'),
             initialValue: contact.name,
             decoration: InputDecoration(
               labelText: 'ชื่อผู้ติดต่อ ${contact.isDefault ? '*' : ''}',
@@ -375,14 +378,15 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                 ? (value) => value?.trim().isEmpty == true ? 'กรุณากรอกชื่อผู้ติดต่อหลัก' : null
                 : null,
             onChanged: (value) {
-              _contacts[index] = contact.copyWith(name: value);
+              _contacts[index] = _contacts[index].copyWith(name: value);
             },
           ),
           
           const SizedBox(height: 12),
           
-          // Phone field
+          // Phone field - ใช้ key เพื่อให้ initialValue ถูกต้องเมื่อ rebuild
           TextFormField(
+            key: ValueKey('contact_phone_$index'),
             initialValue: contact.phone,
             decoration: InputDecoration(
               labelText: 'เบอร์โทร ${contact.isDefault ? '*' : ''}',
@@ -396,7 +400,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                 ? (value) => value?.trim().isEmpty == true ? 'กรุณากรอกเบอร์โทรหลัก' : null
                 : null,
             onChanged: (value) {
-              _contacts[index] = contact.copyWith(phone: value);
+              _contacts[index] = _contacts[index].copyWith(phone: value);
             },
           ),
         ],
@@ -490,7 +494,9 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
   }
 
   Widget _buildBankAccountItem(int index, CustomerBankAccount account) {
+    // ใช้ key เพื่อให้ Flutter รู้ว่า widget ไหนเป็นตัวไหน และไม่ rebuild ผิดตัว
     return Container(
+      key: ValueKey('bank_$index'),
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -543,8 +549,9 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
           
           const SizedBox(height: 8),
           
-          // Bank Name
+          // Bank Name - ใช้ key เพื่อให้ initialValue ถูกต้องเมื่อ rebuild
           TextFormField(
+            key: ValueKey('bank_name_$index'),
             initialValue: account.bankName,
             decoration: InputDecoration(
               labelText: 'ชื่อธนาคาร',
@@ -554,14 +561,15 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
               isDense: true,
             ),
             onChanged: (value) {
-              _bankAccounts[index] = account.copyWith(bankName: value);
+              _bankAccounts[index] = _bankAccounts[index].copyWith(bankName: value);
             },
           ),
           
           const SizedBox(height: 12),
           
-          // Account Name
+          // Account Name - ใช้ key เพื่อให้ initialValue ถูกต้องเมื่อ rebuild
           TextFormField(
+            key: ValueKey('bank_accountName_$index'),
             initialValue: account.accountName,
             decoration: InputDecoration(
               labelText: 'ชื่อบัญชี',
@@ -571,14 +579,15 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
               isDense: true,
             ),
             onChanged: (value) {
-              _bankAccounts[index] = account.copyWith(accountName: value);
+              _bankAccounts[index] = _bankAccounts[index].copyWith(accountName: value);
             },
           ),
           
           const SizedBox(height: 12),
           
-          // Account Number
+          // Account Number - ใช้ key เพื่อให้ initialValue ถูกต้องเมื่อ rebuild
           TextFormField(
+            key: ValueKey('bank_accountNumber_$index'),
             initialValue: account.accountNumber,
             decoration: InputDecoration(
               labelText: 'เลขบัญชี',
@@ -589,7 +598,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
             ),
             keyboardType: TextInputType.number,
             onChanged: (value) {
-              _bankAccounts[index] = account.copyWith(accountNumber: value);
+              _bankAccounts[index] = _bankAccounts[index].copyWith(accountNumber: value);
             },
           ),
           
