@@ -201,8 +201,27 @@ class Quotation {
 
   double calculateGrandTotal() {
     final totalBeforeVAT = items.fold(0.0, (sum, item) => sum + item.totalPrice);
-    final totalVAT = isVAT ? totalBeforeVAT * 0.07 : 0.0;
-    return totalBeforeVAT + totalVAT + shippingCost;
+    
+    double totalVAT = 0.0;
+    double grandTotal = 0.0;
+    
+    if (isVAT) {
+      if (vatType == 'inclusive') {
+        // VAT ใน: ราคารวม VAT แล้ว ต้องถอด VAT ออก
+        // ราคาก่อน VAT = ราคารวม / 1.07
+        // VAT = ราคารวม - ราคาก่อน VAT
+        totalVAT = totalBeforeVAT - (totalBeforeVAT / 1.07);
+        grandTotal = totalBeforeVAT; // ราคาที่กรอกคือราคารวม VAT แล้ว
+      } else {
+        // VAT นอก (exclusive): ราคา + VAT 7%
+        totalVAT = totalBeforeVAT * 0.07;
+        grandTotal = totalBeforeVAT + totalVAT;
+      }
+    } else {
+      grandTotal = totalBeforeVAT;
+    }
+    
+    return grandTotal + shippingCost;
   }
 
   String get statusDisplay {
