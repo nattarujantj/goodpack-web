@@ -771,13 +771,34 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
 
   Widget _buildSummaryRow() {
     final subtotal = _quotationItems.fold(0.0, (sum, item) => sum + item.totalPrice);
-    final vatAmount = _isVAT ? subtotal * 0.07 : 0.0;
+    
+    // Calculate VAT based on VAT type
+    double vatAmount = 0.0;
+    double priceBeforeVAT = subtotal;
+    double grandTotal = 0.0;
+    
+    if (_isVAT) {
+      if (_vatType == 'inclusive') {
+        // VAT ใน: ราคารวม VAT แล้ว, ต้องถอด VAT ออก
+        // ราคาก่อน VAT = ราคารวม / 1.07
+        priceBeforeVAT = subtotal / 1.07;
+        vatAmount = subtotal - priceBeforeVAT;
+        grandTotal = subtotal; // ราคาที่กรอกคือราคารวม VAT แล้ว
+      } else {
+        // VAT นอก: ราคา + VAT 7%
+        vatAmount = subtotal * 0.07;
+        grandTotal = subtotal + vatAmount;
+      }
+    } else {
+      grandTotal = subtotal;
+    }
+    
     final shippingCost = double.tryParse(_shippingCostController.text) ?? 0.0;
-    final grandTotal = subtotal + vatAmount + shippingCost;
+    grandTotal += shippingCost;
 
     return Column(
       children: [
-        _buildSummaryItem('ยอดรวมก่อน VAT', subtotal),
+        _buildSummaryItem('ยอดรวมก่อน VAT', priceBeforeVAT),
         if (_isVAT) _buildSummaryItem('VAT (7%)', vatAmount),
         _buildSummaryItem('ค่าขนส่ง', shippingCost),
         const Divider(),
