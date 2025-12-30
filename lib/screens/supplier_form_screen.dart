@@ -94,7 +94,6 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
       bankName: b.bankName,
       accountName: b.accountName,
       accountNumber: b.accountNumber,
-      branchName: b.branchName,
       isDefault: b.isDefault,
     )).toList();
     
@@ -135,7 +134,6 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
       bankName: b.bankName,
       accountName: b.accountName,
       accountNumber: b.accountNumber,
-      branchName: b.branchName,
       isDefault: b.isDefault,
     )).toList();
     
@@ -595,22 +593,6 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
             },
           ),
           
-          const SizedBox(height: 12),
-          
-          // Branch Name
-          TextFormField(
-            initialValue: account.branchName,
-            decoration: InputDecoration(
-              labelText: 'สาขา (ถ้ามี)',
-              hintText: 'กรอกชื่อสาขา',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              isDense: true,
-            ),
-            onChanged: (value) {
-              _bankAccounts[index] = account.copyWith(branchName: value);
-            },
-          ),
         ],
       ),
     );

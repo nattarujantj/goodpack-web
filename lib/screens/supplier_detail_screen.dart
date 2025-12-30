@@ -52,6 +52,16 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
                   // Supplier Details
                   _buildSupplierDetails(supplier),
                   
+                  const SizedBox(height: 24),
+                  
+                  // Contacts Section
+                  _buildContactsSection(supplier),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Bank Accounts Section
+                  _buildBankAccountsSection(supplier),
+                  
                   const SizedBox(height: 32),
                 ],
               ),
@@ -126,11 +136,7 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
             const SizedBox(height: 12),
             _buildDetailRow('ชื่อบริษัท', supplier.companyName),
             const SizedBox(height: 12),
-            _buildDetailRow('ชื่อผู้ติดต่อ', supplier.contactName),
-            const SizedBox(height: 12),
             _buildDetailRow('เลขที่ผู้เสียภาษี', supplier.taxId),
-            const SizedBox(height: 12),
-            _buildDetailRow('เบอร์โทร', supplier.phone),
             const SizedBox(height: 12),
             _buildDetailRow('ที่อยู่', supplier.address),
             const SizedBox(height: 12),
@@ -139,6 +145,214 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
             _buildDetailRow('สร้างเมื่อ', _formatDate(supplier.createdAt)),
             const SizedBox(height: 12),
             _buildDetailRow('อัปเดตล่าสุด', _formatDate(supplier.updatedAt)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContactsSection(Supplier supplier) {
+    // รวม contacts จาก array และ legacy fields
+    final contacts = supplier.contacts.isNotEmpty
+        ? supplier.contacts
+        : (supplier.contactName.isNotEmpty
+            ? [supplier.primaryContact!]
+            : []);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.people, color: Colors.blue),
+                const SizedBox(width: 8),
+                ResponsiveText(
+                  'ผู้ติดต่อ (${contacts.length})',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            if (contacts.isEmpty)
+              Text(
+                'ไม่มีข้อมูลผู้ติดต่อ',
+                style: TextStyle(color: Colors.grey.shade600),
+              )
+            else
+              ...contacts.map((contact) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: contact.isDefault ? Colors.blue : Colors.grey.shade300,
+                      width: contact.isDefault ? 2 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    color: contact.isDefault ? Colors.blue.shade50 : null,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.person, color: Colors.grey),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  contact.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                if (contact.isDefault) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Text(
+                                      'หลัก',
+                                      style: TextStyle(color: Colors.white, fontSize: 11),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            if (contact.phone.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(Icons.phone, size: 14, color: Colors.grey),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    contact.phone,
+                                    style: TextStyle(color: Colors.grey.shade700),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBankAccountsSection(Supplier supplier) {
+    final bankAccounts = supplier.bankAccounts;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.account_balance, color: Colors.green),
+                const SizedBox(width: 8),
+                ResponsiveText(
+                  'บัญชีธนาคาร (${bankAccounts.length})',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            if (bankAccounts.isEmpty)
+              Text(
+                'ไม่มีข้อมูลบัญชีธนาคาร',
+                style: TextStyle(color: Colors.grey.shade600),
+              )
+            else
+              ...bankAccounts.map((account) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: account.isDefault ? Colors.green : Colors.grey.shade300,
+                      width: account.isDefault ? 2 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    color: account.isDefault ? Colors.green.shade50 : null,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.credit_card, color: Colors.grey),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  account.bankName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                if (account.isDefault) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Text(
+                                      'หลัก',
+                                      style: TextStyle(color: Colors.white, fontSize: 11),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              account.accountName,
+                              style: TextStyle(color: Colors.grey.shade700),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              account.accountNumber,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontFamily: 'monospace',
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
           ],
         ),
       ),
@@ -178,4 +392,3 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
     context.push('/supplier-form?id=${widget.supplierId}');
   }
 }
-
