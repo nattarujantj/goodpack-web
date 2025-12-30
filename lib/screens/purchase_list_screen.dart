@@ -2,7 +2,7 @@ import 'package:flutter/material.dart' hide SearchBar;
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/purchase_provider.dart';
-import '../providers/customer_provider.dart';
+import '../providers/supplier_provider.dart';
 import '../models/purchase.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/search_bar.dart';
@@ -29,7 +29,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   DateTime? _endDate;
   
   // Customer filter
-  String? _selectedCustomerId;
+  String? _selectedSupplierId;
   
   // Draggable FAB position
   Offset _fabPosition = const Offset(16, 16);
@@ -41,7 +41,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
     _initDefaultDateRange();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PurchaseProvider>().loadPurchasesIfNeeded();
-      context.read<CustomerProvider>().loadCustomersIfNeeded();
+      context.read<SupplierProvider>().loadSuppliersIfNeeded();
     });
   }
 
@@ -243,7 +243,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
             const SizedBox(height: 16),
             
             // Customer Filter
-            _buildCustomerFilter(),
+            _buildSupplierFilter(),
             
             const SizedBox(height: 16),
             
@@ -317,7 +317,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
                       label: _buildSortableHeader('รหัสรายการ', 'purchaseCode'),
                     ),
                     DataColumn(
-                      label: _buildSortableHeader('ลูกค้า', 'customerName'),
+                      label: _buildSortableHeader('ซัพพลายเออร์', 'supplierName'),
                     ),
                     DataColumn(
                       label: _buildSortableHeader('ชื่อผู้ติดต่อ', 'contactName'),
@@ -382,7 +382,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
                           Container(
                             width: 200,
                               child: Text(
-                                purchase.customerName,
+                                purchase.supplierName,
                               style: const TextStyle(
                                   fontWeight: FontWeight.w500,
                                   fontSize: 16,
@@ -556,14 +556,14 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
     }
 
     // Filter by customer
-    if (_selectedCustomerId != null) {
-      filtered = filtered.where((purchase) => purchase.customerId == _selectedCustomerId).toList();
+    if (_selectedSupplierId != null) {
+      filtered = filtered.where((purchase) => purchase.supplierId == _selectedSupplierId).toList();
     }
 
     // Filter by search query
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((purchase) {
-        return purchase.customerName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+        return purchase.supplierName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
                purchase.id.toLowerCase().contains(_searchQuery.toLowerCase());
       }).toList();
     }
@@ -590,8 +590,8 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
         case 'purchaseCode':
           comparison = a.purchaseCode.compareTo(b.purchaseCode);
           break;
-        case 'customerName':
-          comparison = a.customerName.compareTo(b.customerName);
+        case 'supplierName':
+          comparison = a.supplierName.compareTo(b.supplierName);
           break;
         case 'contactName':
           comparison = (a.contactName ?? '').compareTo(b.contactName ?? '');
@@ -620,7 +620,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
            _vatFilter != 'ทั้งหมด' ||
            _startDate != null ||
            _endDate != null ||
-           _selectedCustomerId != null;
+           _selectedSupplierId != null;
   }
 
   void _clearFilters() {
@@ -629,7 +629,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
       _vatFilter = 'ทั้งหมด';
       _startDate = null;
       _endDate = null;
-      _selectedCustomerId = null;
+      _selectedSupplierId = null;
     });
   }
 
@@ -816,17 +816,17 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
     return '${date.day} ${thaiMonths[date.month]} ${date.year + 543}';
   }
 
-  Widget _buildCustomerFilter() {
-    return Consumer<CustomerProvider>(
-      builder: (context, customerProvider, child) {
-        final customers = customerProvider.allCustomers;
-        final isLoading = customerProvider.isLoading;
+  Widget _buildSupplierFilter() {
+    return Consumer<SupplierProvider>(
+      builder: (context, supplierProvider, child) {
+        final suppliers = supplierProvider.allSuppliers;
+        final isLoading = supplierProvider.isLoading;
         
         return Row(
           children: [
             Expanded(
               child: Text(
-                'ลูกค้า: ${isLoading ? "(กำลังโหลด...)" : "(${customers.length})"}',
+                'ซัพพลายเออร์: ${isLoading ? "(กำลังโหลด...)" : "(${suppliers.length})"}',
                 style: const TextStyle(fontWeight: FontWeight.w500),
               ),
             ),
@@ -835,30 +835,30 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
               child: isLoading 
                 ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
                 : DropdownButton<String?>(
-                    value: _selectedCustomerId,
+                    value: _selectedSupplierId,
                     isExpanded: true,
                     hint: const Text('ทั้งหมด'),
                     onChanged: (value) {
                       setState(() {
-                        _selectedCustomerId = value;
+                        _selectedSupplierId = value;
                       });
                     },
                     items: [
                       const DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
-                      ...customers.map((customer) {
-                        final companyName = customer.companyName.isNotEmpty ? customer.companyName : 'ไม่มีชื่อบริษัท';
-                        final contactName = customer.contactName.isNotEmpty ? customer.contactName : '';
-                        final phoneNumber = customer.phone.isNotEmpty ? customer.phone : '';
-                        final customerCode = customer.customerCode.isNotEmpty ? '[${customer.customerCode}]' : '';
+                      ...suppliers.map((supplier) {
+                        final companyName = supplier.companyName.isNotEmpty ? supplier.companyName : 'ไม่มีชื่อบริษัท';
+                        final contactName = supplier.contactName.isNotEmpty ? supplier.contactName : '';
+                        final phoneNumber = supplier.phone.isNotEmpty ? supplier.phone : '';
+                        final supplierCode = supplier.supplierCode.isNotEmpty ? '[${supplier.supplierCode}]' : '';
                         
                         // Build display text: ชื่อบริษัท [รหัส] - ผู้ติดต่อ (เบอร์โทร)
                         String displayText = companyName;
-                        if (customerCode.isNotEmpty) displayText += ' $customerCode';
+                        if (supplierCode.isNotEmpty) displayText += ' $supplierCode';
                         if (contactName.isNotEmpty) displayText += ' - $contactName';
                         if (phoneNumber.isNotEmpty) displayText += ' ($phoneNumber)';
                         
                         return DropdownMenuItem<String?>(
-                          value: customer.id,
+                          value: supplier.id,
                           child: Text(
                             displayText,
                             overflow: TextOverflow.ellipsis,
@@ -1105,7 +1105,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('ยืนยันการลบ'),
-          content: Text('คุณต้องการลบรายการซื้อของ "${purchase.customerName}" หรือไม่?'),
+          content: Text('คุณต้องการลบรายการซื้อของ "${purchase.supplierName}" หรือไม่?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),

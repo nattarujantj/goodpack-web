@@ -39,6 +39,10 @@ class _MainScreenState extends State<MainScreen> {
       label: 'ลูกค้า',
     ),
     const BottomNavigationBarItem(
+      icon: Icon(Icons.local_shipping),
+      label: 'ซัพพลายเออร์',
+    ),
+    const BottomNavigationBarItem(
       icon: Icon(Icons.shopping_cart),
       label: 'ซื้อ',
     ),
@@ -225,6 +229,8 @@ class _MainScreenState extends State<MainScreen> {
                 _buildNavItem(1, Icons.inventory_2, 'สินค้า'),
                 // ลูกค้า
                 _buildNavItem(2, Icons.business, 'ลูกค้า'),
+                // ซัพพลายเออร์
+                _buildNavItem(3, Icons.local_shipping, 'ซัพพลายเออร์'),
                 
                 // ซื้อ - มีเมนูย่อย
                 _buildExpandableNavItem(
@@ -232,7 +238,7 @@ class _MainScreenState extends State<MainScreen> {
                   title: 'ซื้อ',
                   isExpanded: _isPurchaseExpanded,
                   onExpand: (expanded) => setState(() => _isPurchaseExpanded = expanded),
-                  isSelected: _currentIndex == 3,
+                  isSelected: _currentIndex == 4,
                   children: [
                     _buildSubNavItem('ทั้งหมด', '/purchases'),
                     _buildSubNavItem('VAT', '/purchases?vat=true'),
@@ -246,7 +252,7 @@ class _MainScreenState extends State<MainScreen> {
                   title: 'ขาย',
                   isExpanded: _isSaleExpanded,
                   onExpand: (expanded) => setState(() => _isSaleExpanded = expanded),
-                  isSelected: _currentIndex == 4,
+                  isSelected: _currentIndex == 5,
                   children: [
                     _buildSubNavItem('ทั้งหมด', '/sales'),
                     _buildSubNavItem('VAT', '/sales?vat=true'),
@@ -260,7 +266,7 @@ class _MainScreenState extends State<MainScreen> {
                   title: 'เสนอราคา',
                   isExpanded: _isQuotationExpanded,
                   onExpand: (expanded) => setState(() => _isQuotationExpanded = expanded),
-                  isSelected: _currentIndex == 5,
+                  isSelected: _currentIndex == 6,
                   children: [
                     _buildSubNavItem('ทั้งหมด', '/quotations'),
                     _buildSubNavItem('VAT', '/quotations?vat=true'),
@@ -271,9 +277,9 @@ class _MainScreenState extends State<MainScreen> {
                 const Divider(height: 24, indent: 16, endIndent: 16),
                 
                 // Export
-                _buildNavItem(6, Icons.file_download, 'Export'),
+                _buildNavItem(7, Icons.file_download, 'Export'),
                 // Import
-                _buildNavItem(7, Icons.upload_file, 'Import'),
+                _buildNavItem(8, Icons.upload_file, 'Import'),
               ],
             ),
           ),
@@ -401,8 +407,8 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onTabTapped(int index) {
     // สำหรับเมนูที่มีเมนูย่อย (ซื้อ, ขาย, เสนอราคา) แสดง Bottom Sheet บนมือถือ/tablet
-    // index 3 = ซื้อ, index 4 = ขาย, index 5 = เสนอราคา
-    if (MediaQuery.of(context).size.width < 1200 && (index == 3 || index == 4 || index == 5)) {
+    // index 4 = ซื้อ, index 5 = ขาย, index 6 = เสนอราคา
+    if (MediaQuery.of(context).size.width < 1200 && (index == 4 || index == 5 || index == 6)) {
       _showVatFilterSheet(index);
       return;
     }
@@ -424,18 +430,21 @@ class _MainScreenState extends State<MainScreen> {
           context.go('/customers');
           break;
         case 3:
-          context.go('/purchases');
+          context.go('/suppliers');
           break;
         case 4:
-          context.go('/sales');
+          context.go('/purchases');
           break;
         case 5:
-          context.go('/quotations');
+          context.go('/sales');
           break;
         case 6:
-          context.go('/export');
+          context.go('/quotations');
           break;
         case 7:
+          context.go('/export');
+          break;
+        case 8:
           context.go('/import');
           break;
       }
@@ -457,17 +466,17 @@ class _MainScreenState extends State<MainScreen> {
     IconData icon;
     
     switch (menuIndex) {
-      case 3:
+      case 4:
         title = 'รายการซื้อ';
         basePath = '/purchases';
         icon = Icons.shopping_cart;
         break;
-      case 4:
+      case 5:
         title = 'รายการขาย';
         basePath = '/sales';
         icon = Icons.point_of_sale;
         break;
-      case 5:
+      case 6:
         title = 'เสนอราคา';
         basePath = '/quotations';
         icon = Icons.description;

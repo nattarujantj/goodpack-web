@@ -145,7 +145,7 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _buildDetailRow('ลูกค้า', purchase.customerName),
+                  child: _buildDetailRow('ซัพพลายเออร์', purchase.supplierName),
                 ),
                 Expanded(
                   child: _buildDetailRow('VAT', purchase.isVAT ? 'มี' : 'ไม่มี'),
@@ -488,16 +488,16 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
             ),
             const SizedBox(height: 16),
             
-            _buildDetailRow('ชื่อบริษัท', purchase.customerName),
+            _buildDetailRow('ชื่อบริษัท', purchase.supplierName),
             
             if (purchase.contactName != null && purchase.contactName!.isNotEmpty) ...[
               const SizedBox(height: 8),
               _buildDetailRow('ชื่อผู้ติดต่อ', purchase.contactName!),
             ],
             
-            if (purchase.customerCode != null && purchase.customerCode!.isNotEmpty) ...[
+            if (purchase.supplierCode != null && purchase.supplierCode!.isNotEmpty) ...[
               const SizedBox(height: 8),
-              _buildDetailRow('รหัสลูกค้า', purchase.customerCode!),
+              _buildDetailRow('รหัสซัพพลายเออร์', purchase.supplierCode!),
             ],
             
             if (purchase.taxId != null && purchase.taxId!.isNotEmpty) ...[

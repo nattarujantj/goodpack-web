@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart' hide SearchBar;
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import '../providers/customer_provider.dart';
-import '../models/customer.dart';
+import '../providers/supplier_provider.dart';
+import '../models/supplier.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/search_bar.dart';
 
-class CustomerListScreen extends StatefulWidget {
-  const CustomerListScreen({Key? key}) : super(key: key);
+class SupplierListScreen extends StatefulWidget {
+  const SupplierListScreen({Key? key}) : super(key: key);
 
   @override
-  State<CustomerListScreen> createState() => _CustomerListScreenState();
+  State<SupplierListScreen> createState() => _SupplierListScreenState();
 }
 
-class _CustomerListScreenState extends State<CustomerListScreen> {
+class _SupplierListScreenState extends State<SupplierListScreen> {
   String _searchQuery = '';
-  String _sortBy = 'customerCode'; // เรียงตามรหัสลูกค้าเป็นค่าเริ่มต้น
+  String _sortBy = 'supplierCode'; // เรียงตามรหัสซัพพลายเออร์เป็นค่าเริ่มต้น
   bool _sortAscending = true;
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
@@ -27,7 +27,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CustomerProvider>().loadCustomers();
+      context.read<SupplierProvider>().loadSuppliers();
     });
   }
 
@@ -42,31 +42,31 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: ResponsiveAppBar(
-        title: 'รายการลูกค้า/ซัพพลายเออร์',
+        title: 'รายการซัพพลายเออร์',
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () => _navigateToCustomerForm(),
-            tooltip: 'เพิ่มลูกค้าใหม่',
+            onPressed: () => _navigateToSupplierForm(),
+            tooltip: 'เพิ่มซัพพลายเออร์ใหม่',
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => context.read<CustomerProvider>().refresh(),
+            onPressed: () => context.read<SupplierProvider>().refresh(),
             tooltip: 'รีเฟรช',
           ),
         ],
       ),
       body: Stack(
         children: [
-          Consumer<CustomerProvider>(
-        builder: (context, customerProvider, child) {
-          if (customerProvider.isLoading) {
+          Consumer<SupplierProvider>(
+        builder: (context, supplierProvider, child) {
+          if (supplierProvider.isLoading) {
             return const Center(
               child: CircularProgressIndicator(),
             );
           }
 
-          if (customerProvider.error.isNotEmpty) {
+          if (supplierProvider.error.isNotEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -78,7 +78,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                   ),
                   const SizedBox(height: 16),
                   ResponsiveText(
-                    customerProvider.error,
+                    supplierProvider.error,
                     style: TextStyle(
                       color: Colors.red[700],
                       fontSize: 16,
@@ -87,7 +87,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
-                    onPressed: () => customerProvider.refresh(),
+                    onPressed: () => supplierProvider.refresh(),
                     icon: const Icon(Icons.refresh),
                     label: const Text('ลองใหม่'),
                   ),
@@ -96,21 +96,21 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
             );
           }
 
-          final filteredCustomers = _getFilteredCustomers(customerProvider.allCustomers);
+          final filteredSuppliers = _getFilteredSuppliers(supplierProvider.allSuppliers);
 
           return SingleChildScrollView(
             child: Column(
               children: [
                 // Filters Section
-                _buildFiltersSection(customerProvider),
+                _buildFiltersSection(supplierProvider),
                 
-                // Customer Count
+                // Supplier Count
                 ResponsivePadding(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       ResponsiveText(
-                        'แสดง ${filteredCustomers.length} จาก ${customerProvider.allCustomers.length} รายการ',
+                        'แสดง ${filteredSuppliers.length} จาก ${supplierProvider.allSuppliers.length} รายการ',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Colors.grey[600],
                         ),
@@ -125,8 +125,8 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                   ),
                 ),
                 
-                // Customer Table
-                filteredCustomers.isEmpty
+                // Supplier Table
+                filteredSuppliers.isEmpty
                     ? _buildEmptyState()
                     : Column(
                         children: [
@@ -147,7 +147,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                               ],
                             ),
                           ),
-                          _buildCustomerTable(filteredCustomers),
+                          _buildSupplierTable(filteredSuppliers),
                               const SizedBox(height: 80), // Space for FAB
                         ],
                       ),
@@ -170,9 +170,9 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                 });
               },
               child: FloatingActionButton.extended(
-        onPressed: () => _navigateToCustomerForm(),
+        onPressed: () => _navigateToSupplierForm(),
         icon: const Icon(Icons.add),
-        label: const Text('เพิ่มลูกค้า'),
+        label: const Text('เพิ่มซัพพลายเออร์'),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
               ),
@@ -183,7 +183,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     );
   }
 
-  Widget _buildFiltersSection(CustomerProvider customerProvider) {
+  Widget _buildFiltersSection(SupplierProvider supplierProvider) {
     return Card(
       margin: const EdgeInsets.all(16),
       child: Padding(
@@ -197,7 +197,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                   _searchQuery = query;
                 });
               },
-              hintText: 'ค้นหาลูกค้า...',
+              hintText: 'ค้นหาซัพพลายเออร์...',
             ),
           ],
         ),
@@ -205,7 +205,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     );
   }
 
-  Widget _buildCustomerTable(List<Customer> customers) {
+  Widget _buildSupplierTable(List<Supplier> suppliers) {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -230,10 +230,10 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                 child: DataTable(
                   showCheckboxColumn: false,
                   columnSpacing: 2,
-                  headingRowColor: MaterialStateProperty.all(Colors.grey[100]),
+                  headingRowColor: WidgetStateProperty.all(Colors.grey[100]),
                   columns: [
                     DataColumn(
-                      label: _buildSortableHeader('รหัสลูกค้า', 'customerCode'),
+                      label: _buildSortableHeader('รหัสซัพพลายเออร์', 'supplierCode'),
                     ),
                     DataColumn(
                       label: _buildSortableHeader('ชื่อบริษัท', 'companyName'),
@@ -258,15 +258,15 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                       ),
                     ),
                   ],
-                  rows: customers.map((customer) {
+                  rows: suppliers.map((supplier) {
                     return DataRow(
-                      onSelectChanged: (_) => _navigateToCustomerDetail(customer.id),
+                      onSelectChanged: (_) => _navigateToSupplierDetail(supplier.id),
                       cells: [
                         DataCell(
                           Container(
                             width: 100,
                             child: Text(
-                              customer.customerCode,
+                              supplier.supplierCode,
                               style: const TextStyle(fontSize: 16),
                               textAlign: TextAlign.center,
                             ),
@@ -276,7 +276,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                           Container(
                             width: 200,
                               child: Text(
-                                customer.companyName,
+                                supplier.companyName,
                               style: const TextStyle(
                                   fontWeight: FontWeight.w500,
                                   fontSize: 16,
@@ -289,7 +289,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                           Container(
                             width: 150,
                             child: Text(
-                              customer.contactName,
+                              supplier.contactName,
                               style: const TextStyle(fontSize: 16),
                               textAlign: TextAlign.left,
                             ),
@@ -299,7 +299,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                           Container(
                             width: 120,
                             child: Text(
-                              customer.taxId,
+                              supplier.taxId,
                               style: const TextStyle(fontSize: 16),
                               textAlign: TextAlign.center,
                             ),
@@ -309,7 +309,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                           Container(
                             width: 120,
                             child: Text(
-                              customer.phone,
+                              supplier.phone,
                               style: const TextStyle(fontSize: 16),
                               textAlign: TextAlign.center,
                             ),
@@ -323,26 +323,26 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                               children: [
                                 _buildHoverIcon(
                                   icon: Icons.visibility,
-                                  onTap: () => _navigateToCustomerDetail(customer.id),
+                                  onTap: () => _navigateToSupplierDetail(supplier.id),
                                   tooltip: 'ดูรายละเอียด',
                                 ),
                                 const SizedBox(width: 2),
                                 _buildHoverIcon(
                                   icon: Icons.edit,
-                                  onTap: () => _navigateToCustomerForm(customer: customer),
+                                  onTap: () => _navigateToSupplierForm(supplier: supplier),
                                   tooltip: 'แก้ไข',
                                 ),
                                 const SizedBox(width: 2),
                                 _buildHoverIcon(
                                   icon: Icons.copy,
-                                  onTap: () => context.push('/customer-form?duplicateId=${customer.id}'),
-                                  tooltip: 'คัดลอกลูกค้า',
+                                  onTap: () => context.push('/supplier-form?duplicateId=${supplier.id}'),
+                                  tooltip: 'คัดลอกซัพพลายเออร์',
                                   color: Colors.blue,
                                 ),
                                 const SizedBox(width: 2),
                                 _buildHoverIcon(
                                   icon: Icons.delete,
-                                  onTap: () => _showDeleteDialog(customer),
+                                  onTap: () => _showDeleteDialog(supplier),
                                   tooltip: 'ลบ',
                                   color: Colors.red,
                                 ),
@@ -398,17 +398,17 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     );
   }
 
-  List<Customer> _getFilteredCustomers(List<Customer> customers) {
-    List<Customer> filtered = List.from(customers);
+  List<Supplier> _getFilteredSuppliers(List<Supplier> suppliers) {
+    List<Supplier> filtered = List.from(suppliers);
 
     // Filter by search query
     if (_searchQuery.isNotEmpty) {
-      filtered = filtered.where((customer) {
-        return customer.companyName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-               customer.contactName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-               customer.customerCode.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-               customer.taxId.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-               customer.phone.toLowerCase().contains(_searchQuery.toLowerCase());
+      filtered = filtered.where((supplier) {
+        return supplier.companyName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+               supplier.contactName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+               supplier.supplierCode.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+               supplier.taxId.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+               supplier.phone.toLowerCase().contains(_searchQuery.toLowerCase());
       }).toList();
     }
 
@@ -416,8 +416,8 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     filtered.sort((a, b) {
       int comparison = 0;
       switch (_sortBy) {
-        case 'customerCode':
-          comparison = a.customerCode.compareTo(b.customerCode);
+        case 'supplierCode':
+          comparison = a.supplierCode.compareTo(b.supplierCode);
           break;
         case 'companyName':
           comparison = a.companyName.compareTo(b.companyName);
@@ -454,13 +454,13 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.business_outlined,
+            Icons.local_shipping_outlined,
             size: 80,
             color: Colors.grey[400],
           ),
           const SizedBox(height: 16),
           ResponsiveText(
-            'ไม่พบลูกค้าตามเงื่อนไขที่เลือก',
+            'ไม่พบซัพพลายเออร์ตามเงื่อนไขที่เลือก',
             style: TextStyle(
               fontSize: 18,
               color: Colors.grey[600],
@@ -507,25 +507,25 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     );
   }
 
-  void _navigateToCustomerForm({Customer? customer}) {
-    if (customer != null) {
-      context.push('/customer-form?id=${customer.id}');
+  void _navigateToSupplierForm({Supplier? supplier}) {
+    if (supplier != null) {
+      context.push('/supplier-form?id=${supplier.id}');
     } else {
-      context.push('/customer-form');
+      context.push('/supplier-form');
     }
   }
 
-  void _navigateToCustomerDetail(String customerId) {
-    context.go('/customer/$customerId');
+  void _navigateToSupplierDetail(String supplierId) {
+    context.go('/supplier/$supplierId');
   }
 
-  void _showDeleteDialog(Customer customer) {
+  void _showDeleteDialog(Supplier supplier) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('ยืนยันการลบ'),
-          content: Text('คุณต้องการลบลูกค้า "${customer.companyName}" หรือไม่?'),
+          content: Text('คุณต้องการลบซัพพลายเออร์ "${supplier.companyName}" หรือไม่?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -534,11 +534,11 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
-                final success = await context.read<CustomerProvider>().deleteCustomer(customer.id);
+                final success = await context.read<SupplierProvider>().deleteSupplier(supplier.id);
                 if (success && mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('ลบลูกค้า "${customer.companyName}" เรียบร้อยแล้ว'),
+                      content: Text('ลบซัพพลายเออร์ "${supplier.companyName}" เรียบร้อยแล้ว'),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -552,3 +552,4 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     );
   }
 }
+

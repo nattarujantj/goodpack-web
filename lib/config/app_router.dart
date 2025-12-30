@@ -7,6 +7,9 @@ import '../screens/product_form_screen.dart';
 import '../screens/customer_list_screen.dart';
 import '../screens/customer_detail_screen.dart';
 import '../screens/customer_form_screen.dart';
+import '../screens/supplier_list_screen.dart';
+import '../screens/supplier_detail_screen.dart';
+import '../screens/supplier_form_screen.dart';
 import '../screens/purchase_list_screen.dart';
 import '../screens/purchase_form_screen.dart';
 import '../screens/purchase_detail_screen.dart';
@@ -116,6 +119,48 @@ class AppRouter {
               return _noAnimationPage(
                 CustomerFormScreen(
                 customerId: customerId,
+                  duplicateId: duplicateId,
+                ),
+                state,
+              );
+            },
+          ),
+          // Supplier routes
+          GoRoute(
+            path: '/suppliers',
+            pageBuilder: (context, state) => _noAnimationPage(
+              const SupplierListScreen(),
+              state,
+            ),
+          ),
+          // Supplier detail route
+          GoRoute(
+            path: '/supplier/:id',
+            pageBuilder: (context, state) {
+              final supplierId = state.pathParameters['id']!;
+              return _noAnimationPage(
+                Scaffold(
+                  appBar: AppBar(
+                    title: const Text('รายละเอียดซัพพลายเออร์'),
+                    leading: IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () => context.go('/suppliers'),
+                    ),
+                  ),
+                  body: SupplierDetailScreen(supplierId: supplierId),
+                ),
+                state,
+              );
+            },
+          ),
+          GoRoute(
+            path: '/supplier-form',
+            pageBuilder: (context, state) {
+              final supplierId = state.uri.queryParameters['id'];
+              final duplicateId = state.uri.queryParameters['duplicateId'];
+              return _noAnimationPage(
+                SupplierFormScreen(
+                  supplierId: supplierId,
                   duplicateId: duplicateId,
                 ),
                 state,

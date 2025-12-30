@@ -4,10 +4,10 @@ class Purchase {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime purchaseDate;
-  final String customerId;
-  final String customerName;
+  final String supplierId;
+  final String supplierName;
   final String? contactName;
-  final String? customerCode;
+  final String? supplierCode;
   final String? taxId;
   final String? address;
   final String? phone;
@@ -27,10 +27,10 @@ class Purchase {
     required this.createdAt,
     required this.updatedAt,
     required this.purchaseDate,
-    required this.customerId,
-    required this.customerName,
+    required this.supplierId,
+    required this.supplierName,
     this.contactName,
-    this.customerCode,
+    this.supplierCode,
     this.taxId,
     this.address,
     this.phone,
@@ -52,10 +52,10 @@ class Purchase {
       createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updatedAt'] ?? '') ?? DateTime.now(),
       purchaseDate: DateTime.tryParse(json['purchaseDate'] ?? '') ?? DateTime.now(),
-      customerId: json['customerId'] ?? '',
-      customerName: json['customerName'] ?? '',
+      supplierId: json['supplierId'] ?? '',
+      supplierName: json['supplierName'] ?? '',
       contactName: json['contactName'],
-      customerCode: json['customerCode'],
+      supplierCode: json['supplierCode'],
       taxId: json['taxId'],
       address: json['address'],
       phone: json['phone'],
@@ -80,10 +80,10 @@ class Purchase {
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'purchaseDate': purchaseDate.toIso8601String(),
-      'customerId': customerId,
-      'customerName': customerName,
+      'supplierId': supplierId,
+      'supplierName': supplierName,
       'contactName': contactName,
-      'customerCode': customerCode,
+      'supplierCode': supplierCode,
       'taxId': taxId,
       'address': address,
       'phone': phone,
@@ -105,10 +105,10 @@ class Purchase {
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? purchaseDate,
-    String? customerId,
-    String? customerName,
+    String? supplierId,
+    String? supplierName,
     String? contactName,
-    String? customerCode,
+    String? supplierCode,
     String? taxId,
     String? address,
     String? phone,
@@ -128,10 +128,10 @@ class Purchase {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       purchaseDate: purchaseDate ?? this.purchaseDate,
-      customerId: customerId ?? this.customerId,
-      customerName: customerName ?? this.customerName,
+      supplierId: supplierId ?? this.supplierId,
+      supplierName: supplierName ?? this.supplierName,
       contactName: contactName ?? this.contactName,
-      customerCode: customerCode ?? this.customerCode,
+      supplierCode: supplierCode ?? this.supplierCode,
       taxId: taxId ?? this.taxId,
       address: address ?? this.address,
       phone: phone ?? this.phone,
@@ -298,7 +298,7 @@ class WarehouseItem {
 
 class PurchaseRequest {
   final DateTime purchaseDate;
-  final String customerId;
+  final String supplierId;
   final String? notes;
   final List<PurchaseItem> items;
   final bool isVAT;
@@ -308,7 +308,7 @@ class PurchaseRequest {
 
   PurchaseRequest({
     required this.purchaseDate,
-    required this.customerId,
+    required this.supplierId,
     this.notes,
     required this.items,
     required this.isVAT,
@@ -320,7 +320,7 @@ class PurchaseRequest {
   Map<String, dynamic> toJson() {
     return {
       'purchaseDate': purchaseDate.toUtc().toIso8601String(),
-      'customerId': customerId,
+      'supplierId': supplierId,
       'notes': notes,
       'items': items.map((item) => item.toJson()).toList(),
       'isVAT': isVAT,
