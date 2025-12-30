@@ -336,6 +336,16 @@ class _ProductListScreenState extends State<ProductListScreen> {
               ),
               DataColumn(
                 label: Container(
+                  width: 120,
+                  child: Text(
+                    'จำนวนลัง(แพ็ค)\nคงเหลือ',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+              ),
+              DataColumn(
+                label: Container(
                   width: 100,
                   child: Text(
                     'จัดการ',
@@ -435,6 +445,18 @@ class _ProductListScreenState extends State<ProductListScreen> {
                           color: product.stock.actualStock < 0 ? Colors.red : null,
                           fontWeight: product.stock.actualStock < 0 ? FontWeight.bold : null,
                           fontSize: 16,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Container(
+                      width: 120, // กำหนดความกว้างของคอลัมน์จำนวนลังคงเหลือ
+                      child: Text(
+                        product.packRemainingText,
+                        style: TextStyle(
+                          fontSize: 15,
                         ),
                         textAlign: TextAlign.center,
                       ),
