@@ -182,6 +182,11 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
             
             _buildDetailRow('รหัสรายการซื้อ', purchase.purchaseCode),
             
+            if (purchase.invoiceNumber != null && purchase.invoiceNumber!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _buildDetailRow('เลขที่ Invoice', purchase.invoiceNumber!),
+            ],
+            
             const SizedBox(height: 8),
             
             Row(

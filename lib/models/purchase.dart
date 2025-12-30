@@ -1,6 +1,7 @@
 class Purchase {
   final String id;
   final String purchaseCode;
+  final String? invoiceNumber;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime purchaseDate;
@@ -24,6 +25,7 @@ class Purchase {
   Purchase({
     required this.id,
     required this.purchaseCode,
+    this.invoiceNumber,
     required this.createdAt,
     required this.updatedAt,
     required this.purchaseDate,
@@ -49,6 +51,7 @@ class Purchase {
     return Purchase(
       id: json['id'] ?? '',
       purchaseCode: json['purchaseCode'] ?? '',
+      invoiceNumber: json['invoiceNumber'],
       createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updatedAt'] ?? '') ?? DateTime.now(),
       purchaseDate: DateTime.tryParse(json['purchaseDate'] ?? '') ?? DateTime.now(),
@@ -77,6 +80,7 @@ class Purchase {
     return {
       'id': id,
       'purchaseCode': purchaseCode,
+      'invoiceNumber': invoiceNumber,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'purchaseDate': purchaseDate.toIso8601String(),
@@ -102,6 +106,7 @@ class Purchase {
   Purchase copyWith({
     String? id,
     String? purchaseCode,
+    String? invoiceNumber,
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? purchaseDate,
@@ -125,6 +130,7 @@ class Purchase {
     return Purchase(
       id: id ?? this.id,
       purchaseCode: purchaseCode ?? this.purchaseCode,
+      invoiceNumber: invoiceNumber ?? this.invoiceNumber,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       purchaseDate: purchaseDate ?? this.purchaseDate,
@@ -299,6 +305,7 @@ class WarehouseItem {
 class PurchaseRequest {
   final DateTime purchaseDate;
   final String supplierId;
+  final String? invoiceNumber;
   final String? notes;
   final List<PurchaseItem> items;
   final bool isVAT;
@@ -309,6 +316,7 @@ class PurchaseRequest {
   PurchaseRequest({
     required this.purchaseDate,
     required this.supplierId,
+    this.invoiceNumber,
     this.notes,
     required this.items,
     required this.isVAT,
@@ -321,6 +329,7 @@ class PurchaseRequest {
     return {
       'purchaseDate': purchaseDate.toUtc().toIso8601String(),
       'supplierId': supplierId,
+      'invoiceNumber': invoiceNumber,
       'notes': notes,
       'items': items.map((item) => item.toJson()).toList(),
       'isVAT': isVAT,

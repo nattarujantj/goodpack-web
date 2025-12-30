@@ -28,6 +28,7 @@ class PurchaseFormScreen extends StatefulWidget {
 class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _purchaseDateController = TextEditingController();
+  final _invoiceNumberController = TextEditingController();
   final _paymentMethodController = TextEditingController();
   final _customerAccountController = TextEditingController();
   final _paymentDateController = TextEditingController();
@@ -59,6 +60,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   @override
   void dispose() {
     _purchaseDateController.dispose();
+    _invoiceNumberController.dispose();
     _paymentMethodController.dispose();
     _customerAccountController.dispose();
     _paymentDateController.dispose();
@@ -174,6 +176,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 
   void _populateFieldsFromPurchase(Purchase purchase) {
     _purchaseDateController.text = _formatDate(purchase.purchaseDate);
+    _invoiceNumberController.text = purchase.invoiceNumber ?? '';
     _selectedSupplierId = purchase.supplierId;
     _isVAT = purchase.isVAT;
     _isPaid = purchase.payment.isPaid;
@@ -292,6 +295,15 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               controller: _purchaseDateController,
               label: 'วันที่ซื้อ *',
               onTap: () => _selectDate(_purchaseDateController),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Invoice Number
+            _buildTextField(
+              controller: _invoiceNumberController,
+              label: 'เลขที่ Invoice',
+              hint: 'กรอกเลขที่ Invoice (ถ้ามี)',
             ),
             
             const SizedBox(height: 16),
@@ -1577,6 +1589,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       final purchaseRequest = PurchaseRequest(
         purchaseDate: _parseDate(_purchaseDateController.text),
         supplierId: _selectedSupplierId!,
+        invoiceNumber: _invoiceNumberController.text.trim().isEmpty ? null : _invoiceNumberController.text.trim(),
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         items: _purchaseItems,
         isVAT: _isVAT,
