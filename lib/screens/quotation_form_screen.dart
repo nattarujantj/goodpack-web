@@ -46,7 +46,15 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
   void initState() {
     super.initState();
     _initializeForm();
-    _loadData();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    setState(() => _isLoading = true);
+    await _loadData();
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
 
   void _initializeForm() {
@@ -63,54 +71,12 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
     }
   }
 
-  void _loadData() async {
+  Future<void> _loadData() async {
     final customerProvider = context.read<CustomerProvider>();
     final productProvider = context.read<ProductProvider>();
     
-    if (_isEdit) {
-      setState(() => _isLoading = true);
-      
-      try {
-        // Load customers and products only if not already loaded
-        final futures = <Future>[];
-        
-        if (customerProvider.allCustomers.isEmpty && !customerProvider.isLoading) {
-          futures.add(customerProvider.loadCustomers());
-        }
-        
-        if (productProvider.allProducts.isEmpty && !productProvider.isLoading) {
-          futures.add(productProvider.loadProducts());
-        }
-        
-        if (futures.isNotEmpty) {
-          await Future.wait(futures);
-        }
-
-        // Load quotation data if editing
-        if (widget.quotationId != null) {
-          final quotation = context.read<QuotationProvider>().getQuotationById(widget.quotationId!);
-          if (quotation != null) {
-            _populateForm(quotation);
-          }
-        } else if (widget.quotation != null) {
-          _populateForm(widget.quotation!);
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('เกิดข้อผิดพลาด: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      } finally {
-        if (mounted) {
-          setState(() => _isLoading = false);
-        }
-      }
-    } else {
-      // Load customers and products for new quotation only if not already loaded
+    try {
+      // Load customers and products only if not already loaded
       final futures = <Future>[];
       
       if (customerProvider.allCustomers.isEmpty && !customerProvider.isLoading) {
@@ -123,15 +89,32 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
       
       if (futures.isNotEmpty) {
         await Future.wait(futures);
-        // Force rebuild after data loaded
-        if (mounted) {
-          setState(() {});
+      }
+
+      if (_isEdit) {
+        // Load quotation data if editing
+        if (widget.quotationId != null) {
+          final quotation = context.read<QuotationProvider>().getQuotationById(widget.quotationId!);
+          if (quotation != null) {
+            _populateForm(quotation);
+          }
+        } else if (widget.quotation != null) {
+          _populateForm(widget.quotation!);
+        }
+      } else {
+        // Load duplicate data if duplicating
+        if (widget.duplicateId != null) {
+          _loadDuplicateQuotation();
         }
       }
-      
-      // Load duplicate data if duplicating
-      if (widget.duplicateId != null) {
-        _loadDuplicateQuotation();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
