@@ -8,6 +8,7 @@ import '../providers/purchase_provider.dart';
 import '../providers/supplier_provider.dart';
 import '../providers/product_provider.dart';
 import '../models/supplier.dart';
+import '../models/customer_bank_account.dart';
 import '../services/config_service.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/searchable_dropdown.dart';
@@ -39,6 +40,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   String? _selectedSupplierId;
   String? _selectedAccountId;
   int _selectedContactIndex = 0; // Index ของผู้ติดต่อที่เลือก (default = 0 = primary)
+  int? _selectedSupplierBankIndex; // Index ของบัญชี supplier ที่เลือก (null = กรอกเอง)
   bool _isVAT = false;
   bool _isPaid = false;
   bool _isWarehouseUpdated = false;
@@ -473,11 +475,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             const SizedBox(height: 16),
             _buildAccountDropdown(),
             const SizedBox(height: 16),
-            _buildTextField(
-              controller: _customerAccountController,
-              label: 'บัญชีรับเงินของลูกค้า',
-              hint: 'เลขบัญชีหรือชื่อบัญชีลูกค้า',
-            ),
+            _buildSupplierBankAccountDropdown(),
             const SizedBox(height: 16),
             _buildDateField(
               controller: _paymentDateController,
@@ -747,6 +745,128 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildSupplierBankAccountDropdown() {
+    return Consumer<SupplierProvider>(
+      builder: (context, supplierProvider, child) {
+        // ดึงบัญชีของ supplier ที่เลือก
+        List<CustomerBankAccount> supplierBankAccounts = [];
+        if (_selectedSupplierId != null) {
+          final supplier = supplierProvider.allSuppliers.firstWhere(
+            (s) => s.id == _selectedSupplierId,
+            orElse: () => supplierProvider.allSuppliers.first,
+          );
+          supplierBankAccounts = supplier.bankAccounts;
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ResponsiveText(
+              'บัญชีรับเงินของซัพพลายเออร์',
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 8),
+            
+            // ถ้า supplier มีบัญชี แสดง dropdown + ตัวเลือกกรอกเอง
+            if (supplierBankAccounts.isNotEmpty) ...[
+              DropdownButtonFormField<int?>(
+                value: _selectedSupplierBankIndex,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  prefixIcon: const Icon(Icons.account_balance),
+                ),
+                hint: const Text('เลือกบัญชี หรือกรอกเอง'),
+                items: [
+                  // ตัวเลือกกรอกเอง
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text('กรอกเอง...', style: TextStyle(fontStyle: FontStyle.italic)),
+                  ),
+                  // บัญชีจาก supplier
+                  ...supplierBankAccounts.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final account = entry.value;
+                    return DropdownMenuItem<int?>(
+                      value: index,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${account.bankName} - ${account.accountNumber}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (account.isDefault)
+                            Container(
+                              margin: const EdgeInsets.only(left: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text('หลัก', style: TextStyle(color: Colors.white, fontSize: 10)),
+                            ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedSupplierBankIndex = value;
+                    // ถ้าเลือกบัญชีจาก dropdown ให้ set ค่า
+                    if (value != null && value < supplierBankAccounts.length) {
+                      final account = supplierBankAccounts[value];
+                      _customerAccountController.text = '${account.bankName} ${account.accountName} ${account.accountNumber}';
+                    } else {
+                      _customerAccountController.text = '';
+                    }
+                  });
+                },
+              ),
+              
+              // ถ้าเลือก "กรอกเอง" แสดง TextField
+              if (_selectedSupplierBankIndex == null) ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _customerAccountController,
+                  decoration: InputDecoration(
+                    hintText: 'กรอกเลขบัญชีหรือชื่อบัญชี',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+              ],
+            ] else ...[
+              // ถ้า supplier ไม่มีบัญชี แสดงแค่ TextField
+              TextFormField(
+                controller: _customerAccountController,
+                decoration: InputDecoration(
+                  hintText: 'กรอกเลขบัญชีหรือชื่อบัญชี',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  prefixIcon: const Icon(Icons.account_balance),
+                ),
+              ),
+              if (_selectedSupplierId != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'ซัพพลายเออร์นี้ยังไม่มีข้อมูลบัญชี',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                ),
+            ],
+          ],
+        );
+      },
     );
   }
 
