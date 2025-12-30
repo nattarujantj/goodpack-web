@@ -419,6 +419,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             const SizedBox(height: 12),
             _buildDetailRow('หมวดหมู่', product.category),
             const SizedBox(height: 12),
+            _buildDetailRow('จำนวนต่อแพ็ค', product.quantityPerPack > 0 ? '${product.quantityPerPack} ชิ้น/ลัง(แพ็ค)' : '-'),
+            const SizedBox(height: 12),
             _buildDetailRow('สร้างเมื่อ', _formatDate(product.createdAt)),
             const SizedBox(height: 12),
             _buildDetailRow('อัปเดตล่าสุด', _formatDate(product.updatedAt)),
@@ -852,12 +854,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 Expanded(
                   child: _buildReadOnlyField(
                     label: 'คงเหลือจริง',
-              value: NumberFormatter.formatQuantity(product.stock.actualStock),
-              isNegative: true,
+                    value: NumberFormatter.formatQuantity(product.stock.actualStock),
+                    isNegative: true,
                   ),
                 ),
               ],
             ),
+            
+            // Pack Information (if quantityPerPack > 0)
+            if (product.quantityPerPack > 0) ...[
+              const SizedBox(height: 16),
+              ResponsiveText(
+                'จำนวนลัง(แพ็ค)คงเหลือ',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.purple,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _buildReadOnlyField(
+                label: 'จำนวนลังคงเหลือ',
+                value: product.packRemainingText,
+              ),
+            ],
           ],
         ),
       ),
