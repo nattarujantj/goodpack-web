@@ -8,14 +8,20 @@ class PriceInfo {
   final double averageYTD;
   final double averageMTD;
   
-  // สำหรับคำนวณ YTD/MTD
-  final int ytdCount;
-  final double ytdTotal;
+  // สำหรับคำนวณ Weighted Average
+  final int totalQuantity;
+  final double totalAmount;
+  
+  // สำหรับคำนวณ Weighted Average YTD
   final int ytdYear;
-  final int mtdCount;
-  final double mtdTotal;
+  final int ytdQuantity;
+  final double ytdTotalAmount;
+  
+  // สำหรับคำนวณ Weighted Average MTD
   final int mtdMonth;
   final int mtdYear;
+  final int mtdQuantity;
+  final double mtdTotalAmount;
 
   PriceInfo({
     required this.latest,
@@ -24,13 +30,15 @@ class PriceInfo {
     required this.average,
     required this.averageYTD,
     required this.averageMTD,
-    required this.ytdCount,
-    required this.ytdTotal,
+    required this.totalQuantity,
+    required this.totalAmount,
     required this.ytdYear,
-    required this.mtdCount,
-    required this.mtdTotal,
+    required this.ytdQuantity,
+    required this.ytdTotalAmount,
     required this.mtdMonth,
     required this.mtdYear,
+    required this.mtdQuantity,
+    required this.mtdTotalAmount,
   });
 
   factory PriceInfo.fromJson(Map<String, dynamic> json) {
@@ -41,13 +49,15 @@ class PriceInfo {
       average: (json['average'] as num?)?.toDouble() ?? 0.0,
       averageYTD: (json['averageYTD'] as num?)?.toDouble() ?? 0.0,
       averageMTD: (json['averageMTD'] as num?)?.toDouble() ?? 0.0,
-      ytdCount: json['ytdCount'] as int? ?? 0,
-      ytdTotal: (json['ytdTotal'] as num?)?.toDouble() ?? 0.0,
+      totalQuantity: json['totalQuantity'] as int? ?? 0,
+      totalAmount: (json['totalAmount'] as num?)?.toDouble() ?? 0.0,
       ytdYear: json['ytdYear'] as int? ?? 0,
-      mtdCount: json['mtdCount'] as int? ?? 0,
-      mtdTotal: (json['mtdTotal'] as num?)?.toDouble() ?? 0.0,
+      ytdQuantity: json['ytdQuantity'] as int? ?? 0,
+      ytdTotalAmount: (json['ytdTotalAmount'] as num?)?.toDouble() ?? 0.0,
       mtdMonth: json['mtdMonth'] as int? ?? 0,
       mtdYear: json['mtdYear'] as int? ?? 0,
+      mtdQuantity: json['mtdQuantity'] as int? ?? 0,
+      mtdTotalAmount: (json['mtdTotalAmount'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -59,13 +69,15 @@ class PriceInfo {
       'average': average,
       'averageYTD': averageYTD,
       'averageMTD': averageMTD,
-      'ytdCount': ytdCount,
-      'ytdTotal': ytdTotal,
+      'totalQuantity': totalQuantity,
+      'totalAmount': totalAmount,
       'ytdYear': ytdYear,
-      'mtdCount': mtdCount,
-      'mtdTotal': mtdTotal,
+      'ytdQuantity': ytdQuantity,
+      'ytdTotalAmount': ytdTotalAmount,
       'mtdMonth': mtdMonth,
       'mtdYear': mtdYear,
+      'mtdQuantity': mtdQuantity,
+      'mtdTotalAmount': mtdTotalAmount,
     };
   }
 }
@@ -235,6 +247,7 @@ class Product {
   final String category;
   final String qrData;
   final String? imageUrl;
+  final int quantityPerPack; // จำนวน/ลัง(แพ็ค)
   final Price price;
   final Stock stock;
   final DateTime createdAt;
@@ -251,6 +264,7 @@ class Product {
     required this.category,
     required this.qrData,
     this.imageUrl,
+    this.quantityPerPack = 0,
     required this.price,
     required this.stock,
     required this.createdAt,
@@ -270,6 +284,7 @@ class Product {
       category: json['category'] as String? ?? '',
       qrData: json['qrData'] as String? ?? '',
       imageUrl: json['imageUrl'] as String?,
+      quantityPerPack: (json['quantityPerPack'] as num?)?.toInt() ?? 0,
       price: Price.fromJson(json['price'] as Map<String, dynamic>? ?? {}),
       stock: Stock.fromJson(json['stock'] as Map<String, dynamic>? ?? {}),
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
@@ -290,6 +305,7 @@ class Product {
       'category': category,
       'qrData': qrData,
       'imageUrl': imageUrl,
+      'quantityPerPack': quantityPerPack,
       'price': price.toJson(),
       'stock': stock.toJson(),
       'createdAt': createdAt.toIso8601String(),
@@ -309,6 +325,7 @@ class Product {
     String? category,
     String? qrData,
     String? imageUrl,
+    int? quantityPerPack,
     Price? price,
     Stock? stock,
     DateTime? createdAt,
@@ -325,6 +342,7 @@ class Product {
       category: category ?? this.category,
       qrData: qrData ?? this.qrData,
       imageUrl: imageUrl, // Allow null values
+      quantityPerPack: quantityPerPack ?? this.quantityPerPack,
       price: price ?? this.price,
       stock: stock ?? this.stock,
       createdAt: createdAt ?? this.createdAt,
@@ -342,6 +360,20 @@ class Product {
 
   // Helper method to get total stock
   int get totalStock => stock.actualStock;
+
+  // Helper method to calculate pack remaining
+  String get packRemainingText {
+    if (quantityPerPack <= 0) {
+      return '-';
+    }
+    final packs = stock.actualStock ~/ quantityPerPack;
+    final remainder = stock.actualStock % quantityPerPack;
+    if (remainder == 0) {
+      return '$packs ลัง(แพ็ค)';
+    } else {
+      return '$packs ลัง(แพ็ค) เศษ $remainder';
+    }
+  }
 
   @override
   String toString() {

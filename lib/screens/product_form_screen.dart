@@ -27,6 +27,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   final _colorController = TextEditingController();
   final _sizeController = TextEditingController();
   final _categoryController = TextEditingController();
+  final _quantityPerPackController = TextEditingController();
   
   // Sales tier controllers
   final List<TextEditingController> _tierMinControllers = [];
@@ -80,6 +81,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _colorController.text = product.color;
     _sizeController.text = product.size;
     _categoryController.text = product.category;
+    _quantityPerPackController.text = product.quantityPerPack > 0 ? product.quantityPerPack.toString() : '';
     
     // Sales tiers
     _populateSalesTiers(product.price.salesTiers);
@@ -110,6 +112,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _colorController.text = product.color;
     _sizeController.text = product.size;
     _categoryController.text = product.category;
+    _quantityPerPackController.text = product.quantityPerPack > 0 ? product.quantityPerPack.toString() : '';
     
     // Sales tiers
     _populateSalesTiers(product.price.salesTiers);
@@ -195,6 +198,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _colorController.dispose();
     _sizeController.dispose();
     _categoryController.dispose();
+    _quantityPerPackController.dispose();
     
     // Dispose tier controllers
     _clearTierControllers();
@@ -348,6 +352,25 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return 'กรุณากรอกหมวดหมู่';
+                }
+                return null;
+              },
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Quantity Per Pack
+            _buildTextField(
+              controller: _quantityPerPackController,
+              label: 'จำนวน/ลัง(แพ็ค)',
+              hint: 'กรอกจำนวนสินค้าต่อลัง(แพ็ค)',
+              keyboardType: TextInputType.number,
+              validator: (value) {
+                if (value != null && value.trim().isNotEmpty) {
+                  final intValue = int.tryParse(value.trim());
+                  if (intValue == null || intValue < 0) {
+                    return 'กรุณากรอกจำนวนที่ถูกต้อง';
+                  }
                 }
                 return null;
               },
@@ -606,13 +629,15 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               average: 0.0,
               averageYTD: 0.0,
               averageMTD: 0.0,
-              ytdCount: 0,
-              ytdTotal: 0.0,
+              totalQuantity: 0,
+              totalAmount: 0.0,
               ytdYear: 0,
-              mtdCount: 0,
-              mtdTotal: 0.0,
+              ytdQuantity: 0,
+              ytdTotalAmount: 0.0,
               mtdMonth: 0,
               mtdYear: 0,
+              mtdQuantity: 0,
+              mtdTotalAmount: 0.0,
             ),
             wholesalePrice: wholesalePrice,
           ));
@@ -628,13 +653,15 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           average: 0.0,
           averageYTD: 0.0,
           averageMTD: 0.0,
-          ytdCount: 0,
-          ytdTotal: 0.0,
+          totalQuantity: 0,
+          totalAmount: 0.0,
           ytdYear: 0,
-          mtdCount: 0,
-          mtdTotal: 0.0,
+          ytdQuantity: 0,
+          ytdTotalAmount: 0.0,
           mtdMonth: 0,
           mtdYear: 0,
+          mtdQuantity: 0,
+          mtdTotalAmount: 0.0,
         ),
         purchaseNonVAT: PriceInfo(
           latest: 0.0,
@@ -643,13 +670,15 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           average: 0.0,
           averageYTD: 0.0,
           averageMTD: 0.0,
-          ytdCount: 0,
-          ytdTotal: 0.0,
+          totalQuantity: 0,
+          totalAmount: 0.0,
           ytdYear: 0,
-          mtdCount: 0,
-          mtdTotal: 0.0,
+          ytdQuantity: 0,
+          ytdTotalAmount: 0.0,
           mtdMonth: 0,
           mtdYear: 0,
+          mtdQuantity: 0,
+          mtdTotalAmount: 0.0,
         ),
         saleVAT: PriceInfo(
           latest: 0.0,
@@ -658,13 +687,15 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           average: 0.0,
           averageYTD: 0.0,
           averageMTD: 0.0,
-          ytdCount: 0,
-          ytdTotal: 0.0,
+          totalQuantity: 0,
+          totalAmount: 0.0,
           ytdYear: 0,
-          mtdCount: 0,
-          mtdTotal: 0.0,
+          ytdQuantity: 0,
+          ytdTotalAmount: 0.0,
           mtdMonth: 0,
           mtdYear: 0,
+          mtdQuantity: 0,
+          mtdTotalAmount: 0.0,
         ),
         saleNonVAT: PriceInfo(
           latest: 0.0,
@@ -673,13 +704,15 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           average: 0.0,
           averageYTD: 0.0,
           averageMTD: 0.0,
-          ytdCount: 0,
-          ytdTotal: 0.0,
+          totalQuantity: 0,
+          totalAmount: 0.0,
           ytdYear: 0,
-          mtdCount: 0,
-          mtdTotal: 0.0,
+          ytdQuantity: 0,
+          ytdTotalAmount: 0.0,
           mtdMonth: 0,
           mtdYear: 0,
+          mtdQuantity: 0,
+          mtdTotalAmount: 0.0,
         ),
         salesTiers: salesTiers,
       );
@@ -702,6 +735,10 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         actualStock: 0,
       );
 
+      final quantityPerPack = _quantityPerPackController.text.trim().isEmpty 
+          ? 0 
+          : int.tryParse(_quantityPerPackController.text.trim()) ?? 0;
+
       final product = Product(
         id: widget.product?.id ?? widget.productId ?? '',
         skuId: widget.product?.skuId ?? '', // Will be generated by server
@@ -713,6 +750,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         category: _categoryController.text.trim(),
         qrData: widget.product?.qrData ?? '', // Will be generated by server
         imageUrl: widget.product?.imageUrl,
+        quantityPerPack: quantityPerPack,
         price: price,
         stock: stock,
         createdAt: widget.product?.createdAt ?? DateTime.now(),
