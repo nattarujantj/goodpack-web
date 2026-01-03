@@ -16,7 +16,7 @@ class ProductListScreen extends StatefulWidget {
 class _ProductListScreenState extends State<ProductListScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'ทั้งหมด';
-  String _sortBy = 'name';
+  String _sortBy = 'skuId';
   bool _sortAscending = true;
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
@@ -319,6 +319,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   ),
                 ),
               ),
+              // Column สำหรับ SKU ID
+              DataColumn(
+                label: _buildSortableHeader('SKU ID', 'skuId'),
+              ),
               DataColumn(
                 label: _buildSortableHeader('ชื่อสินค้า', 'name'),
               ),
@@ -369,6 +373,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         onChanged: (_) => _toggleProductSelection(product),
                       ),
                     ),
+                  ),
+                  // SKU ID cell
+                  DataCell(
+                    Container(
+                      width: 100,
+                      child: Text(
+                        product.skuId,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontFamily: 'monospace',
+                        ),
+                        textAlign: TextAlign.left,
+                      ),
+                    ),
+                    onTap: () => _navigateToProductDetail(product.id),
                   ),
                   DataCell(
                     Container(
@@ -551,7 +570,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
     // Filter by search query
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((product) {
-        return product.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+        return product.skuId.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+               product.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
                product.color.toLowerCase().contains(_searchQuery.toLowerCase()) ||
                product.category.toLowerCase().contains(_searchQuery.toLowerCase()) ||
                product.size.toLowerCase().contains(_searchQuery.toLowerCase());
@@ -567,6 +587,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
     filtered.sort((a, b) {
       int comparison = 0;
       switch (_sortBy) {
+        case 'skuId':
+          comparison = a.skuId.compareTo(b.skuId);
+          break;
         case 'name':
           comparison = a.name.compareTo(b.name);
           break;
