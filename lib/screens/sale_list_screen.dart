@@ -5,6 +5,7 @@ import '../models/sale.dart';
 import '../providers/sale_provider.dart';
 import '../providers/customer_provider.dart';
 import '../widgets/responsive_layout.dart';
+import '../utils/date_formatter.dart';
 
 class SaleListScreen extends StatefulWidget {
   final String? initialVatFilter;
@@ -1001,7 +1002,7 @@ class _SaleListScreenState extends State<SaleListScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+    return DateFormatter.formatDate(date);
   }
 
   String _getProductNames(Sale sale) {

@@ -9,6 +9,7 @@ import '../models/purchase.dart';
 import '../widgets/responsive_layout.dart';
 import '../services/config_service.dart';
 import '../utils/number_formatter.dart';
+import '../utils/date_formatter.dart';
 
 class PurchaseDetailScreen extends StatefulWidget {
   final String purchaseId;
@@ -507,7 +508,7 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    return DateFormatter.formatDateTime(date);
   }
 
   Widget _buildCustomerInfo(Purchase purchase) {

@@ -10,6 +10,7 @@ import '../widgets/responsive_layout.dart';
 import '../services/pdf_service_thai_enhanced.dart';
 import '../models/bank_account.dart';
 import '../utils/number_formatter.dart';
+import '../utils/date_formatter.dart';
 
 class QuotationDetailScreen extends StatefulWidget {
   final String quotationId;
@@ -555,7 +556,7 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+    return DateFormatter.formatDate(date);
   }
 
   Color _getStatusColor(String status) {

@@ -6,6 +6,7 @@ import '../providers/supplier_provider.dart';
 import '../models/purchase.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/search_bar.dart';
+import '../utils/date_formatter.dart';
 
 class PurchaseListScreen extends StatefulWidget {
   final String? initialVatFilter;
@@ -1081,7 +1082,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+    return DateFormatter.formatDate(date);
   }
 
   String _getProductNames(Purchase purchase) {

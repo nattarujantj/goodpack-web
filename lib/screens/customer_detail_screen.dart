@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/customer_provider.dart';
 import '../models/customer.dart';
 import '../widgets/responsive_layout.dart';
+import '../utils/date_formatter.dart';
 
 class CustomerDetailScreen extends StatefulWidget {
   final String customerId;
@@ -385,7 +386,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    return DateFormatter.formatDateTime(date);
   }
 
   void _editCustomer() {

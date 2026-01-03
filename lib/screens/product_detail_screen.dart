@@ -7,8 +7,8 @@ import '../models/product.dart';
 import '../models/stock_adjustment.dart';
 import '../widgets/responsive_layout.dart';
 import '../utils/number_formatter.dart';
+import '../utils/date_formatter.dart';
 import '../services/image_upload_service.dart';
-import 'package:intl/intl.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -1003,7 +1003,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    return DateFormatter.formatDateTime(date);
   }
 
   void _editProduct() {
@@ -1443,7 +1443,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    DateFormat('dd/MM/yyyy HH:mm').format(adjustment.createdAt),
+                                    DateFormatter.formatDateTime(adjustment.createdAt),
                                     style: TextStyle(color: Colors.grey[500], fontSize: 12),
                                   ),
                                 ],

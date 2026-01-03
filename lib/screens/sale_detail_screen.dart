@@ -14,6 +14,7 @@ import '../services/customer_service.dart';
 import '../services/bank_account_service.dart' as bank_service;
 import '../widgets/responsive_layout.dart';
 import '../utils/number_formatter.dart';
+import '../utils/date_formatter.dart';
 
 class SaleDetailScreen extends StatefulWidget {
   final String saleId;
@@ -641,7 +642,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+    return DateFormatter.formatDateTime(date);
   }
 
   void _showDeleteDialog() {

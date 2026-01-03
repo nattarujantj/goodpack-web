@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/supplier_provider.dart';
 import '../models/supplier.dart';
 import '../widgets/responsive_layout.dart';
+import '../utils/date_formatter.dart';
 
 class SupplierDetailScreen extends StatefulWidget {
   final String supplierId;
@@ -385,7 +386,7 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    return DateFormatter.formatDateTime(date);
   }
 
   void _editSupplier() {

@@ -6,6 +6,7 @@ import '../providers/quotation_provider.dart';
 import '../providers/sale_provider.dart';
 import '../providers/customer_provider.dart';
 import '../widgets/responsive_layout.dart';
+import '../utils/date_formatter.dart';
 
 class QuotationListScreen extends StatefulWidget {
   final String? initialVatFilter;
@@ -1056,7 +1057,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+    return DateFormatter.formatDate(date);
   }
 
   String _getProductNames(Quotation quotation) {

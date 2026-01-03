@@ -13,6 +13,7 @@ import '../widgets/searchable_dropdown.dart';
 import '../widgets/bank_account_selector.dart';
 import '../models/bank_account.dart';
 import '../utils/error_dialog.dart';
+import '../utils/date_formatter.dart';
 
 class QuotationFormScreen extends StatefulWidget {
   final Quotation? quotation;
@@ -190,7 +191,7 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+    return DateFormatter.formatDate(date);
   }
 
   String _formatCustomerDisplay(Customer customer) {

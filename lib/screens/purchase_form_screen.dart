@@ -13,6 +13,7 @@ import '../services/config_service.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/searchable_dropdown.dart';
 import '../utils/error_dialog.dart';
+import '../utils/date_formatter.dart';
 
 class PurchaseFormScreen extends StatefulWidget {
   final Purchase? purchase;
@@ -1374,7 +1375,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+    return DateFormatter.formatDate(date);
   }
 
   DateTime _parseDate(String dateStr) {
