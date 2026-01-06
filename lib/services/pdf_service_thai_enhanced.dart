@@ -881,8 +881,20 @@ class PdfServiceThaiEnhanced {
                   // color: PdfColors.black,
                 ),
                 pw.SizedBox(height: 10), // เว้นหลังบรรทัดลงชื่อ
+                // Placeholder ให้ตรงกับชื่อในคอลัมน์ขวา
+                pw.Text(
+                  ' ',
+                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
+                ),
+                pw.SizedBox(height: 5),
                 pw.Text(
                   'ผู้มีอำนาจอนุมัติ',
+                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
+                ),
+                pw.SizedBox(height: 5),
+                // Placeholder ให้ตรงกับวันที่ในคอลัมน์ขวา
+                pw.Text(
+                  ' ',
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
               ],
