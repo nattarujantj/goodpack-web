@@ -90,7 +90,7 @@ class Sale {
       'id': id,
       'saleCode': saleCode,
       'quotationCode': quotationCode,
-      'saleDate': saleDate.toIso8601String(), // ไม่แปลง UTC เพราะเป็น business date
+      'saleDate': saleDate.toUtc().toIso8601String(),
       'customerId': customerId,
       'customerName': customerName,
       'contactName': contactName,
@@ -109,8 +109,8 @@ class Sale {
       'bankName': bankName,
       'bankAccountName': bankAccountName,
       'bankAccountNumber': bankAccountNumber,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'createdAt': createdAt.toUtc().toIso8601String(),
+      'updatedAt': updatedAt.toUtc().toIso8601String(),
     };
   }
 
@@ -244,7 +244,7 @@ class SaleRequest {
 
   Map<String, dynamic> toJson() {
     return {
-      'saleDate': saleDate.toIso8601String(), // ไม่แปลง UTC เพราะเป็น business date
+      'saleDate': saleDate.toUtc().toIso8601String(),
       'customerId': customerId,
       'items': items.map((item) => item.toJson()).toList(),
       'isVAT': isVAT,
@@ -301,7 +301,7 @@ class PaymentInfo {
       'ourAccount': ourAccount,
       'ourAccountInfo': ourAccountInfo?.toJson(),
       'customerAccount': customerAccount,
-      'paymentDate': paymentDate?.toIso8601String(), // ไม่แปลง UTC
+      'paymentDate': paymentDate?.toUtc().toIso8601String(),
     };
   }
 }
