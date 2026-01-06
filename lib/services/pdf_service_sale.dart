@@ -919,7 +919,7 @@ class PdfServiceSale {
             child: pw.Container(),
           ),
           
-          // คอลัมน์ที่ 3 - Customer signature
+          // คอลัมน์ที่ 3 - Customer signature (ผู้มีอำนาจอนุมัติ - ไม่มีชื่อและวันที่)
           pw.Expanded(
             flex: 1,
             child: pw.Column(
@@ -936,17 +936,7 @@ class PdfServiceSale {
                 ),
                 pw.SizedBox(height: 10),
                 pw.Text(
-                  signerName,
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
                   'ผู้มีอำนาจอนุมัติ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  _formatDateThai(sale.updatedAt),
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
               ],
