@@ -241,7 +241,7 @@ class PaymentInfo {
       'paymentMethod': paymentMethod,
       'ourAccount': ourAccount,
       'customerAccount': customerAccount,
-      'paymentDate': paymentDate?.toUtc().toIso8601String(),
+      'paymentDate': paymentDate?.toIso8601String(), // ไม่แปลง UTC
     };
   }
 }
@@ -343,7 +343,7 @@ class PurchaseRequest {
 
   Map<String, dynamic> toJson() {
     return {
-      'purchaseDate': purchaseDate.toUtc().toIso8601String(),
+      'purchaseDate': purchaseDate.toIso8601String(), // ไม่แปลง UTC เพราะเป็น business date
       'supplierId': supplierId,
       'invoiceNumber': invoiceNumber,
       'notes': notes,
