@@ -970,7 +970,7 @@ class PdfServiceSale {
                 ),
                 pw.SizedBox(height: 5),
                 pw.Text(
-                  _formatDateThai(sale.updatedAt),
+                  _formatDateThai(sale.saleDate),
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
               ],
@@ -1034,7 +1034,7 @@ class PdfServiceSale {
                 pw.Text(
                   sale.payment.paymentDate != null 
                     ? _formatDateThai(sale.payment.paymentDate!)
-                    : _formatDateThai(sale.updatedAt),
+                    : _formatDateThai(sale.saleDate),
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
               ],
@@ -1146,7 +1146,7 @@ class PdfServiceSale {
                 ),
                 pw.SizedBox(height: 5),
                 pw.Text(
-                  _formatDateThai(sale.updatedAt),
+                  _formatDateThai(sale.saleDate),
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
               ],
@@ -1182,7 +1182,7 @@ class PdfServiceSale {
                 pw.Text(
                   sale.payment.paymentDate != null 
                     ? _formatDateThai(sale.payment.paymentDate!)
-                    : _formatDateThai(sale.updatedAt),
+                    : _formatDateThai(sale.saleDate),
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
               ],
@@ -1300,7 +1300,7 @@ class PdfServiceSale {
                 ),
                 pw.SizedBox(height: 5),
                 pw.Text(
-                  _formatDateThai(sale.updatedAt),
+                  _formatDateThai(sale.saleDate),
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
               ],
@@ -1313,14 +1313,17 @@ class PdfServiceSale {
 
 
   static String _formatDateThai(DateTime date) {
+    // Convert to local time เพื่อแสดงวันที่ถูกต้องตาม timezone
+    final localDate = date.toLocal();
+    
     final months = [
       'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
       'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
     ];
     
-    final day = date.day;
-    final month = months[date.month - 1];
-    final year = (date.year + 543) % 100;
+    final day = localDate.day;
+    final month = months[localDate.month - 1];
+    final year = (localDate.year + 543) % 100;
     
     return '$day $month $year';
   }

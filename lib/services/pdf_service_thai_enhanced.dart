@@ -917,7 +917,7 @@ class PdfServiceThaiEnhanced {
                 ),
                 pw.SizedBox(height: 5),
                 pw.Text(
-                  _formatDateThai(quotation.updatedAt),
+                  _formatDateThai(quotation.quotationDate),
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
               ],
@@ -929,14 +929,17 @@ class PdfServiceThaiEnhanced {
   }
 
   static String _formatDateThai(DateTime date) {
+    // Convert to local time เพื่อแสดงวันที่ถูกต้องตาม timezone
+    final localDate = date.toLocal();
+    
     final months = [
       'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
       'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
     ];
     
-    final day = date.day;
-    final month = months[date.month - 1];
-    final year = (date.year + 543) % 100; // Convert to Buddhist year
+    final day = localDate.day;
+    final month = months[localDate.month - 1];
+    final year = (localDate.year + 543) % 100; // Convert to Buddhist year
     
     return '$day $month $year';
   }
