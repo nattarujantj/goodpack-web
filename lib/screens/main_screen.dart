@@ -76,6 +76,22 @@ class _MainScreenState extends State<MainScreen> {
     super.dispose();
   }
 
+  /// คืนค่า index ของเมนูที่ควรไฮไลท์ตาม route ปัจจุบัน (เมื่อใช้ GoRouter)
+  int _getSelectedIndex() {
+    if (widget.child == null) return _currentIndex;
+    final path = GoRouterState.of(context).uri.path;
+    if (path == '/dashboard') return 0;
+    if (path == '/' || path.startsWith('/product')) return 1;
+    if (path.startsWith('/customer')) return 2;
+    if (path.startsWith('/supplier')) return 3;
+    if (path.startsWith('/purchase')) return 4;
+    if (path.startsWith('/sale')) return 5;
+    if (path.startsWith('/quotation')) return 6;
+    if (path == '/export') return 7;
+    if (path == '/import') return 8;
+    return _currentIndex;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -109,7 +125,7 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildBottomNavigationBar() {
     return BottomNavigationBar(
-      currentIndex: _currentIndex,
+      currentIndex: _getSelectedIndex(),
       onTap: _onTabTapped,
       type: BottomNavigationBarType.fixed,
       items: _bottomNavItems,
@@ -136,7 +152,7 @@ class _MainScreenState extends State<MainScreen> {
         children: _bottomNavItems.asMap().entries.map((entry) {
           final index = entry.key;
           final item = entry.value;
-          final isSelected = _currentIndex == index;
+          final isSelected = _getSelectedIndex() == index;
           
           return Expanded(
             child: InkWell(
@@ -238,7 +254,7 @@ class _MainScreenState extends State<MainScreen> {
                   title: 'ซื้อ',
                   isExpanded: _isPurchaseExpanded,
                   onExpand: (expanded) => setState(() => _isPurchaseExpanded = expanded),
-                  isSelected: _currentIndex == 4,
+                  isSelected: _getSelectedIndex() == 4,
                   children: [
                     _buildSubNavItem('ทั้งหมด', '/purchases'),
                     _buildSubNavItem('VAT', '/purchases?vat=true'),
@@ -252,7 +268,7 @@ class _MainScreenState extends State<MainScreen> {
                   title: 'ขาย',
                   isExpanded: _isSaleExpanded,
                   onExpand: (expanded) => setState(() => _isSaleExpanded = expanded),
-                  isSelected: _currentIndex == 5,
+                  isSelected: _getSelectedIndex() == 5,
                   children: [
                     _buildSubNavItem('ทั้งหมด', '/sales'),
                     _buildSubNavItem('VAT', '/sales?vat=true'),
@@ -266,7 +282,7 @@ class _MainScreenState extends State<MainScreen> {
                   title: 'เสนอราคา',
                   isExpanded: _isQuotationExpanded,
                   onExpand: (expanded) => setState(() => _isQuotationExpanded = expanded),
-                  isSelected: _currentIndex == 6,
+                  isSelected: _getSelectedIndex() == 6,
                   children: [
                     _buildSubNavItem('ทั้งหมด', '/quotations'),
                     _buildSubNavItem('VAT', '/quotations?vat=true'),
@@ -307,7 +323,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildNavItem(int index, IconData icon, String title) {
-    final isSelected = _currentIndex == index;
+    final isSelected = _getSelectedIndex() == index;
     
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
