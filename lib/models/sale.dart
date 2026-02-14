@@ -210,6 +210,7 @@ class SaleItem {
 }
 
 class SaleRequest {
+  final String? saleCode;
   final DateTime saleDate;
   final String customerId;
   final List<SaleItem> items;
@@ -226,6 +227,7 @@ class SaleRequest {
   final String? bankAccountNumber;
 
   SaleRequest({
+    this.saleCode,
     required this.saleDate,
     required this.customerId,
     required this.items,
@@ -244,6 +246,7 @@ class SaleRequest {
 
   Map<String, dynamic> toJson() {
     return {
+      'saleCode': saleCode?.trim().isEmpty == true ? null : saleCode?.trim(),
       'saleDate': saleDate.toUtc().toIso8601String(),
       'customerId': customerId,
       'items': items.map((item) => item.toJson()).toList(),

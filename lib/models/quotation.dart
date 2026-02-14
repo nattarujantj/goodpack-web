@@ -261,6 +261,7 @@ class Quotation {
 
 // QuotationRequest represents the request body for creating/updating a quotation
 class QuotationRequest {
+  final String? quotationCode;
   final DateTime quotationDate;
   final String customerId;
   final List<QuotationItem> items;
@@ -276,6 +277,7 @@ class QuotationRequest {
   final String? bankAccountNumber;
 
   QuotationRequest({
+    this.quotationCode,
     required this.quotationDate,
     required this.customerId,
     required this.items,
@@ -293,6 +295,7 @@ class QuotationRequest {
 
   Map<String, dynamic> toJson() {
     return {
+      'quotationCode': quotationCode?.trim().isEmpty == true ? null : quotationCode?.trim(),
       'quotationDate': quotationDate.toIso8601String(),
       'customerId': customerId,
       'items': items.map((item) => item.toJson()).toList(),

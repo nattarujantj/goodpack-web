@@ -317,6 +317,7 @@ class WarehouseItem {
 }
 
 class PurchaseRequest {
+  final String? purchaseCode;
   final DateTime purchaseDate;
   final String supplierId;
   final String? invoiceNumber;
@@ -329,6 +330,7 @@ class PurchaseRequest {
   final WarehouseInfo warehouse;
 
   PurchaseRequest({
+    this.purchaseCode,
     required this.purchaseDate,
     required this.supplierId,
     this.invoiceNumber,
@@ -343,6 +345,7 @@ class PurchaseRequest {
 
   Map<String, dynamic> toJson() {
     return {
+      'purchaseCode': purchaseCode?.trim().isEmpty == true ? null : purchaseCode?.trim(),
       'purchaseDate': purchaseDate.toUtc().toIso8601String(),
       'supplierId': supplierId,
       'invoiceNumber': invoiceNumber,

@@ -29,6 +29,7 @@ class PurchaseFormScreen extends StatefulWidget {
 class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _purchaseDateController = TextEditingController();
+  final _purchaseCodeController = TextEditingController();
   final _invoiceNumberController = TextEditingController();
   final _paymentMethodController = TextEditingController();
   final _customerAccountController = TextEditingController();
@@ -62,6 +63,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   @override
   void dispose() {
     _purchaseDateController.dispose();
+    _purchaseCodeController.dispose();
     _invoiceNumberController.dispose();
     _paymentMethodController.dispose();
     _customerAccountController.dispose();
@@ -178,6 +180,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 
   void _populateFieldsFromPurchase(Purchase purchase) {
     _purchaseDateController.text = _formatDate(purchase.purchaseDate);
+    _purchaseCodeController.text = purchase.purchaseCode;
     _invoiceNumberController.text = purchase.invoiceNumber ?? '';
     _selectedSupplierId = purchase.supplierId;
     _isVAT = purchase.isVAT;
@@ -298,6 +301,15 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               controller: _purchaseDateController,
               label: 'วันที่ซื้อ *',
               onTap: () => _selectDate(_purchaseDateController),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Purchase Code
+            _buildTextField(
+              controller: _purchaseCodeController,
+              label: 'รหัสรายการซื้อ',
+              hint: _isEdit ? 'รหัสรายการซื้อ' : 'ว่างไว้ให้ระบบสร้างอัตโนมัติ',
             ),
             
             const SizedBox(height: 16),
@@ -1737,7 +1749,9 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     });
 
     try {
+      final purchaseCodeText = _purchaseCodeController.text.trim();
       final purchaseRequest = PurchaseRequest(
+        purchaseCode: purchaseCodeText.isEmpty ? null : purchaseCodeText,
         purchaseDate: _parseDate(_purchaseDateController.text),
         supplierId: _selectedSupplierId!,
         invoiceNumber: _invoiceNumberController.text.trim().isEmpty ? null : _invoiceNumberController.text.trim(),

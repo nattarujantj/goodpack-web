@@ -296,16 +296,14 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
                             ),
                             const SizedBox(height: 16),
                             
-                            // Quotation Code (read-only if editing)
-                            if (_isEdit) ...[
-                              _buildTextField(
-                                controller: _quotationCodeController,
-                                label: 'รหัสเสนอราคา',
-                                enabled: false,
-                                prefixIcon: const Icon(Icons.description),
-                              ),
-                              const SizedBox(height: 16),
-                            ],
+                            // Quotation Code
+                            _buildTextField(
+                              controller: _quotationCodeController,
+                              label: 'รหัสเสนอราคา',
+                              hint: _isEdit ? 'รหัสเสนอราคา' : 'ว่างไว้ให้ระบบสร้างอัตโนมัติ',
+                              prefixIcon: const Icon(Icons.description),
+                            ),
+                            const SizedBox(height: 16),
 
                             // Quotation Date
                             _buildTextField(
@@ -911,7 +909,9 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final quotationCodeText = _quotationCodeController.text.trim();
       final quotationRequest = QuotationRequest(
+        quotationCode: quotationCodeText.isEmpty ? null : quotationCodeText,
         quotationDate: _parseDate(_quotationDateController.text) ?? DateTime.now(),
         customerId: _selectedCustomerId!,
         items: _quotationItems,

@@ -379,15 +379,12 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
             
             const SizedBox(height: 16),
             
-            if (_isEdit) ...[
-              _buildTextField(
-                controller: _saleCodeController,
-                label: 'รหัสรายการขาย',
-                hint: 'รหัสรายการขาย',
-                readOnly: true,
-              ),
-              const SizedBox(height: 16),
-            ],
+            _buildTextField(
+              controller: _saleCodeController,
+              label: 'รหัสรายการขาย',
+              hint: _isEdit ? 'รหัสรายการขาย' : 'ว่างไว้ให้ระบบสร้างอัตโนมัติ',
+            ),
+            const SizedBox(height: 16),
             
             _buildTextField(
               controller: _quotationCodeController,
@@ -1603,7 +1600,9 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     });
 
     try {
+      final saleCodeText = _saleCodeController.text.trim();
       final saleRequest = SaleRequest(
+        saleCode: saleCodeText.isEmpty ? null : saleCodeText,
         saleDate: _parseDate(_saleDateController.text),
         customerId: _selectedCustomerId!,
         items: _saleItems,
