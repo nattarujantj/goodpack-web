@@ -64,12 +64,12 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
     _shippingCostController.text = ''; // ปล่อยว่างให้ user กรอกเอง
     _validUntilController.text = _formatDate(DateTime.now().add(const Duration(days: 10)));
     
-    // ใส่ default notes สำหรับใบเสนอราคาใหม่ (ไม่ใช่ Edit)
+    // ใส่ default notes สำหรับใบเสนอราคาใหม่ (ไม่ใช่ Edit, ไม่มี leading space)
     if (!_isEdit) {
       _notesController.text = '''1).หลังโอนยอด จัดส่งภายใน 1-3 วันทำการ
-                 2).ยอดชำระเกิน 30,000 บาท จัดส่งในกรุงเทพ-ปริมณฑล
-                 3).หากสินค้ามีความเสียหายประการใด กรุณาแจ้งกลับบริษัทภายใน 7 วันทำการ
-                 มิฉะนั้นทางบริษัทจะไม่รับผิดชอบใดๆ ทั้งสิ้น''';
+2).ยอดชำระเกิน 30,000 บาท จัดส่งในกรุงเทพ-ปริมณฑล
+3).หากสินค้ามีความเสียหายประการใด กรุณาแจ้งกลับบริษัทภายใน 7 วันทำการ
+มิฉะนั้นทางบริษัทจะไม่รับผิดชอบใดๆ ทั้งสิ้น''';
     }
   }
 
