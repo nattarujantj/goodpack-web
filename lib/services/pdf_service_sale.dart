@@ -105,44 +105,143 @@ class PdfServiceSale {
       }
     }
 
+    // ใช้ MultiPage เพื่อให้รายการสินค้าแบ่งหน้าอัตโนมัติ และทุกหน้ามี header + ช่องลงชื่อ
     pdf.addPage(
-      pw.Page(
+      pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(20),
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // Company Header (only show for VAT sales)
-              if (sale.isVAT) ...[
-              _buildCompanyHeader(thaiFont, logoImage),
-              pw.SizedBox(height: 5),
-              ],
-              
-              // Document Title
-              _buildDocumentTitle(thaiFont, documentType),
-              pw.SizedBox(height: 5),
-              
-              // Customer and Sale Info
-              _buildCustomerAndSaleInfo(sale, thaiFont, fontSizeCustomer),
-              pw.SizedBox(height: 5),
-              
-              // Items Table
-              _buildItemsTable(sale, thaiFont, fontSizeText),
-              
-              // Summary Section
-              _buildSummarySection(sale, thaiFont, fontSizeText, documentType, bankAccount: bankAccount),
-              pw.SizedBox(height: 5),
-            
-              // Signature Section
-              _buildSignatureSection(thaiFont, sale, fontSizeText, documentType, signerName),
-            ],
-          );
-        },
+        header: (pw.Context context) => _buildMultiPageHeader(
+          context, thaiFont, documentType, sale.saleCode, sale.isVAT, logoImage,
+        ),
+        footer: (pw.Context context) => _buildMultiPageFooter(
+          context, thaiFont, sale, fontSizeText, documentType, signerName,
+        ),
+        build: (pw.Context context) => [
+          // หน้าแรก: Company Header เต็ม (เฉพาะ VAT), ชื่อเอกสาร, ลูกค้า
+          if (sale.isVAT) ...[
+            _buildCompanyHeader(thaiFont, logoImage),
+            pw.SizedBox(height: 5),
+          ],
+          _buildDocumentTitle(thaiFont, documentType),
+          pw.SizedBox(height: 5),
+          _buildCustomerAndSaleInfo(sale, thaiFont, fontSizeCustomer),
+          pw.SizedBox(height: 5),
+          // ตารางรายการ (pw.Table จะแบ่งหน้าอัตโนมัติเมื่อเนื้อหายาว)
+          _buildItemsTableAsPdfTable(sale, thaiFont, fontSizeText),
+          pw.SizedBox(height: 5),
+          // สรุปยอด + หมายเหตุ (อยู่หน้าสุดท้ายหลังตาราง)
+          _buildSummarySection(sale, thaiFont, fontSizeText, documentType, bankAccount: bankAccount),
+        ],
       ),
     );
 
     return pdf;
+  }
+
+  /// Header แบบย่อแสดงทุกหน้า: ชื่อบริษัท + ประเภทเอกสาร + เลขที่ + หมายเลขหน้า
+  static pw.Widget _buildMultiPageHeader(
+    pw.Context context,
+    pw.Font? thaiFont,
+    SaleDocumentType documentType,
+    String saleCode,
+    bool isVAT,
+    pw.MemoryImage? logoImage,
+  ) {
+    final pageNum = context.pageNumber;
+    return pw.Container(
+      alignment: pw.Alignment.centerRight,
+      margin: const pw.EdgeInsets.only(bottom: 8),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            'บริษัท กู๊ดแพ็คเกจจิ้งซัพพลาย จำกัด',
+            style: pw.TextStyle(fontSize: 10, font: thaiFont, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.Text(
+            '${documentType.thaiTitle} เลขที่ $saleCode | หน้า $pageNum',
+            style: pw.TextStyle(fontSize: 10, font: thaiFont),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Footer ทุกหน้า: ช่องลงชื่อ (ให้ทุกหน้ามีบรรทัดลงชื่อ)
+  static pw.Widget _buildMultiPageFooter(
+    pw.Context context,
+    pw.Font? thaiFont,
+    Sale sale,
+    double fontSizeText,
+    SaleDocumentType documentType,
+    String signerName,
+  ) {
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(top: 12),
+      child: _buildSignatureSection(thaiFont, sale, fontSizeText, documentType, signerName),
+    );
+  }
+
+  /// ตารางรายการแบบ pw.Table เพื่อให้ MultiPage แบ่งหน้าอัตโนมัติได้
+  static pw.Widget _buildItemsTableAsPdfTable(Sale sale, pw.Font? thaiFont, double fontSizeText) {
+    return pw.Table(
+      border: pw.TableBorder.all(color: PdfColors.black),
+      columnWidths: {
+        0: const pw.FlexColumnWidth(1),
+        1: const pw.FlexColumnWidth(4),
+        2: const pw.FlexColumnWidth(2),
+        3: const pw.FlexColumnWidth(2),
+        4: const pw.FlexColumnWidth(2),
+      },
+      children: [
+        // แถวหัวตาราง
+        pw.TableRow(
+          decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+          children: [
+            _tableCell('ลำดับ', thaiFont, fontSizeText, bold: true),
+            _tableCell('รายการ', thaiFont, fontSizeText, bold: true),
+            _tableCell('จำนวน', thaiFont, fontSizeText, bold: true),
+            _tableCell('ราคา/ชิ้น', thaiFont, fontSizeText, bold: true),
+            _tableCell('รวมเงิน', thaiFont, fontSizeText, bold: true),
+          ],
+        ),
+        ...sale.items.asMap().entries.map((entry) {
+          final index = entry.key + 1;
+          final item = entry.value;
+          return pw.TableRow(
+            children: [
+              _tableCell(index.toString(), thaiFont, fontSizeText, center: true),
+              _tableCell(item.productName, thaiFont, fontSizeText),
+              _tableCell(_formatQuantity(item.quantity), thaiFont, fontSizeText, center: true),
+              _tableCell(_formatCurrency(item.unitPrice), thaiFont, fontSizeText, right: true),
+              _tableCell(_formatCurrency(item.totalPrice), thaiFont, fontSizeText, right: true),
+            ],
+          );
+        }),
+      ],
+    );
+  }
+
+  static pw.Widget _tableCell(
+    String text,
+    pw.Font? thaiFont,
+    double fontSize, {
+    bool bold = false,
+    bool center = false,
+    bool right = false,
+  }) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(2),
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(
+          fontSize: fontSize,
+          font: thaiFont,
+          fontWeight: bold ? pw.FontWeight.bold : null,
+        ),
+        textAlign: center ? pw.TextAlign.center : (right ? pw.TextAlign.right : pw.TextAlign.left),
+      ),
+    );
   }
 
   static pw.Widget _buildCompanyHeader(pw.Font? thaiFont, pw.MemoryImage? logoImage) {
