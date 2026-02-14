@@ -223,10 +223,8 @@ class PdfServiceSale {
   ) {
     final pageNum = context.pageNumber;
     final pagesCount = context.pagesCount;
-    final showPageNumber = pagesCount > 1;
-    final headerLine = showPageNumber
-        ? '${documentType.thaiTitle} เลขที่ ${sale.saleCode} | หน้า $pageNum'
-        : '${documentType.thaiTitle} เลขที่ ${sale.saleCode}';
+    final showHeaderLine = pagesCount > 1; // แสดง "ใบกำกับภาษี เลขที่ xxx | หน้า n" เฉพาะเมื่อมี 2 หน้าขึ้นไป
+    final headerLine = '${documentType.thaiTitle} เลขที่ ${sale.saleCode} | หน้า $pageNum';
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       mainAxisSize: pw.MainAxisSize.min,
@@ -238,14 +236,16 @@ class PdfServiceSale {
         _buildDocumentTitle(thaiFont, documentType),
         pw.SizedBox(height: 5),
         _buildCustomerAndSaleInfo(sale, thaiFont, fontSizeCustomer),
-        pw.SizedBox(height: 4),
-        pw.Align(
-          alignment: pw.Alignment.centerRight,
-          child: pw.Text(
-            headerLine,
-            style: pw.TextStyle(fontSize: 10, font: thaiFont),
+        if (showHeaderLine) ...[
+          pw.SizedBox(height: 4),
+          pw.Align(
+            alignment: pw.Alignment.centerRight,
+            child: pw.Text(
+              headerLine,
+              style: pw.TextStyle(fontSize: 10, font: thaiFont),
+            ),
           ),
-        ),
+        ],
         pw.SizedBox(height: 8),
       ],
     );
