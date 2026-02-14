@@ -222,6 +222,11 @@ class PdfServiceSale {
     double fontSizeCustomer,
   ) {
     final pageNum = context.pageNumber;
+    final pagesCount = context.pagesCount;
+    final showPageNumber = pagesCount > 1;
+    final headerLine = showPageNumber
+        ? '${documentType.thaiTitle} เลขที่ ${sale.saleCode} | หน้า $pageNum'
+        : '${documentType.thaiTitle} เลขที่ ${sale.saleCode}';
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       mainAxisSize: pw.MainAxisSize.min,
@@ -237,7 +242,7 @@ class PdfServiceSale {
         pw.Align(
           alignment: pw.Alignment.centerRight,
           child: pw.Text(
-            '${documentType.thaiTitle} เลขที่ ${sale.saleCode} | หน้า $pageNum',
+            headerLine,
             style: pw.TextStyle(fontSize: 10, font: thaiFont),
           ),
         ),
