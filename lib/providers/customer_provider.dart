@@ -44,6 +44,29 @@ class CustomerProvider with ChangeNotifier {
     }
   }
 
+  /// ดึงลูกค้าจาก API ตาม ID (ใช้เมื่อเข้าลิงก์ตรงและยังไม่มีในแคช)
+  Future<Customer?> fetchCustomerById(String id) async {
+    try {
+      final customer = await CustomerApiService.getCustomer(id);
+      putCustomerInCache(customer);
+      return customer;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  void putCustomerInCache(Customer customer) {
+    final index = _customers.indexWhere((c) => c.id == customer.id);
+    if (index >= 0) {
+      _customers[index] = customer;
+    } else {
+      _customers.add(customer);
+    }
+    notifyListeners();
+  }
+
   // Add new customer - returns Customer on success, null on failure
   Future<Customer?> addCustomer(CustomerRequest customerRequest) async {
     _isLoading = true;

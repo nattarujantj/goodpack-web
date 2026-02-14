@@ -26,6 +26,7 @@ class QuotationDetailScreen extends StatefulWidget {
 
 class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
   bool _isLoading = false;
+  bool _errorNotFound = false;
 
   @override
   void initState() {
@@ -33,17 +34,16 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
     _loadQuotation();
   }
 
-  void _loadQuotation() async {
+  Future<void> _loadQuotation() async {
     final quotationProvider = context.read<QuotationProvider>();
-    
-    // If quotation is already in cache, don't reload
-    if (quotationProvider.getQuotationById(widget.quotationId) != null) {
-      return;
-    }
-    
+    if (quotationProvider.getQuotationById(widget.quotationId) != null) return;
+
     setState(() => _isLoading = true);
     try {
-      await quotationProvider.loadQuotations();
+      final quotation = await quotationProvider.fetchQuotationById(widget.quotationId);
+      if (mounted && quotation == null) {
+        setState(() => _errorNotFound = true);
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -76,32 +76,27 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
 
           final quotation = quotationProvider.getQuotationById(widget.quotationId);
           if (quotation == null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Colors.red[300],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'ไม่พบข้อมูลเสนอราคา',
-                    style: TextStyle(
-                      color: Colors.red[700],
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
+            if (_errorNotFound) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                    const SizedBox(height: 16),
+                    Text(
+                      'ไม่พบข้อมูลเสนอราคา',
+                      style: TextStyle(color: Colors.red[700], fontSize: 18, fontWeight: FontWeight.w500),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => context.pop(),
-                    child: const Text('กลับ'),
-                  ),
-                ],
-              ),
-            );
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => context.go('/quotations'),
+                      child: const Text('กลับไปรายการเสนอราคา'),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return const Center(child: CircularProgressIndicator());
           }
 
           return SingleChildScrollView(

@@ -22,17 +22,21 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _isUploadingImage = false;
   double _uploadProgress = 0.0;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    // Load products if not already loaded
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<ProductProvider>();
-      if (provider.allProducts.isEmpty) {
-        provider.loadProducts();
-      }
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadProduct());
+  }
+
+  Future<void> _loadProduct() async {
+    final provider = context.read<ProductProvider>();
+    if (provider.getProductById(widget.productId) != null) return;
+    final product = await provider.fetchProductById(widget.productId);
+    if (mounted && product == null) {
+      setState(() => _error = 'ไม่พบข้อมูลสินค้า');
+    }
   }
 
   @override
@@ -40,11 +44,26 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return Consumer<ProductProvider>(
         builder: (context, productProvider, child) {
           final product = productProvider.getProductById(widget.productId);
-          
+
           if (product == null) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            if (_error != null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                    const SizedBox(height: 16),
+                    Text(_error!, style: TextStyle(color: Colors.red[700], fontSize: 18)),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => context.go('/products'),
+                      child: const Text('กลับไปรายการสินค้า'),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return const Center(child: CircularProgressIndicator());
           }
 
           return SingleChildScrollView(

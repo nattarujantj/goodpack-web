@@ -44,6 +44,29 @@ class PurchaseProvider with ChangeNotifier {
     }
   }
 
+  /// ดึงรายการซื้อจาก API ตาม ID (ใช้เมื่อเข้าลิงก์ตรงและยังไม่มีในแคช)
+  Future<Purchase?> fetchPurchaseById(String id) async {
+    try {
+      final purchase = await PurchaseApiService.getPurchase(id);
+      putPurchaseInCache(purchase);
+      return purchase;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  void putPurchaseInCache(Purchase purchase) {
+    final index = _purchases.indexWhere((p) => p.id == purchase.id);
+    if (index >= 0) {
+      _purchases[index] = purchase;
+    } else {
+      _purchases.add(purchase);
+    }
+    notifyListeners();
+  }
+
   // Add new purchase - returns Purchase on success, null on failure
   Future<Purchase?> addPurchase(PurchaseRequest purchaseRequest) async {
     _isLoading = true;

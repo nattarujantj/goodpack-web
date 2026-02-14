@@ -85,6 +85,29 @@ class QuotationProvider with ChangeNotifier {
     }
   }
 
+  /// ดึงเสนอราคาจาก API ตาม ID (ใช้เมื่อเข้าลิงก์ตรงและยังไม่มีในแคช)
+  Future<Quotation?> fetchQuotationById(String id) async {
+    try {
+      final quotation = await _apiService.getQuotation(id);
+      putQuotationInCache(quotation);
+      return quotation;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  void putQuotationInCache(Quotation quotation) {
+    final index = _quotations.indexWhere((q) => q.id == quotation.id);
+    if (index >= 0) {
+      _quotations[index] = quotation;
+    } else {
+      _quotations.add(quotation);
+    }
+    notifyListeners();
+  }
+
   List<Quotation> getQuotationsByStatus(String status) {
     return _quotations.where((quotation) => quotation.status == status).toList();
   }

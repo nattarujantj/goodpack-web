@@ -21,16 +21,21 @@ class PurchaseDetailScreen extends StatefulWidget {
 }
 
 class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
+  String? _error;
+
   @override
   void initState() {
     super.initState();
-    // Load purchases if not already loaded
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<PurchaseProvider>();
-      if (provider.allPurchases.isEmpty) {
-        provider.loadPurchases();
-      }
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadPurchase());
+  }
+
+  Future<void> _loadPurchase() async {
+    final provider = context.read<PurchaseProvider>();
+    if (provider.getPurchaseById(widget.purchaseId) != null) return;
+    final purchase = await provider.fetchPurchaseById(widget.purchaseId);
+    if (mounted && purchase == null) {
+      setState(() => _error = 'ไม่พบรายการซื้อ');
+    }
   }
 
   void _openProductDetail(String productId) {
@@ -51,11 +56,26 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
     return Consumer<PurchaseProvider>(
       builder: (context, purchaseProvider, child) {
         final purchase = purchaseProvider.getPurchaseById(widget.purchaseId);
-        
+
         if (purchase == null) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          if (_error != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                  const SizedBox(height: 16),
+                  Text(_error!, style: TextStyle(color: Colors.red[700], fontSize: 18)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => context.go('/purchases'),
+                    child: const Text('กลับไปรายการซื้อ'),
+                  ),
+                ],
+              ),
+            );
+          }
+          return const Center(child: CircularProgressIndicator());
         }
 
         return SingleChildScrollView(

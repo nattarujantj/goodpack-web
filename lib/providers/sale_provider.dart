@@ -85,6 +85,30 @@ class SaleProvider with ChangeNotifier {
     }
   }
 
+  /// ดึงรายการขายจาก API ตาม ID (ใช้เมื่อเข้าลิงก์ตรงและยังไม่มีในแคช)
+  Future<Sale?> fetchSaleById(String id) async {
+    try {
+      final sale = await _apiService.getSale(id);
+      putSaleInCache(sale);
+      return sale;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// ใส่รายการขายลงแคช (ใช้หลังดึงจาก API โดยตรง เช่น direct link)
+  void putSaleInCache(Sale sale) {
+    final index = _sales.indexWhere((s) => s.id == sale.id);
+    if (index >= 0) {
+      _sales[index] = sale;
+    } else {
+      _sales.add(sale);
+    }
+    notifyListeners();
+  }
+
   List<Sale> getSalesByVAT(bool isVAT) {
     return _sales.where((sale) => sale.isVAT == isVAT).toList();
   }

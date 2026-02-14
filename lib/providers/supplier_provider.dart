@@ -44,6 +44,29 @@ class SupplierProvider with ChangeNotifier {
     }
   }
 
+  /// ดึงซัพพลายเออร์จาก API ตาม ID (ใช้เมื่อเข้าลิงก์ตรงและยังไม่มีในแคช)
+  Future<Supplier?> fetchSupplierById(String id) async {
+    try {
+      final supplier = await SupplierApiService.getSupplier(id);
+      putSupplierInCache(supplier);
+      return supplier;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  void putSupplierInCache(Supplier supplier) {
+    final index = _suppliers.indexWhere((s) => s.id == supplier.id);
+    if (index >= 0) {
+      _suppliers[index] = supplier;
+    } else {
+      _suppliers.add(supplier);
+    }
+    notifyListeners();
+  }
+
   // Add new supplier - returns Supplier on success, null on failure
   Future<Supplier?> addSupplier(SupplierRequest supplierRequest) async {
     _isLoading = true;

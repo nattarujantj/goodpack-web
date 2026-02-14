@@ -145,6 +145,29 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
+  /// ดึงสินค้าจาก API ตาม ID (ใช้เมื่อเข้าลิงก์ตรงและยังไม่มีในแคช)
+  Future<Product?> fetchProductById(String id) async {
+    try {
+      final product = await _apiService.getProductById(id);
+      putProductInCache(product);
+      return product;
+    } catch (e) {
+      _setError('ไม่สามารถโหลดข้อมูลสินค้าได้: $e');
+      return null;
+    }
+  }
+
+  void putProductInCache(Product product) {
+    final index = _products.indexWhere((p) => p.id == product.id);
+    if (index >= 0) {
+      _products[index] = product;
+    } else {
+      _products.add(product);
+    }
+    _filteredProducts = List.from(_products);
+    notifyListeners();
+  }
+
   // Get low stock products
   List<Product> get lowStockProducts {
     return _products.where((product) => product.isLowStock).toList();
