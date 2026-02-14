@@ -1650,9 +1650,9 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        
-        // Redirect to sale detail page (both create and edit)
-        context.go('/sale/$resultSaleId');
+        // โหลดข้อมูลล่าสุดจาก API ก่อนไปหน้ารายละเอียด (กัน cache เก่า)
+        await saleProvider.fetchSaleById(resultSaleId);
+        if (mounted) context.go('/sale/$resultSaleId');
       } else if (mounted) {
         // Show error popup if not successful
         final errorMessage = saleProvider.error ?? 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ';

@@ -27,11 +27,12 @@ class SaleDetailScreen extends StatefulWidget {
 }
 
 class _SaleDetailScreenState extends State<SaleDetailScreen> {
-  Sale? _sale;
   bool _isLoading = true;
   String? _error;
   Customer? _customer;
   BankAccount? _ourAccount;
+  /// ใช้เช็คว่าโหลด additional data สำหรับ sale นี้แล้ว (กันโหลดซ้ำ)
+  String? _additionalDataForSaleId;
 
   @override
   void initState() {
@@ -51,7 +52,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
         await _loadAdditionalData(sale);
         if (mounted) {
           setState(() {
-            _sale = sale;
+            _additionalDataForSaleId = sale!.id;
             _isLoading = false;
           });
         }
@@ -74,8 +75,8 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   Future<void> _loadAdditionalData(Sale sale) async {
     try {
       // Load customer data if customerId exists
-      if (sale.customerId != null && sale.customerId!.isNotEmpty) {
-        final customer = await CustomerService.getCustomerById(sale.customerId!);
+      if (sale.customerId.isNotEmpty) {
+        final customer = await CustomerService.getCustomerById(sale.customerId);
         if (mounted) {
           setState(() {
             _customer = customer;
@@ -112,70 +113,85 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    return Consumer<SaleProvider>(
+      builder: (context, saleProvider, _) {
+        // อ่าน sale จาก provider ทุกครั้ง (หลัง save จากฟอร์ม provider จะอัปเดต → แสดงข้อมูลใหม่)
+        final sale = saleProvider.getSaleById(widget.saleId);
 
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error, size: 64, color: Colors.red[300]),
-            const SizedBox(height: 16),
-            ResponsiveText(
-              'เกิดข้อผิดพลาด: $_error',
-              style: TextStyle(color: Colors.red[700]),
-              textAlign: TextAlign.center,
+        if (_isLoading && sale == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (_error != null && sale == null) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error, size: 64, color: Colors.red[300]),
+                const SizedBox(height: 16),
+                ResponsiveText(
+                  'เกิดข้อผิดพลาด: $_error',
+                  style: TextStyle(color: Colors.red[700]),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => context.go('/sales'),
+                  child: const Text('กลับไปรายการขาย'),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => context.go('/sales'),
-              child: const Text('กลับไปรายการขาย'),
+          );
+        }
+
+        if (sale == null) {
+          return const Center(
+            child: Text('ไม่พบรายการขาย'),
+          );
+        }
+
+        // กลับจากแก้ไข: ถ้า sale เปลี่ยน (หรือยังไม่เคยโหลด additional สำหรับ sale นี้) ให้โหลด customer/bank ใหม่
+        if (_additionalDataForSaleId != sale.id) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _loadAdditionalData(sale);
+            if (mounted) setState(() => _additionalDataForSaleId = sale.id);
+          });
+        }
+
+        return Scaffold(
+          body: ResponsivePadding(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildActionButtons(sale),
+                  const SizedBox(height: 24),
+                  _buildSaleDetails(sale),
+                  const SizedBox(height: 24),
+                  _buildCustomerInfo(sale),
+                  const SizedBox(height: 24),
+                  _buildSaleItems(sale),
+                  const SizedBox(height: 24),
+                  _buildPaymentInfo(sale),
+                  const SizedBox(height: 24),
+                  _buildWarehouseInfo(sale),
+                ],
+              ),
             ),
-          ],
-        ),
-      );
-    }
-
-    if (_sale == null) {
-      return const Center(
-        child: Text('ไม่พบรายการขาย'),
-      );
-    }
-
-    return Scaffold(
-      body: ResponsivePadding(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildActionButtons(),
-              const SizedBox(height: 24),
-              _buildSaleDetails(),
-              const SizedBox(height: 24),
-              _buildCustomerInfo(_sale!),
-              const SizedBox(height: 24),
-              _buildSaleItems(_sale!),
-              const SizedBox(height: 24),
-              _buildPaymentInfo(_sale!),
-              const SizedBox(height: 24),
-              _buildWarehouseInfo(_sale!),
-            ],
           ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showPrintPdfDialog(),
-        icon: const Icon(Icons.print),
-        label: const Text('พิมพ์ PDF'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-      ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () => _showPrintPdfDialog(sale),
+            icon: const Icon(Icons.print),
+            label: const Text('พิมพ์ PDF'),
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(Sale sale) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -183,7 +199,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () => context.push('/sale-form?id=${_sale!.id}'),
+                onPressed: () => context.push('/sale-form?id=${sale.id}'),
                 icon: const Icon(Icons.edit, size: 18),
                 label: const Text('แก้ไข'),
                 style: ElevatedButton.styleFrom(
@@ -192,10 +208,10 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
               ),
             ),
             const SizedBox(width: 16),
-            if (_sale!.quotationCode != null && _sale!.quotationCode!.isNotEmpty)
+            if (sale.quotationCode != null && sale.quotationCode!.isNotEmpty)
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () => _goToQuotation(_sale!.quotationCode!),
+                  onPressed: () => _goToQuotation(sale.quotationCode!),
                   icon: const Icon(Icons.description, size: 18),
                   label: const Text('ดูเสนอราคา'),
                   style: ElevatedButton.styleFrom(
@@ -205,11 +221,11 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                   ),
                 ),
               ),
-            if (_sale!.quotationCode != null && _sale!.quotationCode!.isNotEmpty)
+            if (sale.quotationCode != null && sale.quotationCode!.isNotEmpty)
               const SizedBox(width: 16),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () => _showDeleteDialog(),
+                onPressed: () => _showDeleteDialog(sale),
                 icon: const Icon(Icons.delete, size: 18, color: Colors.red),
                 label: const Text('ลบ', style: TextStyle(color: Colors.red)),
                 style: OutlinedButton.styleFrom(
@@ -224,7 +240,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     );
   }
 
-  Widget _buildSaleDetails() {
+  Widget _buildSaleDetails(Sale sale) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -239,19 +255,19 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            _buildDetailRow('รหัสรายการขาย', _sale!.saleCode),
-            if (_sale!.quotationCode != null)
-              _buildDetailRow('รหัส Quotation', _sale!.quotationCode!),
-            _buildDetailRow('วันที่ขาย', _formatDate(_sale!.saleDate)),
-            _buildDetailRow('ลูกค้า', _customer?.companyName ?? _sale!.customerName ?? 'ไม่ระบุ'),
-            if (_sale!.contactName != null)
-              _buildDetailRow('ชื่อผู้ติดต่อ', _sale!.contactName!),
-            _buildDetailRow('VAT', _sale!.isVAT ? 'VAT (7%)' : 'Non-VAT'),
-            _buildDetailRow('ค่าส่ง', NumberFormatter.formatPriceWithCurrency(_sale!.shippingCost)),
-            if (_sale!.notes != null)
-              _buildDetailRow('รายละเอียด', _sale!.notes!),
-            _buildDetailRow('วันที่สร้าง', _formatDate(_sale!.createdAt)),
-            _buildDetailRow('วันที่อัปเดต', _formatDate(_sale!.updatedAt)),
+            _buildDetailRow('รหัสรายการขาย', sale.saleCode),
+            if (sale.quotationCode != null)
+              _buildDetailRow('รหัส Quotation', sale.quotationCode!),
+            _buildDetailRow('วันที่ขาย', _formatDate(sale.saleDate)),
+            _buildDetailRow('ลูกค้า', _customer?.companyName ?? sale.customerName),
+            if (sale.contactName != null)
+              _buildDetailRow('ชื่อผู้ติดต่อ', sale.contactName!),
+            _buildDetailRow('VAT', sale.isVAT ? 'VAT (7%)' : 'Non-VAT'),
+            _buildDetailRow('ค่าส่ง', NumberFormatter.formatPriceWithCurrency(sale.shippingCost)),
+            if (sale.notes != null)
+              _buildDetailRow('รายละเอียด', sale.notes!),
+            _buildDetailRow('วันที่สร้าง', _formatDate(sale.createdAt)),
+            _buildDetailRow('วันที่อัปเดต', _formatDate(sale.updatedAt)),
           ],
         ),
       ),
@@ -275,13 +291,14 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             const SizedBox(height: 16),
             _buildDetailRow('ชื่อบริษัท', _customer?.companyName ?? sale.customerName ?? 'ไม่ระบุ'),
             if (_customer?.contactName != null || sale.contactName != null)
-              _buildDetailRow('ชื่อผู้ติดต่อ', _customer?.contactName ?? sale.contactName!),
+              // ignore: dead_null_aware_expression — ต้องการ String สำหรับ _buildDetailRow
+              _buildDetailRow('ชื่อผู้ติดต่อ', (_customer?.contactName ?? sale.contactName) ?? ''),
             if (_customer?.customerCode != null || sale.customerCode != null)
-              _buildDetailRow('รหัสลูกค้า', _customer?.customerCode ?? sale.customerCode!),
+              _buildDetailRow('รหัสลูกค้า', (_customer?.customerCode ?? sale.customerCode) ?? ''),
             if (_customer?.taxId != null || sale.taxId != null)
-              _buildDetailRow('เลขที่ผู้เสียภาษี', _customer?.taxId ?? sale.taxId!),
+              _buildDetailRow('เลขที่ผู้เสียภาษี', (_customer?.taxId ?? sale.taxId) ?? ''),
             if (_customer?.address != null || sale.address != null)
-              _buildDetailRow('ที่อยู่', _customer?.address ?? sale.address!),
+              _buildDetailRow('ที่อยู่', (_customer?.address ?? sale.address) ?? ''),
             if (_customer?.phone != null || sale.phone != null)
               _buildDetailRow('เบอร์โทร', _customer?.phone ?? sale.phone!),
           ],
@@ -515,7 +532,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             if (sale.payment.paymentMethod != null)
               _buildDetailRow('วิธีการชำระเงิน', sale.payment.paymentMethod!),
             if (sale.payment.ourAccount != null)
-              _buildDetailRow('บัญชีที่ใช้รับเงิน', _getAccountDisplayName(sale.payment.ourAccount!)),
+              _buildDetailRow('บัญชีที่ใช้รับเงิน', _getAccountDisplayName(sale, sale.payment.ourAccount!)),
             if (sale.payment.customerAccount != null)
               _buildDetailRow('บัญชีลูกค้า', sale.payment.customerAccount!),
             if (sale.payment.paymentDate != null)
@@ -628,10 +645,10 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     );
   }
 
-  String _getAccountDisplayName(String accountId) {
+  String _getAccountDisplayName(Sale sale, String accountId) {
     // Use ourAccountInfo from payment if available
-    if (_sale?.payment.ourAccountInfo != null) {
-      final account = _sale!.payment.ourAccountInfo!;
+    if (sale.payment.ourAccountInfo != null) {
+      final account = sale.payment.ourAccountInfo!;
       return '${account.bankAccountName} (${account.accountNumber}) - ${account.bankName}';
     }
     
@@ -653,12 +670,12 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     return DateFormatter.formatDateTime(date);
   }
 
-  void _showDeleteDialog() {
+  void _showDeleteDialog(Sale sale) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('ยืนยันการลบ'),
-        content: Text('คุณต้องการลบรายการขาย ${_sale!.saleCode} หรือไม่?'),
+        content: Text('คุณต้องการลบรายการขาย ${sale.saleCode} หรือไม่?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -667,7 +684,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
           TextButton(
             onPressed: () async {
               Navigator.of(context).pop();
-              final success = await context.read<SaleProvider>().deleteSale(_sale!.id);
+              final success = await context.read<SaleProvider>().deleteSale(sale.id);
               if (success && mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -718,7 +735,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     }
   }
 
-  void _showPrintPdfDialog() {
+  void _showPrintPdfDialog(Sale sale) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -728,6 +745,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
           children: [
             _buildDocumentTypeOption(
               context,
+              sale,
               SaleDocumentType.taxInvoice,
               'ใบกำกับภาษี',
               'Tax Invoice',
@@ -737,6 +755,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             const SizedBox(height: 8),
             _buildDocumentTypeOption(
               context,
+              sale,
               SaleDocumentType.receipt,
               'ใบเสร็จรับเงิน',
               'Receipt',
@@ -746,6 +765,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             const SizedBox(height: 8),
             _buildDocumentTypeOption(
               context,
+              sale,
               SaleDocumentType.taxInvoiceReceipt,
               'ใบกำกับภาษี/ใบเสร็จรับเงิน',
               'Tax Invoice/Receipt',
@@ -755,6 +775,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             const SizedBox(height: 8),
             _buildDocumentTypeOption(
               context,
+              sale,
               SaleDocumentType.quotation,
               'ใบเสนอราคา',
               'Quotation',
@@ -775,6 +796,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
   Widget _buildDocumentTypeOption(
     BuildContext context,
+    Sale sale,
     SaleDocumentType documentType,
     String thaiTitle,
     String englishTitle,
@@ -784,7 +806,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     return InkWell(
       onTap: () {
         Navigator.of(context).pop();
-        _printSalePdf(documentType);
+        _printSalePdf(sale, documentType);
       },
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -826,30 +848,29 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     );
   }
 
-  void _printSalePdf(SaleDocumentType documentType) async {
-    if (_sale == null) return;
+  void _printSalePdf(Sale sale, SaleDocumentType documentType) async {
     final signatureOptions = await showDialog<SaleSignatureOptions>(
       context: context,
       builder: (context) => _SignatureOptionsDialog(
         documentType: documentType,
-        sale: _sale!,
+        sale: sale,
       ),
     );
     if (signatureOptions == null) return;
 
     try {
       BankAccount? bankAccount = _ourAccount;
-      if (bankAccount == null && _sale!.bankAccountId != null) {
+      if (bankAccount == null && sale.bankAccountId != null) {
         bankAccount = BankAccount(
-          id: _sale!.bankAccountId!,
-          bankName: _sale!.bankName ?? 'ธนาคารกสิกรไทย',
-          bankAccountName: _sale!.bankAccountName ?? 'บริษัท กู๊ดแพ็คเกจจิ้งซัพพลาย จำกัด',
-          accountNumber: _sale!.bankAccountNumber ?? '106-3-40679-8',
+          id: sale.bankAccountId!,
+          bankName: sale.bankName ?? 'ธนาคารกสิกรไทย',
+          bankAccountName: sale.bankAccountName ?? 'บริษัท กู๊ดแพ็คเกจจิ้งซัพพลาย จำกัด',
+          accountNumber: sale.bankAccountNumber ?? '106-3-40679-8',
         );
       }
 
       await PdfServiceSale.generateAndPrintSale(
-        _sale!,
+        sale,
         documentType,
         bankAccount: bankAccount,
         signatureOptions: signatureOptions,

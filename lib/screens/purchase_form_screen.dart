@@ -1798,9 +1798,9 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        
-        // Redirect to purchase detail page (both create and edit)
-        context.go('/purchase/$resultPurchaseId');
+        // โหลดข้อมูลล่าสุดจาก API ก่อนไปหน้ารายละเอียด (กัน cache เก่า)
+        await purchaseProvider.fetchPurchaseById(resultPurchaseId);
+        if (mounted) context.go('/purchase/$resultPurchaseId');
       } else if (mounted) {
         // Show error popup if not successful
         final errorMessage = purchaseProvider.error;

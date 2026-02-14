@@ -775,8 +775,9 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        
-        context.go('/customer/$resultCustomerId');
+        // โหลดข้อมูลล่าสุดจาก API ก่อนไปหน้ารายละเอียด (กัน cache เก่า)
+        await customerProvider.fetchCustomerById(resultCustomerId);
+        if (mounted) context.go('/customer/$resultCustomerId');
       } else if (mounted) {
         final errorMessage = customerProvider.error;
         ErrorDialog.showServerError(context, errorMessage);

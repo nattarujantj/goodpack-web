@@ -941,17 +941,20 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
       }
 
       if (resultQuotationId != null && mounted) {
+        final quotationProvider = context.read<QuotationProvider>();
         // Reload quotations to ensure the new quotation is in the list
-        await context.read<QuotationProvider>().loadQuotations();
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_isEdit ? 'อัปเดตเสนอราคาเรียบร้อยแล้ว' : 'เพิ่มเสนอราคาเรียบร้อยแล้ว'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        // Redirect to quotation detail page (both create and edit)
-        context.go('/quotation/$resultQuotationId');
+        await quotationProvider.loadQuotations();
+        // โหลดข้อมูลล่าสุดจาก API ก่อนไปหน้ารายละเอียด (กัน cache เก่า)
+        await quotationProvider.fetchQuotationById(resultQuotationId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_isEdit ? 'อัปเดตเสนอราคาเรียบร้อยแล้ว' : 'เพิ่มเสนอราคาเรียบร้อยแล้ว'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          context.go('/quotation/$resultQuotationId');
+        }
       } else if (mounted) {
         // Show error popup if not successful
         final quotationProvider = context.read<QuotationProvider>();

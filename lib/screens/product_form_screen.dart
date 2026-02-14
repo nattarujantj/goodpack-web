@@ -780,9 +780,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        
-        // Redirect to product detail page (both create and edit)
-        context.go('/product/${resultProduct.id}');
+        // โหลดข้อมูลล่าสุดจาก API ก่อนไปหน้ารายละเอียด (กัน cache เก่า)
+        await productProvider.fetchProductById(resultProduct.id);
+        if (mounted) context.go('/product/${resultProduct.id}');
       } else if (mounted) {
         // Show error popup if not successful
         final errorMessage = productProvider.error;

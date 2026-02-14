@@ -774,8 +774,9 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        
-        context.go('/supplier/$resultSupplierId');
+        // โหลดข้อมูลล่าสุดจาก API ก่อนไปหน้ารายละเอียด (กัน cache เก่า)
+        await supplierProvider.fetchSupplierById(resultSupplierId);
+        if (mounted) context.go('/supplier/$resultSupplierId');
       } else if (mounted) {
         final errorMessage = supplierProvider.error;
         ErrorDialog.showServerError(context, errorMessage);
