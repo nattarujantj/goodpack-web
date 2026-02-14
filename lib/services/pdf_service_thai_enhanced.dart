@@ -781,7 +781,7 @@ class PdfServiceThaiEnhanced {
           ),
         ],
         ),
-        // Footer สีเขียว: แยก column รายละเอียด | หมายเหตุ
+        // Footer สีเขียว: col1 = หมายเหตุ, col2 = รายละเอียด
         pw.Container(
           width: double.infinity,
           decoration: const pw.BoxDecoration(
@@ -796,29 +796,12 @@ class PdfServiceThaiEnhanced {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Expanded(
-                flex: 1,
+                flex: 0,
                 child: pw.Container(
-                  padding: const pw.EdgeInsets.fromLTRB(3, 4, 2, 4),
-                  decoration: const pw.BoxDecoration(
-                    border: pw.Border(
-                      right: pw.BorderSide(color: PdfColors.black, width: 1),
-                    ),
-                  ),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    mainAxisSize: pw.MainAxisSize.min,
-                    children: [
-                      pw.Text(
-                        'รายละเอียด',
-                        style: pw.TextStyle(fontSize: fontSizeText, fontWeight: pw.FontWeight.bold, font: thaiFont),
-                      ),
-                      pw.SizedBox(height: 2),
-                      pw.Text(
-                        quotation.notes?.trim() ?? '-',
-                        style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                        textAlign: pw.TextAlign.left,
-                      ),
-                    ],
+                  padding: const pw.EdgeInsets.fromLTRB(3, 4, 8, 4),
+                  child: pw.Text(
+                    'หมายเหตุ',
+                    style: pw.TextStyle(fontSize: fontSizeText, fontWeight: pw.FontWeight.bold, font: thaiFont),
                   ),
                 ),
               ),
@@ -826,21 +809,10 @@ class PdfServiceThaiEnhanced {
                 flex: 1,
                 child: pw.Container(
                   padding: const pw.EdgeInsets.fromLTRB(3, 4, 2, 4),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    mainAxisSize: pw.MainAxisSize.min,
-                    children: [
-                      pw.Text(
-                        'หมายเหตุ',
-                        style: pw.TextStyle(fontSize: fontSizeText, fontWeight: pw.FontWeight.bold, font: thaiFont),
-                      ),
-                      pw.SizedBox(height: 2),
-                      pw.Text(
-                        'หลังโอนยอด จัดส่งภายใน1-3 วันทำการ',
-                        style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                        textAlign: pw.TextAlign.left,
-                      ),
-                    ],
+                  child: pw.Text(
+                    quotation.notes?.trim() ?? '-',
+                    style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
+                    textAlign: pw.TextAlign.left,
                   ),
                 ),
               ),
