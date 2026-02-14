@@ -1709,7 +1709,7 @@ class _AddItemFormState extends State<_AddItemForm> {
           SearchableDropdown<Product>(
             value: _selectedProduct,
             items: widget.products,
-            itemAsString: (product) => '${product.name} (${product.code})',
+            itemAsString: (product) => '${product.skuId} | ${product.id} | ${product.name} | ${product.code} | ${product.description}',
             onChanged: (product) {
               setState(() {
                 _selectedProduct = product;
@@ -1856,7 +1856,7 @@ class _AddWarehouseItemFormState extends State<_AddWarehouseItemForm> {
           SearchableDropdown<Product>(
             value: _selectedProduct,
             items: widget.products,
-            itemAsString: (product) => '${product.name} (${product.code})',
+            itemAsString: (product) => '${product.skuId} | ${product.id} | ${product.name} | ${product.code} | ${product.description}',
             onChanged: (product) {
               setState(() {
                 _selectedProduct = product;
