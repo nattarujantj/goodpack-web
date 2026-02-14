@@ -137,8 +137,8 @@ class PdfServiceSale {
     final defaultName = signerName ?? defaultSignerName;
     final pdf = pw.Document();
 
-    // กำหนดขนาดฟอนต์
-    const double fontSizeText = 16.0;
+    // กำหนดขนาดฟอนต์ (ย่อให้เล็กลงตามแผน)
+    const double fontSizeText = 14.0;
     const double fontSizeCustomer = 14.0;
 
     // โหลดรูปโลโก้จาก assets
@@ -190,23 +190,14 @@ class PdfServiceSale {
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(20),
         header: (pw.Context context) => _buildMultiPageHeader(
-          context, thaiFont, documentType, sale.saleCode, sale.isVAT, logoImage,
+          context, thaiFont, documentType, sale, logoImage, fontSizeCustomer,
         ),
         footer: (pw.Context context) => _buildMultiPageFooter(
           context, thaiFont, sale, fontSizeText, documentType, defaultName, signatureOptions,
         ),
         build: (pw.Context context) => [
-          // หน้าแรก: Company Header เต็ม (เฉพาะ VAT), ชื่อเอกสาร, ลูกค้า
-          if (sale.isVAT) ...[
-            _buildCompanyHeader(thaiFont, logoImage),
-            pw.SizedBox(height: 5),
-          ],
-          _buildDocumentTitle(thaiFont, documentType),
-          pw.SizedBox(height: 5),
-          _buildCustomerAndSaleInfo(sale, thaiFont, fontSizeCustomer),
-          pw.SizedBox(height: 5),
-          // ตารางรายการ (pw.Table จะแบ่งหน้าอัตโนมัติเมื่อเนื้อหายาว)
-          _buildItemsTableAsPdfTable(sale, thaiFont, fontSizeText),
+          // ตารางรายการแบ่งเป็น chunk ต่อหน้า (หัวตารางซ้ำทุก chunk)
+          ..._buildItemsTableChunks(sale, thaiFont, fontSizeText, firstPageRows: 18, nextPageRows: 26),
           pw.SizedBox(height: 5),
           // สรุปยอด + หมายเหตุ (อยู่หน้าสุดท้ายหลังตาราง)
           _buildSummarySection(sale, thaiFont, fontSizeText, documentType, bankAccount: bankAccount),
@@ -217,32 +208,37 @@ class PdfServiceSale {
     return pdf;
   }
 
-  /// Header แบบย่อแสดงทุกหน้า: ชื่อบริษัท + ประเภทเอกสาร + เลขที่ + หมายเลขหน้า
+  /// Header เต็มทุกหน้า (แบบรูป 2): โลโก้+บริษัท, ชื่อเอกสาร, ลูกค้า+ข้อมูลใบ, หมายเลขหน้า
   static pw.Widget _buildMultiPageHeader(
     pw.Context context,
     pw.Font? thaiFont,
     SaleDocumentType documentType,
-    String saleCode,
-    bool isVAT,
+    Sale sale,
     pw.MemoryImage? logoImage,
+    double fontSizeCustomer,
   ) {
     final pageNum = context.pageNumber;
-    return pw.Container(
-      alignment: pw.Alignment.centerRight,
-      margin: const pw.EdgeInsets.only(bottom: 8),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(
-            'บริษัท กู๊ดแพ็คเกจจิ้งซัพพลาย จำกัด',
-            style: pw.TextStyle(fontSize: 10, font: thaiFont, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.Text(
-            '${documentType.thaiTitle} เลขที่ $saleCode | หน้า $pageNum',
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      mainAxisSize: pw.MainAxisSize.min,
+      children: [
+        if (sale.isVAT) ...[
+          _buildCompanyHeader(thaiFont, logoImage),
+          pw.SizedBox(height: 5),
+        ],
+        _buildDocumentTitle(thaiFont, documentType),
+        pw.SizedBox(height: 5),
+        _buildCustomerAndSaleInfo(sale, thaiFont, fontSizeCustomer),
+        pw.SizedBox(height: 4),
+        pw.Align(
+          alignment: pw.Alignment.centerRight,
+          child: pw.Text(
+            '${documentType.thaiTitle} เลขที่ ${sale.saleCode} | หน้า $pageNum',
             style: pw.TextStyle(fontSize: 10, font: thaiFont),
           ),
-        ],
-      ),
+        ),
+        pw.SizedBox(height: 8),
+      ],
     );
   }
 
@@ -262,7 +258,71 @@ class PdfServiceSale {
     );
   }
 
-  /// ตารางรายการแบบ pw.Table เพื่อให้ MultiPage แบ่งหน้าอัตโนมัติได้
+  /// แบ่งรายการเป็น chunk ต่อหน้า; แต่ละ chunk เป็น Table มีหัวตาราง + แถวข้อมูล (หัวตารางซ้ำทุกหน้า)
+  static List<pw.Widget> _buildItemsTableChunks(
+    Sale sale,
+    pw.Font? thaiFont,
+    double fontSizeText, {
+    int firstPageRows = 18,
+    int nextPageRows = 26,
+  }) {
+    final items = sale.items;
+    if (items.isEmpty) return [];
+
+    final chunks = <List<int>>[];
+    int remaining = items.length;
+    int start = 0;
+    while (remaining > 0) {
+      final size = chunks.isEmpty ? firstPageRows : nextPageRows;
+      final take = size.clamp(0, remaining);
+      chunks.add(List.generate(take, (i) => start + i));
+      start += take;
+      remaining -= take;
+    }
+
+    return chunks.map((indexList) {
+      return pw.Table(
+        border: pw.TableBorder.all(color: PdfColors.black),
+        columnWidths: {
+          0: const pw.FlexColumnWidth(1),
+          1: const pw.FlexColumnWidth(4),
+          2: const pw.FlexColumnWidth(2),
+          3: const pw.FlexColumnWidth(2),
+          4: const pw.FlexColumnWidth(2),
+        },
+        children: [
+          _tableHeaderRow(thaiFont, fontSizeText),
+          ...indexList.map((i) {
+            final item = items[i];
+            return pw.TableRow(
+              children: [
+                _tableCell((i + 1).toString(), thaiFont, fontSizeText, right: true),
+                _tableCell(item.productName, thaiFont, fontSizeText),
+                _tableCell(_formatQuantity(item.quantity), thaiFont, fontSizeText, right: true),
+                _tableCell(_formatCurrency(item.unitPrice), thaiFont, fontSizeText, right: true),
+                _tableCell(_formatCurrency(item.totalPrice), thaiFont, fontSizeText, right: true),
+              ],
+            );
+          }),
+        ],
+      );
+    }).toList();
+  }
+
+  static pw.TableRow _tableHeaderRow(pw.Font? thaiFont, double fontSizeText) {
+    return pw.TableRow(
+      decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+      children: [
+        _tableCell('ลำดับ', thaiFont, fontSizeText, bold: true, center: true),
+        _tableCell('รายการ', thaiFont, fontSizeText, bold: true, center: true),
+        _tableCell('จำนวน', thaiFont, fontSizeText, bold: true, center: true),
+        _tableCell('ราคา/ชิ้น', thaiFont, fontSizeText, bold: true, center: true),
+        _tableCell('รวมเงิน', thaiFont, fontSizeText, bold: true, center: true),
+      ],
+    );
+  }
+
+  /// ตารางรายการแบบ pw.Table (ใช้เดิมเมื่อไม่แบ่ง chunk; เก็บไว้สำหรับ fallback)
   static pw.Widget _buildItemsTableAsPdfTable(Sale sale, pw.Font? thaiFont, double fontSizeText) {
     return pw.Table(
       border: pw.TableBorder.all(color: PdfColors.black),
@@ -274,25 +334,15 @@ class PdfServiceSale {
         4: const pw.FlexColumnWidth(2),
       },
       children: [
-        // แถวหัวตาราง
-        pw.TableRow(
-          decoration: const pw.BoxDecoration(color: PdfColors.grey200),
-          children: [
-            _tableCell('ลำดับ', thaiFont, fontSizeText, bold: true),
-            _tableCell('รายการ', thaiFont, fontSizeText, bold: true),
-            _tableCell('จำนวน', thaiFont, fontSizeText, bold: true),
-            _tableCell('ราคา/ชิ้น', thaiFont, fontSizeText, bold: true),
-            _tableCell('รวมเงิน', thaiFont, fontSizeText, bold: true),
-          ],
-        ),
+        _tableHeaderRow(thaiFont, fontSizeText),
         ...sale.items.asMap().entries.map((entry) {
           final index = entry.key + 1;
           final item = entry.value;
           return pw.TableRow(
             children: [
-              _tableCell(index.toString(), thaiFont, fontSizeText, center: true),
+              _tableCell(index.toString(), thaiFont, fontSizeText, right: true),
               _tableCell(item.productName, thaiFont, fontSizeText),
-              _tableCell(_formatQuantity(item.quantity), thaiFont, fontSizeText, center: true),
+              _tableCell(_formatQuantity(item.quantity), thaiFont, fontSizeText, right: true),
               _tableCell(_formatCurrency(item.unitPrice), thaiFont, fontSizeText, right: true),
               _tableCell(_formatCurrency(item.totalPrice), thaiFont, fontSizeText, right: true),
             ],
@@ -351,7 +401,7 @@ class PdfServiceSale {
                     'GPS',
                     style: pw.TextStyle(
                       color: PdfColors.white,
-                      fontSize: 28,
+                      fontSize: 24,
                       fontWeight: pw.FontWeight.bold,
                       font: thaiFont,
                     ),
@@ -368,7 +418,7 @@ class PdfServiceSale {
                 pw.Text(
                   'บริษัท กู๊ดแพ็คเกจจิ้งซัพพลาย จำกัด (สำนักงานใหญ่)',
                   style: pw.TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: pw.FontWeight.bold,
                     font: thaiFont,
                   ),
@@ -376,19 +426,19 @@ class PdfServiceSale {
                 pw.SizedBox(height: 2),
                 pw.Text(
                   '122 หมู่บ้านโชคชัยปัญจทรัพย์ 44 ซอยบรมราชชนนี 111 ถนนบรมราชชนนี',
-                  style: pw.TextStyle(fontSize: 16, font: thaiFont),
+                  style: pw.TextStyle(fontSize: 14, font: thaiFont),
                 ),
                 pw.Text(
                   'แขวงศาลาธรรมสพน์ เขตทวีวัฒนา กรุงเทพมหานคร 10170',
-                  style: pw.TextStyle(fontSize: 16, font: thaiFont),
+                  style: pw.TextStyle(fontSize: 14, font: thaiFont),
                 ),
                 pw.Text(
                   'เลขประจำตัวผู้เสียภาษี: 0105564123203',
-                  style: pw.TextStyle(fontSize: 16, font: thaiFont),
+                  style: pw.TextStyle(fontSize: 14, font: thaiFont),
                 ),
                 pw.Text(
                   'TEL: 0972312000 Email: goodpackagingsupply@hotmail.com',
-                  style: pw.TextStyle(fontSize: 16, font: thaiFont),
+                  style: pw.TextStyle(fontSize: 14, font: thaiFont),
                 ),
               ],
             ),
@@ -410,7 +460,7 @@ class PdfServiceSale {
               pw.Text(
                 'ต้นฉบับ',
                 style: pw.TextStyle(
-                  fontSize: 16,
+                  fontSize: 14,
                   font: thaiFont,
                 ),
               ),
@@ -420,7 +470,7 @@ class PdfServiceSale {
                   pw.Text(
                     documentType.thaiTitle,
                     style: pw.TextStyle(
-                      fontSize: 22,
+                      fontSize: 20,
                       fontWeight: pw.FontWeight.bold,
                       font: thaiFont,
                     ),
@@ -428,7 +478,7 @@ class PdfServiceSale {
                   pw.Text(
                     documentType.englishTitle,
                     style: pw.TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: pw.FontWeight.bold,
                       font: thaiFont,
                     ),
