@@ -41,26 +41,33 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
   Future<void> _loadSale() async {
     try {
-      final sale = context.read<SaleProvider>().getSaleById(widget.saleId);
-      if (sale != null) {
-        // Load additional data for display
+      final provider = context.read<SaleProvider>();
+      Sale? sale = provider.getSaleById(widget.saleId);
+      // เมื่อเข้าลิงก์ตรง แคชอาจยังว่าง — ดึงจาก API
+      if (sale == null) {
+        sale = await provider.fetchSaleById(widget.saleId);
+      }
+      if (sale != null && mounted) {
         await _loadAdditionalData(sale);
-        
-        setState(() {
-          _sale = sale;
-          _isLoading = false;
-        });
-      } else {
+        if (mounted) {
+          setState(() {
+            _sale = sale;
+            _isLoading = false;
+          });
+        }
+      } else if (mounted) {
         setState(() {
           _error = 'ไม่พบรายการขาย';
           _isLoading = false;
         });
       }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString().contains('404') ? 'ไม่พบรายการขาย' : e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -913,6 +920,8 @@ class _SignatureOptionsDialogState extends State<_SignatureOptionsDialog> {
     String? nameShipper;
     String? nameApprover;
     DateTime? dateApprover;
+    DateTime? dateGoodsReceiver;
+    DateTime? dateShipper;
 
     for (int i = 0; i < fields.length; i++) {
       final name = _nameControllers[i].text.trim();
@@ -928,8 +937,10 @@ class _SignatureOptionsDialogState extends State<_SignatureOptionsDialog> {
         datePaymentReceiver = date;
       } else if (label.contains('ผู้รับสินค้า')) {
         nameGoodsReceiver = name.isEmpty ? null : name;
+        dateGoodsReceiver = date;
       } else if (label.contains('ผู้ส่งสินค้า')) {
         nameShipper = name.isEmpty ? null : name;
+        dateShipper = date;
       } else if (label.contains('ผู้มีอำนาจอนุมัติ')) {
         nameApprover = name.isEmpty ? null : name;
         dateApprover = date;
@@ -946,6 +957,8 @@ class _SignatureOptionsDialogState extends State<_SignatureOptionsDialog> {
       nameShipper: nameShipper,
       nameApprover: nameApprover,
       dateApprover: dateApprover,
+      dateGoodsReceiver: dateGoodsReceiver,
+      dateShipper: dateShipper,
     );
   }
 

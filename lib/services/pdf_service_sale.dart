@@ -19,11 +19,13 @@ class SaleSignatureOptions {
   final String? namePaymentReceiver;
   final DateTime? datePaymentReceiver;
 
-  /// ใบกำกับภาษี / ใบกำกับ+ใบเสร็จ: ผู้รับสินค้า, ผู้ส่งสินค้า, ผู้มีอำนาจอนุมัติ + วันที่, ผู้รับเงิน + วันที่
+  /// ใบกำกับภาษี / ใบกำกับ+ใบเสร็จ: ผู้รับสินค้า, ผู้ส่งสินค้า, ผู้มีอำนาจอนุมัติ, ผู้รับเงิน + วันที่ทุกช่อง
   final String? nameGoodsReceiver;
   final String? nameShipper;
   final String? nameApprover;
   final DateTime? dateApprover;
+  final DateTime? dateGoodsReceiver;
+  final DateTime? dateShipper;
 
   const SaleSignatureOptions({
     this.nameCustomerApprover,
@@ -35,6 +37,8 @@ class SaleSignatureOptions {
     this.nameShipper,
     this.nameApprover,
     this.dateApprover,
+    this.dateGoodsReceiver,
+    this.dateShipper,
   });
 
   /// ค่า default สำหรับช่องที่บริษัทลงชื่อ (สุภาวดี บูรณะโอสถ)
@@ -76,7 +80,7 @@ class PdfServiceSale {
     switch (documentType) {
       case SaleDocumentType.quotation:
         return [
-          const SignatureFieldConfig(label: 'ผู้มีอำนาจอนุมัติ (ลูกค้า)', nameDefault: ''),
+          SignatureFieldConfig(label: 'ผู้มีอำนาจอนุมัติ (ลูกค้า)', nameDefault: '', hasDate: true),
           SignatureFieldConfig(label: 'ผู้เสนอราคา', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true, dateDefault: sale.saleDate),
         ];
       case SaleDocumentType.receipt:
@@ -85,14 +89,14 @@ class PdfServiceSale {
         ];
       case SaleDocumentType.taxInvoice:
         return [
-          const SignatureFieldConfig(label: 'ผู้รับสินค้า', nameDefault: ''),
-          SignatureFieldConfig(label: 'ผู้ส่งสินค้า', nameDefault: SaleSignatureOptions.defaultCompanyName),
+          SignatureFieldConfig(label: 'ผู้รับสินค้า', nameDefault: '', hasDate: true),
+          SignatureFieldConfig(label: 'ผู้ส่งสินค้า', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true),
           SignatureFieldConfig(label: 'ผู้มีอำนาจอนุมัติ', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true, dateDefault: sale.saleDate),
         ];
       case SaleDocumentType.taxInvoiceReceipt:
         return [
-          const SignatureFieldConfig(label: 'ผู้รับสินค้า', nameDefault: ''),
-          SignatureFieldConfig(label: 'ผู้ส่งสินค้า', nameDefault: SaleSignatureOptions.defaultCompanyName),
+          SignatureFieldConfig(label: 'ผู้รับสินค้า', nameDefault: '', hasDate: true),
+          SignatureFieldConfig(label: 'ผู้ส่งสินค้า', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true),
           SignatureFieldConfig(label: 'ผู้มีอำนาจอนุมัติ', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true, dateDefault: sale.saleDate),
           SignatureFieldConfig(label: 'ผู้รับเงิน', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true, dateDefault: paymentDate),
         ];
@@ -1226,8 +1230,8 @@ class PdfServiceSale {
       width: double.infinity,
       child: pw.Row(
         children: [
-          _signatureColumn(thaiFont, fontSizeText, nameGoods.isEmpty ? '-' : nameGoods, 'ผู้รับสินค้า', null, hideValue: nameGoods.isEmpty),
-          _signatureColumn(thaiFont, fontSizeText, nameShipper, 'ผู้ส่งสินค้า', null, hideValue: false),
+          _signatureColumn(thaiFont, fontSizeText, nameGoods.isEmpty ? '-' : nameGoods, 'ผู้รับสินค้า', opts?.dateGoodsReceiver, hideValue: nameGoods.isEmpty),
+          _signatureColumn(thaiFont, fontSizeText, nameShipper, 'ผู้ส่งสินค้า', opts?.dateShipper, hideValue: false),
           _signatureColumn(thaiFont, fontSizeText, nameApprover, 'ผู้มีอำนาจอนุมัติ', dateApprover, hideValue: false),
           _signatureColumn(thaiFont, fontSizeText, namePayment, 'ผู้รับเงิน', datePayment, hideValue: false),
         ],
@@ -1246,8 +1250,8 @@ class PdfServiceSale {
       child: pw.Row(
         children: [
           pw.Expanded(flex: 1, child: pw.Container()),
-          _signatureColumn(thaiFont, fontSizeText, nameGoods.isEmpty ? '-' : nameGoods, 'ผู้รับสินค้า', null, hideValue: nameGoods.isEmpty),
-          _signatureColumn(thaiFont, fontSizeText, nameShipper, 'ผู้ส่งสินค้า', null, hideValue: false),
+          _signatureColumn(thaiFont, fontSizeText, nameGoods.isEmpty ? '-' : nameGoods, 'ผู้รับสินค้า', opts?.dateGoodsReceiver, hideValue: nameGoods.isEmpty),
+          _signatureColumn(thaiFont, fontSizeText, nameShipper, 'ผู้ส่งสินค้า', opts?.dateShipper, hideValue: false),
           _signatureColumn(thaiFont, fontSizeText, nameApprover, 'ผู้มีอำนาจอนุมัติ', dateApprover, hideValue: false),
         ],
       ),
