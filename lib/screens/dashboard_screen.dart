@@ -16,9 +16,17 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  static const _thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+  /// เดือนที่เลือกสำหรับดูสรุป (ใช้เฉพาะ year, month)
+  late DateTime _selectedMonth;
+
   @override
   void initState() {
     super.initState();
+    final now = DateTime.now();
+    _selectedMonth = DateTime(now.year, now.month, 1);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SaleProvider>().loadSalesIfNeeded();
       context.read<PurchaseProvider>().loadPurchasesIfNeeded();
@@ -26,12 +34,130 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  void _pickMonth() {
+    final now = DateTime.now();
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        int year = _selectedMonth.year;
+        int month = _selectedMonth.month;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('เลือกเดือน'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('ปี พ.ศ.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    const SizedBox(height: 4),
+                    DropdownButton<int>(
+                      value: year,
+                      isExpanded: true,
+                      items: List.generate(5, (i) => now.year - 4 + i)
+                          .map((y) => DropdownMenuItem(value: y, child: Text('${y + 543}')))
+                          .toList(),
+                      onChanged: (v) => setDialogState(() => year = v ?? year),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('เดือน', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: List.generate(12, (i) {
+                        final m = i + 1;
+                        final isSelected = month == m;
+                        return InkWell(
+                          onTap: () => setDialogState(() => month = m),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.2) : null,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade300,
+                              ),
+                            ),
+                            child: Text(_thaiMonths[i]),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('ยกเลิก'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    setState(() => _selectedMonth = DateTime(year, month, 1));
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('ดูสรุป'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final isCurrentMonth = _selectedMonth.year == now.year && _selectedMonth.month == now.month;
+    final canGoNext = _selectedMonth.isBefore(DateTime(now.year, now.month, 1));
+
     return Scaffold(
       appBar: ResponsiveAppBar(
         title: 'สรุปภาพรวม',
         actions: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () {
+                  setState(() {
+                    _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1, 1);
+                  });
+                },
+                tooltip: 'เดือนก่อน',
+              ),
+              InkWell(
+                onTap: _pickMonth,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  child: Text(
+                    '${_thaiMonths[_selectedMonth.month - 1]} ${_selectedMonth.year + 543}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: isCurrentMonth ? null : Colors.grey[700],
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: canGoNext
+                    ? () {
+                        setState(() {
+                          _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
+                        });
+                      }
+                    : null,
+                tooltip: 'เดือนถัดไป',
+              ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _refreshData,
@@ -55,11 +181,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Summary Cards
-                _buildSummaryCards(sales, purchases),
+                _buildSummaryCards(sales, purchases, _selectedMonth),
                 const SizedBox(height: 24),
 
                 // Monthly Sales Chart
-                _buildMonthlySalesChart(sales),
+                _buildMonthlySalesChart(sales, _selectedMonth),
                 const SizedBox(height: 24),
 
                 // Two columns layout for desktop
@@ -69,17 +195,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       return Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(child: _buildTopProfitProducts(sales, products)),
+                          Expanded(child: _buildTopProfitProducts(sales, products, _selectedMonth)),
                           const SizedBox(width: 16),
-                          Expanded(child: _buildTopSellingProducts(sales)),
+                          Expanded(child: _buildTopSellingProducts(sales, _selectedMonth)),
                         ],
                       );
                     } else {
                       return Column(
                         children: [
-                          _buildTopProfitProducts(sales, products),
+                          _buildTopProfitProducts(sales, products, _selectedMonth),
                           const SizedBox(height: 24),
-                          _buildTopSellingProducts(sales),
+                          _buildTopSellingProducts(sales, _selectedMonth),
                         ],
                       );
                     }
@@ -88,7 +214,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 24),
 
                 // Revenue vs Expense Chart
-                _buildRevenueExpenseChart(sales, purchases),
+                _buildRevenueExpenseChart(sales, purchases, _selectedMonth),
                 const SizedBox(height: 24),
 
                 // Low Stock Alert
@@ -108,31 +234,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ==================== Summary Cards ====================
-  Widget _buildSummaryCards(List<Sale> sales, List<Purchase> purchases) {
-    final now = DateTime.now();
-    final lastMonth = DateTime(now.year, now.month - 1, 1);
+  Widget _buildSummaryCards(List<Sale> sales, List<Purchase> purchases, DateTime selectedMonth) {
+    final prevMonth = DateTime(selectedMonth.year, selectedMonth.month - 1, 1);
 
-    // This month sales
-    final thisMonthSales = sales.where((s) => 
-      s.saleDate.year == now.year && s.saleDate.month == now.month
+    // Sales ในเดือนที่เลือก
+    final thisMonthSales = sales.where((s) =>
+      s.saleDate.year == selectedMonth.year && s.saleDate.month == selectedMonth.month
     ).toList();
     final thisMonthTotal = thisMonthSales.fold(0.0, (sum, s) => sum + _calculateSaleTotal(s));
 
-    // Last month sales for comparison
-    final lastMonthSales = sales.where((s) => 
-      s.saleDate.year == lastMonth.year && s.saleDate.month == lastMonth.month
+    // Sales เดือนก่อน (เทียบเปรียบเทียบ)
+    final lastMonthSales = sales.where((s) =>
+      s.saleDate.year == prevMonth.year && s.saleDate.month == prevMonth.month
     ).toList();
     final lastMonthTotal = lastMonthSales.fold(0.0, (sum, s) => sum + _calculateSaleTotal(s));
 
-    // This month purchases
-    final thisMonthPurchases = purchases.where((p) => 
-      p.purchaseDate.year == now.year && p.purchaseDate.month == now.month
+    // ซื้อ ในเดือนที่เลือก
+    final thisMonthPurchases = purchases.where((p) =>
+      p.purchaseDate.year == selectedMonth.year && p.purchaseDate.month == selectedMonth.month
     ).toList();
     final thisMonthPurchaseTotal = thisMonthPurchases.fold(0.0, (sum, p) => sum + p.grandTotal);
 
     // Calculate growth percentage
-    final growthPercent = lastMonthTotal > 0 
-        ? ((thisMonthTotal - lastMonthTotal) / lastMonthTotal * 100) 
+    final growthPercent = lastMonthTotal > 0
+        ? ((thisMonthTotal - lastMonthTotal) / lastMonthTotal * 100)
         : 0.0;
 
     return LayoutBuilder(
@@ -144,7 +269,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           runSpacing: 16,
           children: [
             _buildSummaryCard(
-              'ยอดขายเดือนนี้',
+              'ยอดขายเดือนที่เลือก',
               _formatCurrency(thisMonthTotal),
               Icons.trending_up,
               Colors.green,
@@ -152,7 +277,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: cardWidth,
             ),
             _buildSummaryCard(
-              'เทียบเดือนที่แล้ว',
+              'เทียบเดือนก่อน',
               '${growthPercent >= 0 ? '+' : ''}${growthPercent.toStringAsFixed(1)}%',
               growthPercent >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
               growthPercent >= 0 ? Colors.green : Colors.red,
@@ -160,7 +285,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: cardWidth,
             ),
             _buildSummaryCard(
-              'ยอดซื้อเดือนนี้',
+              'ยอดซื้อเดือนที่เลือก',
               _formatCurrency(thisMonthPurchaseTotal),
               Icons.shopping_cart,
               Colors.blue,
@@ -232,26 +357,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ==================== Monthly Sales Chart ====================
-  Widget _buildMonthlySalesChart(List<Sale> sales) {
-    final now = DateTime.now();
+  Widget _buildMonthlySalesChart(List<Sale> sales, DateTime selectedMonth) {
+    final chartYear = selectedMonth.year;
     final monthlyData = <int, double>{};
-    
-    // Initialize all months of this year
+
     for (int i = 1; i <= 12; i++) {
       monthlyData[i] = 0;
     }
 
-    // Calculate sales for each month
     for (final sale in sales) {
-      if (sale.saleDate.year == now.year) {
-        monthlyData[sale.saleDate.month] = 
+      if (sale.saleDate.year == chartYear) {
+        monthlyData[sale.saleDate.month] =
             (monthlyData[sale.saleDate.month] ?? 0) + _calculateSaleTotal(sale);
       }
     }
 
     final maxValue = monthlyData.values.fold(0.0, (a, b) => a > b ? a : b);
-    final thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 
-                        'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
     return Card(
       child: Padding(
@@ -264,7 +385,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const Icon(Icons.bar_chart, color: Colors.blue),
                 const SizedBox(width: 8),
                 Text(
-                  'ยอดขายรายเดือน ปี ${now.year + 543}',
+                  'ยอดขายรายเดือน ปี ${chartYear + 543}',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -282,7 +403,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   final month = index + 1;
                   final value = monthlyData[month] ?? 0;
                   final height = maxValue > 0 ? (value / maxValue * 150) : 0.0;
-                  final isCurrentMonth = month == now.month;
+                  final isSelectedMonth = month == selectedMonth.month;
                   
                   return Expanded(
                     child: Padding(
@@ -295,24 +416,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               _formatShortCurrency(value),
                               style: TextStyle(
                                 fontSize: 8,
-                                color: isCurrentMonth ? Colors.green : Colors.grey[600],
+                                color: isSelectedMonth ? Colors.green : Colors.grey[600],
                               ),
                             ),
                           const SizedBox(height: 4),
                           Container(
                             height: height.clamp(4.0, 150.0),
                             decoration: BoxDecoration(
-                              color: isCurrentMonth ? Colors.green : Colors.blue[300],
+                              color: isSelectedMonth ? Colors.green : Colors.blue[300],
                               borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            thaiMonths[index],
+                            _thaiMonths[index],
                             style: TextStyle(
                               fontSize: 10,
-                              fontWeight: isCurrentMonth ? FontWeight.bold : FontWeight.normal,
-                              color: isCurrentMonth ? Colors.green : Colors.grey[600],
+                              fontWeight: isSelectedMonth ? FontWeight.bold : FontWeight.normal,
+                              color: isSelectedMonth ? Colors.green : Colors.grey[600],
                             ),
                           ),
                         ],
@@ -329,11 +450,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ==================== Top Profit Products ====================
-  Widget _buildTopProfitProducts(List<Sale> sales, List<Product> products) {
-    // Calculate profit per product
+  Widget _buildTopProfitProducts(List<Sale> sales, List<Product> products, DateTime selectedMonth) {
+    final monthSales = sales.where((s) =>
+      s.saleDate.year == selectedMonth.year && s.saleDate.month == selectedMonth.month
+    ).toList();
     final profitMap = <String, Map<String, dynamic>>{};
-    
-    for (final sale in sales) {
+
+    for (final sale in monthSales) {
       for (final item in sale.items) {
         Product? product;
         try {
@@ -429,19 +552,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ==================== Top Selling Products ====================
-  Widget _buildTopSellingProducts(List<Sale> sales) {
-    final now = DateTime.now();
-    
-    // This month
-    final thisMonthSales = sales.where((s) => 
-      s.saleDate.year == now.year && s.saleDate.month == now.month
+  Widget _buildTopSellingProducts(List<Sale> sales, DateTime selectedMonth) {
+    final monthSales = sales.where((s) =>
+      s.saleDate.year == selectedMonth.year && s.saleDate.month == selectedMonth.month
     ).toList();
-    
-    // This year
-    final thisYearSales = sales.where((s) => s.saleDate.year == now.year).toList();
+    final yearSales = sales.where((s) => s.saleDate.year == selectedMonth.year).toList();
 
-    final monthlyTop = _getTopProducts(thisMonthSales, 5);
-    final yearlyTop = _getTopProducts(thisYearSales, 5);
+    final monthlyTop = _getTopProducts(monthSales, 5);
+    final yearlyTop = _getTopProducts(yearSales, 5);
 
     return Card(
       child: Padding(
@@ -463,12 +581,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
             const Divider(),
-            
-            // This Month
+
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
-                'เดือนนี้',
+                'เดือนที่เลือก',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   color: Colors.grey[700],
@@ -479,14 +596,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const Text('ไม่มีข้อมูล', style: TextStyle(color: Colors.grey))
             else
               ...monthlyTop.take(3).map((item) => _buildProductRankItem(item)),
-            
+
             const SizedBox(height: 16),
-            
-            // This Year
+
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
-                'ปีนี้',
+                'ปี ${selectedMonth.year + 543}',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   color: Colors.grey[700],
@@ -548,33 +664,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ==================== Revenue vs Expense Chart ====================
-  Widget _buildRevenueExpenseChart(List<Sale> sales, List<Purchase> purchases) {
-    final now = DateTime.now();
+  Widget _buildRevenueExpenseChart(List<Sale> sales, List<Purchase> purchases, DateTime selectedMonth) {
+    final chartYear = selectedMonth.year;
     final monthlyData = <int, Map<String, double>>{};
-    
-    // Initialize all months
+
     for (int i = 1; i <= 12; i++) {
       monthlyData[i] = {'revenue': 0, 'expense': 0};
     }
 
-    // Calculate revenue
     for (final sale in sales) {
-      if (sale.saleDate.year == now.year) {
-        monthlyData[sale.saleDate.month]!['revenue'] = 
+      if (sale.saleDate.year == chartYear) {
+        monthlyData[sale.saleDate.month]!['revenue'] =
             (monthlyData[sale.saleDate.month]!['revenue'] ?? 0) + _calculateSaleTotal(sale);
       }
     }
 
-    // Calculate expense
     for (final purchase in purchases) {
-      if (purchase.purchaseDate.year == now.year) {
-        monthlyData[purchase.purchaseDate.month]!['expense'] = 
+      if (purchase.purchaseDate.year == chartYear) {
+        monthlyData[purchase.purchaseDate.month]!['expense'] =
             (monthlyData[purchase.purchaseDate.month]!['expense'] ?? 0) + purchase.grandTotal;
       }
     }
-
-    final thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 
-                        'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
     return Card(
       child: Padding(
@@ -587,7 +697,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const Icon(Icons.compare_arrows, color: Colors.purple),
                 const SizedBox(width: 8),
                 Text(
-                  'รายได้ vs รายจ่าย ปี ${now.year + 543}',
+                  'รายได้ vs รายจ่าย ปี ${chartYear + 543}',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -597,8 +707,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const Divider(),
             const SizedBox(height: 8),
-            
-            // Legend
+
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -608,8 +717,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            
-            // Table
+
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
@@ -620,15 +728,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   DataColumn(label: Text('รายจ่าย'), numeric: true),
                   DataColumn(label: Text('กำไร'), numeric: true),
                 ],
-                rows: List.generate(now.month, (index) {
+                rows: List.generate(12, (index) {
                   final month = index + 1;
                   final revenue = monthlyData[month]!['revenue']!;
                   final expense = monthlyData[month]!['expense']!;
                   final profit = revenue - expense;
-                  
+                  final isSelectedMonth = month == selectedMonth.month;
+
                   return DataRow(
                     cells: [
-                      DataCell(Text(thaiMonths[index])),
+                      DataCell(Text(
+                        _thaiMonths[index],
+                        style: isSelectedMonth ? const TextStyle(fontWeight: FontWeight.bold) : null,
+                      )),
                       DataCell(Text(_formatShortCurrency(revenue), style: const TextStyle(color: Colors.green))),
                       DataCell(Text(_formatShortCurrency(expense), style: const TextStyle(color: Colors.red))),
                       DataCell(Text(
