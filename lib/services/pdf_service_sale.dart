@@ -8,6 +8,54 @@ import 'dart:html' as html;
 import '../models/sale.dart';
 import '../models/bank_account.dart';
 
+/// ตัวเลือกชื่อและวันที่สำหรับช่องลงชื่อแต่ละแบบ (ใช้ตอนพิมพ์ PDF)
+class SaleSignatureOptions {
+  /// ใบเสนอราคา: ผู้มีอำนาจอนุมัติ (ลูกค้า), ผู้เสนอราคา + วันที่
+  final String? nameCustomerApprover;
+  final String? nameProposer;
+  final DateTime? dateProposer;
+
+  /// ใบเสร็จรับเงิน: ผู้รับเงิน + วันที่
+  final String? namePaymentReceiver;
+  final DateTime? datePaymentReceiver;
+
+  /// ใบกำกับภาษี / ใบกำกับ+ใบเสร็จ: ผู้รับสินค้า, ผู้ส่งสินค้า, ผู้มีอำนาจอนุมัติ + วันที่, ผู้รับเงิน + วันที่
+  final String? nameGoodsReceiver;
+  final String? nameShipper;
+  final String? nameApprover;
+  final DateTime? dateApprover;
+
+  const SaleSignatureOptions({
+    this.nameCustomerApprover,
+    this.nameProposer,
+    this.dateProposer,
+    this.namePaymentReceiver,
+    this.datePaymentReceiver,
+    this.nameGoodsReceiver,
+    this.nameShipper,
+    this.nameApprover,
+    this.dateApprover,
+  });
+
+  /// ค่า default สำหรับช่องที่บริษัทลงชื่อ (สุภาวดี บูรณะโอสถ)
+  static const String defaultCompanyName = 'สุภาวดี บูรณะโอสถ';
+}
+
+/// รายการช่องลงชื่อที่แสดงใน popup ตามประเภทเอกสาร (สำหรับ build form)
+class SignatureFieldConfig {
+  final String label;
+  final String nameDefault;
+  final bool hasDate;
+  final DateTime? dateDefault;
+
+  const SignatureFieldConfig({
+    required this.label,
+    required this.nameDefault,
+    this.hasDate = false,
+    this.dateDefault,
+  });
+}
+
 enum SaleDocumentType {
   taxInvoice('ใบกำกับภาษี', 'Tax Invoice'),
   receipt('ใบเสร็จรับเงิน', 'Receipt'),
@@ -21,11 +69,40 @@ enum SaleDocumentType {
 
 class PdfServiceSale {
   static const String defaultSignerName = 'สุภาวดี บูรณะโอสถ';
+
+  /// รายการช่องชื่อ/วันที่ที่แสดงใน popup ตามประเภทเอกสาร
+  static List<SignatureFieldConfig> getSignatureFieldsForDocumentType(SaleDocumentType documentType, Sale sale) {
+    final paymentDate = sale.payment.paymentDate ?? sale.saleDate;
+    switch (documentType) {
+      case SaleDocumentType.quotation:
+        return [
+          const SignatureFieldConfig(label: 'ผู้มีอำนาจอนุมัติ (ลูกค้า)', nameDefault: ''),
+          SignatureFieldConfig(label: 'ผู้เสนอราคา', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true, dateDefault: sale.saleDate),
+        ];
+      case SaleDocumentType.receipt:
+        return [
+          SignatureFieldConfig(label: 'ผู้รับเงิน', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true, dateDefault: paymentDate),
+        ];
+      case SaleDocumentType.taxInvoice:
+        return [
+          const SignatureFieldConfig(label: 'ผู้รับสินค้า', nameDefault: ''),
+          SignatureFieldConfig(label: 'ผู้ส่งสินค้า', nameDefault: SaleSignatureOptions.defaultCompanyName),
+          SignatureFieldConfig(label: 'ผู้มีอำนาจอนุมัติ', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true, dateDefault: sale.saleDate),
+        ];
+      case SaleDocumentType.taxInvoiceReceipt:
+        return [
+          const SignatureFieldConfig(label: 'ผู้รับสินค้า', nameDefault: ''),
+          SignatureFieldConfig(label: 'ผู้ส่งสินค้า', nameDefault: SaleSignatureOptions.defaultCompanyName),
+          SignatureFieldConfig(label: 'ผู้มีอำนาจอนุมัติ', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true, dateDefault: sale.saleDate),
+          SignatureFieldConfig(label: 'ผู้รับเงิน', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true, dateDefault: paymentDate),
+        ];
+    }
+  }
   
-  static Future<void> generateAndPrintSale(Sale sale, SaleDocumentType documentType, {BankAccount? bankAccount, String? signerName}) async {
+  static Future<void> generateAndPrintSale(Sale sale, SaleDocumentType documentType, {BankAccount? bankAccount, String? signerName, SaleSignatureOptions? signatureOptions}) async {
     try {
-      // สร้าง PDF document
-      final pdf = await _createSalePdf(sale, documentType, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName);
+      final effectiveSignerName = signatureOptions != null ? null : (signerName ?? defaultSignerName);
+      final pdf = await _createSalePdf(sale, documentType, bankAccount: bankAccount, signerName: effectiveSignerName, signatureOptions: signatureOptions);
       final pdfBytes = await pdf.save();
       
       // เปิด PDF ใน tab ใหม่สำหรับ Web
@@ -46,16 +123,18 @@ class PdfServiceSale {
     }
   }
 
-  static Future<Uint8List> generateSalePdfBytes(Sale sale, SaleDocumentType documentType, {BankAccount? bankAccount, String? signerName}) async {
+  static Future<Uint8List> generateSalePdfBytes(Sale sale, SaleDocumentType documentType, {BankAccount? bankAccount, String? signerName, SaleSignatureOptions? signatureOptions}) async {
     try {
-      final pdf = await _createSalePdf(sale, documentType, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName);
+      final effectiveSignerName = signatureOptions != null ? null : (signerName ?? defaultSignerName);
+      final pdf = await _createSalePdf(sale, documentType, bankAccount: bankAccount, signerName: effectiveSignerName, signatureOptions: signatureOptions);
       return pdf.save();
     } catch (e) {
       throw Exception('เกิดข้อผิดพลาดในการสร้าง PDF: $e');
     }
   }
 
-  static Future<pw.Document> _createSalePdf(Sale sale, SaleDocumentType documentType, {BankAccount? bankAccount, required String signerName}) async {
+  static Future<pw.Document> _createSalePdf(Sale sale, SaleDocumentType documentType, {BankAccount? bankAccount, String? signerName, SaleSignatureOptions? signatureOptions}) async {
+    final defaultName = signerName ?? defaultSignerName;
     final pdf = pw.Document();
 
     // กำหนดขนาดฟอนต์
@@ -114,7 +193,7 @@ class PdfServiceSale {
           context, thaiFont, documentType, sale.saleCode, sale.isVAT, logoImage,
         ),
         footer: (pw.Context context) => _buildMultiPageFooter(
-          context, thaiFont, sale, fontSizeText, documentType, signerName,
+          context, thaiFont, sale, fontSizeText, documentType, defaultName, signatureOptions,
         ),
         build: (pw.Context context) => [
           // หน้าแรก: Company Header เต็ม (เฉพาะ VAT), ชื่อเอกสาร, ลูกค้า
@@ -175,10 +254,11 @@ class PdfServiceSale {
     double fontSizeText,
     SaleDocumentType documentType,
     String signerName,
+    SaleSignatureOptions? signatureOptions,
   ) {
     return pw.Container(
       margin: const pw.EdgeInsets.only(top: 12),
-      child: _buildSignatureSection(thaiFont, sale, fontSizeText, documentType, signerName),
+      child: _buildSignatureSection(thaiFont, sale, fontSizeText, documentType, signerName, signatureOptions),
     );
   }
 
@@ -987,103 +1067,62 @@ class PdfServiceSale {
     );
   }
 
-  static pw.Widget _buildSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, SaleDocumentType documentType, String signerName) {
+  static pw.Widget _buildSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, SaleDocumentType documentType, String signerName, [SaleSignatureOptions? signatureOptions]) {
+    final opts = signatureOptions;
     switch (documentType) {
       case SaleDocumentType.quotation:
-        return _buildQuotationSignatureSection(thaiFont, sale, fontSizeText, signerName);
+        return _buildQuotationSignatureSection(thaiFont, sale, fontSizeText, signerName, opts);
       case SaleDocumentType.receipt:
-        return _buildReceiptSignatureSection(thaiFont, sale, fontSizeText, signerName);
+        return _buildReceiptSignatureSection(thaiFont, sale, fontSizeText, signerName, opts);
       case SaleDocumentType.taxInvoiceReceipt:
-        return _buildTaxInvoiceReceiptSignatureSection(thaiFont, sale, fontSizeText, signerName);
+        return _buildTaxInvoiceReceiptSignatureSection(thaiFont, sale, fontSizeText, signerName, opts);
       case SaleDocumentType.taxInvoice:
-        return _buildTaxInvoiceSignatureSection(thaiFont, sale, fontSizeText, signerName);
+        return _buildTaxInvoiceSignatureSection(thaiFont, sale, fontSizeText, signerName, opts);
     }
   }
 
   // 1. Quotation (ปัจจุบัน)
-  static pw.Widget _buildQuotationSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, String signerName) {
+  static pw.Widget _buildQuotationSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, String signerName, [SaleSignatureOptions? opts]) {
+    final nameCustomer = opts?.nameCustomerApprover?.trim() ?? '';
+    final nameProposer = (opts?.nameProposer?.trim().isNotEmpty == true) ? opts!.nameProposer! : signerName;
+    final dateProposer = opts?.dateProposer ?? sale.saleDate;
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
         children: [
-          // คอลัมน์ที่ 1 - ว่าง
-          pw.Expanded(
-            flex: 1,
-            child: pw.Container(),
-          ),
-          
-          // คอลัมน์ที่ 2 - ว่าง
-          pw.Expanded(
-            flex: 1,
-            child: pw.Container(),
-          ),
-          
-          // คอลัมน์ที่ 3 - Customer signature (ผู้มีอำนาจอนุมัติ - ไม่มีชื่อและวันที่)
+          pw.Expanded(flex: 1, child: pw.Container()),
+          pw.Expanded(flex: 1, child: pw.Container()),
           pw.Expanded(
             flex: 1,
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
-                pw.Text(
-                  'ลงชื่อ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
+                pw.Text('ลงชื่อ', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 15),
-                pw.Container(
-                  width: 150,
-                  height: 1,
-                ),
+                pw.Container(width: 150, height: 1),
                 pw.SizedBox(height: 10),
-                // Placeholder ให้ตรงกับชื่อในคอลัมน์ขวา
-                pw.Text(
-                  ' ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
+                pw.Text(nameCustomer.isEmpty ? ' ' : nameCustomer, style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 5),
-                pw.Text(
-                  'ผู้มีอำนาจอนุมัติ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
+                pw.Text('ผู้มีอำนาจอนุมัติ', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 5),
-                // Placeholder ให้ตรงกับวันที่ในคอลัมน์ขวา
-                pw.Text(
-                  ' ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
+                pw.Text(' ', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
               ],
             ),
           ),
-        
-          // คอลัมน์ที่ 4 - Company signature
           pw.Expanded(
             flex: 1,
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
-                pw.Text(
-                  'ลงชื่อ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
+                pw.Text('ลงชื่อ', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 15),
-                pw.Container(
-                  width: 150,
-                  height: 1,
-                ),
+                pw.Container(width: 150, height: 1),
                 pw.SizedBox(height: 10),
-                pw.Text(
-                  signerName,
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
+                pw.Text(nameProposer, style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 5),
-                pw.Text(
-                  'ผู้เสนอราคา',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
+                pw.Text('ผู้เสนอราคา', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 5),
-                pw.Text(
-                  _formatDateThai(sale.saleDate),
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
+                pw.Text(_formatDateThai(dateProposer), style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
               ],
             ),
           ),
@@ -1093,61 +1132,30 @@ class PdfServiceSale {
   }
 
   // 2. ใบเสร็จรับเงิน - เหลือ column 4 อันเดียว
-  static pw.Widget _buildReceiptSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, String signerName) {
+  static pw.Widget _buildReceiptSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, String signerName, [SaleSignatureOptions? opts]) {
+    final nameReceiver = (opts?.namePaymentReceiver?.trim().isNotEmpty == true) ? opts!.namePaymentReceiver! : signerName;
+    final dateReceiver = opts?.datePaymentReceiver ?? sale.payment.paymentDate ?? sale.saleDate;
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
         children: [
-          // คอลัมน์ที่ 1 - ว่าง
-          pw.Expanded(
-            flex: 1,
-            child: pw.Container(),
-          ),
-          
-          // คอลัมน์ที่ 2 - ว่าง
-          pw.Expanded(
-            flex: 1,
-            child: pw.Container(),
-          ),
-          
-          // คอลัมน์ที่ 3 - ว่าง
-          pw.Expanded(
-            flex: 1,
-            child: pw.Container(),
-          ),
-          
-          // คอลัมน์ที่ 4 - ผู้รับเงิน
+          pw.Expanded(flex: 1, child: pw.Container()),
+          pw.Expanded(flex: 1, child: pw.Container()),
+          pw.Expanded(flex: 1, child: pw.Container()),
           pw.Expanded(
             flex: 1,
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
-                pw.Text(
-                  'ลงชื่อ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
+                pw.Text('ลงชื่อ', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 15),
-                pw.Container(
-                  width: 150,
-                  height: 1,
-                ),
+                pw.Container(width: 150, height: 1),
                 pw.SizedBox(height: 10),
-                pw.Text(
-                  signerName,
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
+                pw.Text(nameReceiver, style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 5),
-                pw.Text(
-                  'ผู้รับเงิน',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
+                pw.Text('ผู้รับเงิน', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 5),
-                pw.Text(
-                  sale.payment.paymentDate != null 
-                    ? _formatDateThai(sale.payment.paymentDate!)
-                    : _formatDateThai(sale.saleDate),
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
+                pw.Text(_formatDateThai(dateReceiver), style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
               ],
             ),
           ),
@@ -1157,265 +1165,65 @@ class PdfServiceSale {
   }
 
   // 3. ใบกำกับภาษี/ใบเสร็จรับเงิน - 4 columns
-  static pw.Widget _buildTaxInvoiceReceiptSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, String signerName) {
+  static pw.Widget _buildTaxInvoiceReceiptSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, String signerName, [SaleSignatureOptions? opts]) {
+    final nameGoods = opts?.nameGoodsReceiver?.trim() ?? '';
+    final nameShipper = (opts?.nameShipper?.trim().isNotEmpty == true) ? opts!.nameShipper! : signerName;
+    final nameApprover = (opts?.nameApprover?.trim().isNotEmpty == true) ? opts!.nameApprover! : signerName;
+    final dateApprover = opts?.dateApprover ?? sale.saleDate;
+    final namePayment = (opts?.namePaymentReceiver?.trim().isNotEmpty == true) ? opts!.namePaymentReceiver! : signerName;
+    final datePayment = opts?.datePaymentReceiver ?? sale.payment.paymentDate ?? sale.saleDate;
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
         children: [
-          // คอลัมน์ที่ 1 - ผู้รับสินค้า (ไม่ต้องใส่ชื่อ ไม่ต้องใส่วันที่)
-          pw.Expanded(
-            flex: 1,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Text(
-                  'ลงชื่อ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 15),
-                pw.Container(
-                  width: 150,
-                  height: 1,
-                ),
-                pw.SizedBox(height: 10),
-                pw.Text(
-                  '-',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, color: PdfColors.white),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  'ผู้รับสินค้า',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  '-',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, color: PdfColors.white),
-                ),
-              ],
-            ),
-          ),
-        
-          // คอลัมน์ที่ 2 - ผู้ส่งสินค้า (สุภาวดี บูรณะโอสถ ไม่ต้องใส่วันที่)
-          pw.Expanded(
-            flex: 1,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Text(
-                  'ลงชื่อ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 15),
-                pw.Container(
-                  width: 150,
-                  height: 1,
-                ),
-                pw.SizedBox(height: 10),
-                pw.Text(
-                  signerName,
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  'ผู้ส่งสินค้า',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  '-',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, color: PdfColors.white),
-                ),
-              ],
-            ),
-          ),
-      
-          // คอลัมน์ที่ 3 - ผู้มีอำนาจอนุมัติ (สุภาวดี บูรณะโอสถ sale.updatedAt)
-          pw.Expanded(
-            flex: 1,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Text(
-                  'ลงชื่อ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 15),
-                pw.Container(
-                  width: 150,
-                  height: 1,
-                ),
-                pw.SizedBox(height: 10),
-                pw.Text(
-                  signerName,
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  'ผู้มีอำนาจอนุมัติ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  _formatDateThai(sale.saleDate),
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-              ],
-            ),
-          ),
-        
-          // คอลัมน์ที่ 4 - ผู้รับเงิน (สุภาวดี บูรณะโอสถ sale.payment.paymentDate)
-          pw.Expanded(
-            flex: 1,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Text(
-                  'ลงชื่อ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 15),
-                pw.Container(
-                  width: 150,
-                  height: 1,
-                ),
-                pw.SizedBox(height: 10),
-                pw.Text(
-                  signerName,
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  'ผู้รับเงิน',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  sale.payment.paymentDate != null 
-                    ? _formatDateThai(sale.payment.paymentDate!)
-                    : _formatDateThai(sale.saleDate),
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-              ],
-            ),
-          ),
+          _signatureColumn(thaiFont, fontSizeText, nameGoods.isEmpty ? '-' : nameGoods, 'ผู้รับสินค้า', null, hideValue: nameGoods.isEmpty),
+          _signatureColumn(thaiFont, fontSizeText, nameShipper, 'ผู้ส่งสินค้า', null, hideValue: false),
+          _signatureColumn(thaiFont, fontSizeText, nameApprover, 'ผู้มีอำนาจอนุมัติ', dateApprover, hideValue: false),
+          _signatureColumn(thaiFont, fontSizeText, namePayment, 'ผู้รับเงิน', datePayment, hideValue: false),
         ],
       ),
     );
   }
 
   // 4. ใบกำกับภาษี - 3 columns (column 1 ว่าง)
-  static pw.Widget _buildTaxInvoiceSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, String signerName) {
+  static pw.Widget _buildTaxInvoiceSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, String signerName, [SaleSignatureOptions? opts]) {
+    final nameGoods = opts?.nameGoodsReceiver?.trim() ?? '';
+    final nameShipper = (opts?.nameShipper?.trim().isNotEmpty == true) ? opts!.nameShipper! : signerName;
+    final nameApprover = (opts?.nameApprover?.trim().isNotEmpty == true) ? opts!.nameApprover! : signerName;
+    final dateApprover = opts?.dateApprover ?? sale.saleDate;
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
         children: [
-          // คอลัมน์ที่ 1 - ว่าง
-          pw.Expanded(
-            flex: 1,
-            child: pw.Container(),
+          pw.Expanded(flex: 1, child: pw.Container()),
+          _signatureColumn(thaiFont, fontSizeText, nameGoods.isEmpty ? '-' : nameGoods, 'ผู้รับสินค้า', null, hideValue: nameGoods.isEmpty),
+          _signatureColumn(thaiFont, fontSizeText, nameShipper, 'ผู้ส่งสินค้า', null, hideValue: false),
+          _signatureColumn(thaiFont, fontSizeText, nameApprover, 'ผู้มีอำนาจอนุมัติ', dateApprover, hideValue: false),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _signatureColumn(pw.Font? thaiFont, double fontSizeText, String nameDisplay, String roleLabel, DateTime? date, {required bool hideValue}) {
+    return pw.Expanded(
+      flex: 1,
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
+        children: [
+          pw.Text('ลงชื่อ', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
+          pw.SizedBox(height: 15),
+          pw.Container(width: 150, height: 1),
+          pw.SizedBox(height: 10),
+          pw.Text(
+            hideValue ? '-' : nameDisplay,
+            style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, color: hideValue ? PdfColors.white : null),
           ),
-          
-          // คอลัมน์ที่ 2 - ผู้รับสินค้า (ไม่ต้องใส่ชื่อ ไม่ต้องใส่วันที่)
-          pw.Expanded(
-            flex: 1,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Text(
-                  'ลงชื่อ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 15),
-                pw.Container(
-                  width: 150,
-                  height: 1,
-                ),
-                pw.SizedBox(height: 10),
-                pw.Text(
-                  '-',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, color: PdfColors.white),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  'ผู้รับสินค้า',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  '-',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, color: PdfColors.white),
-                ),
-              ],
-            ),
-          ),
-      
-          // คอลัมน์ที่ 3 - ผู้ส่งสินค้า (สุภาวดี บูรณะโอสถ ไม่ต้องใส่วันที่)
-          pw.Expanded(
-            flex: 1,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Text(
-                  'ลงชื่อ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 15),
-                pw.Container(
-                  width: 150,
-                  height: 1,
-                ),
-                pw.SizedBox(height: 10),
-                pw.Text(
-                  signerName,
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  'ผู้ส่งสินค้า',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  '-',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, color: PdfColors.white),
-                ),
-              ],
-            ),
-          ),
-      
-          // คอลัมน์ที่ 4 - ผู้มีอำนาจอนุมัติ (สุภาวดี บูรณะโอสถ sale.updatedAt)
-          pw.Expanded(
-            flex: 1,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Text(
-                  'ลงชื่อ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 15),
-                pw.Container(
-                  width: 150,
-                  height: 1,
-                ),
-                pw.SizedBox(height: 10),
-                pw.Text(
-                  signerName,
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  'ผู้มีอำนาจอนุมัติ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  _formatDateThai(sale.saleDate),
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
-                ),
-              ],
-            ),
+          pw.SizedBox(height: 5),
+          pw.Text(roleLabel, style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
+          pw.SizedBox(height: 5),
+          pw.Text(
+            date != null ? _formatDateThai(date) : ' ',
+            style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, color: date == null ? PdfColors.white : null),
           ),
         ],
       ),

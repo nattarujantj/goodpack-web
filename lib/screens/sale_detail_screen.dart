@@ -15,6 +15,7 @@ import '../services/bank_account_service.dart' as bank_service;
 import '../widgets/responsive_layout.dart';
 import '../utils/number_formatter.dart';
 import '../utils/date_formatter.dart';
+import 'package:intl/intl.dart';
 
 class SaleDetailScreen extends StatefulWidget {
   final String saleId;
@@ -819,43 +820,17 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   }
 
   void _printSalePdf(SaleDocumentType documentType) async {
-    // แสดง dialog ให้ระบุชื่อผู้ลงนาม
-    final signerNameController = TextEditingController(
-      text: PdfServiceSale.defaultSignerName,
-    );
-    
-    final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-        title: const Text('ระบุชื่อผู้ลงนาม'),
-        content: TextField(
-          controller: signerNameController,
-          decoration: const InputDecoration(
-            labelText: 'ชื่อผู้ลงนาม',
-            hintText: 'กรอกชื่อผู้ลงนาม',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('ยกเลิก'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('พิมพ์ PDF'),
-          ),
-        ],
+    if (_sale == null) return;
+    final signatureOptions = await showDialog<SaleSignatureOptions>(
+      context: context,
+      builder: (context) => _SignatureOptionsDialog(
+        documentType: documentType,
+        sale: _sale!,
       ),
     );
-    
-    if (confirmed != true) return;
-    
-    final signerName = signerNameController.text.trim();
-    if (signerName.isEmpty) return;
-    
+    if (signatureOptions == null) return;
+
     try {
-      // ใช้ข้อมูล BankAccount ที่โหลดมา หรือสร้างจากข้อมูลใน sale
       BankAccount? bankAccount = _ourAccount;
       if (bankAccount == null && _sale!.bankAccountId != null) {
         bankAccount = BankAccount(
@@ -866,15 +841,13 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
         );
       }
 
-      // สร้างและพิมพ์ PDF (สำหรับ Web จะเปิด tab ใหม่ทันที)
       await PdfServiceSale.generateAndPrintSale(
         _sale!,
         documentType,
         bankAccount: bankAccount,
-        signerName: signerName,
+        signatureOptions: signatureOptions,
       );
 
-      // แสดง snackbar เมื่อสำเร็จ
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -893,5 +866,161 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
         );
       }
     }
+  }
+}
+
+/// Dialog ระบุชื่อและวันที่ลงชื่อตามประเภทเอกสาร
+class _SignatureOptionsDialog extends StatefulWidget {
+  final SaleDocumentType documentType;
+  final Sale sale;
+
+  const _SignatureOptionsDialog({required this.documentType, required this.sale});
+
+  @override
+  State<_SignatureOptionsDialog> createState() => _SignatureOptionsDialogState();
+}
+
+class _SignatureOptionsDialogState extends State<_SignatureOptionsDialog> {
+  final List<TextEditingController> _nameControllers = [];
+  final List<DateTime?> _dates = [];
+
+  @override
+  void initState() {
+    super.initState();
+    final fields = PdfServiceSale.getSignatureFieldsForDocumentType(widget.documentType, widget.sale);
+    for (final f in fields) {
+      _nameControllers.add(TextEditingController(text: f.nameDefault));
+      _dates.add(f.dateDefault);
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in _nameControllers) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  SaleSignatureOptions _buildOptions() {
+    final fields = PdfServiceSale.getSignatureFieldsForDocumentType(widget.documentType, widget.sale);
+    String? nameCustomerApprover;
+    String? nameProposer;
+    DateTime? dateProposer;
+    String? namePaymentReceiver;
+    DateTime? datePaymentReceiver;
+    String? nameGoodsReceiver;
+    String? nameShipper;
+    String? nameApprover;
+    DateTime? dateApprover;
+
+    for (int i = 0; i < fields.length; i++) {
+      final name = _nameControllers[i].text.trim();
+      final date = _dates[i];
+      final label = fields[i].label;
+      if (label.contains('ลูกค้า')) {
+        nameCustomerApprover = name.isEmpty ? null : name;
+      } else if (label.contains('ผู้เสนอราคา')) {
+        nameProposer = name.isEmpty ? null : name;
+        dateProposer = date;
+      } else if (label.contains('ผู้รับเงิน')) {
+        namePaymentReceiver = name.isEmpty ? null : name;
+        datePaymentReceiver = date;
+      } else if (label.contains('ผู้รับสินค้า')) {
+        nameGoodsReceiver = name.isEmpty ? null : name;
+      } else if (label.contains('ผู้ส่งสินค้า')) {
+        nameShipper = name.isEmpty ? null : name;
+      } else if (label.contains('ผู้มีอำนาจอนุมัติ')) {
+        nameApprover = name.isEmpty ? null : name;
+        dateApprover = date;
+      }
+    }
+
+    return SaleSignatureOptions(
+      nameCustomerApprover: nameCustomerApprover,
+      nameProposer: nameProposer,
+      dateProposer: dateProposer,
+      namePaymentReceiver: namePaymentReceiver,
+      datePaymentReceiver: datePaymentReceiver,
+      nameGoodsReceiver: nameGoodsReceiver,
+      nameShipper: nameShipper,
+      nameApprover: nameApprover,
+      dateApprover: dateApprover,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fields = PdfServiceSale.getSignatureFieldsForDocumentType(widget.documentType, widget.sale);
+    return AlertDialog(
+      title: const Text('ระบุชื่อและวันที่ลงชื่อ'),
+      content: SingleChildScrollView(
+        child: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (int i = 0; i < fields.length; i++) ...[
+                if (i > 0) const SizedBox(height: 16),
+                Text(
+                  fields[i].label,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _nameControllers[i],
+                  decoration: const InputDecoration(
+                    labelText: 'ชื่อ',
+                    hintText: 'ไม่กรอกใช้ค่าเริ่มต้น',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+                if (fields[i].hasDate) ...[
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _dates[i] ?? widget.sale.saleDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (picked != null) setState(() => _dates[i] = picked);
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'วันที่',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      child: Text(
+                        _dates[i] != null
+                            ? DateFormat('dd/MM/yyyy').format(_dates[i]!)
+                            : '-',
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('ยกเลิก'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(_buildOptions()),
+          child: const Text('พิมพ์ PDF'),
+        ),
+      ],
+    );
   }
 }
