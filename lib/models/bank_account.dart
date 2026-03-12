@@ -21,7 +21,7 @@ class BankAccount {
     return BankAccount(
       id: json['id'] as String? ?? '',
       bankName: json['bankName'] as String? ?? '',
-      bankAccountName: json['name'] as String? ?? '', // แก้ไขจาก 'accountName' เป็น 'name'
+      bankAccountName: json['name'] as String? ?? '',
       accountNumber: json['accountNumber'] as String? ?? '',
       branchName: json['branchName'] as String?,
       isActive: json['isActive'] as bool? ?? true,

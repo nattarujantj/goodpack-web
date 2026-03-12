@@ -1045,7 +1045,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
           SearchableDropdown<Product>(
             value: _selectedProduct,
             items: widget.products,
-            itemAsString: (product) => '${product.skuId} | ${product.id} | ${product.name} | ${product.code} | ${product.description}',
+            itemAsString: (product) => '${product.skuId} | ${product.name} | ${product.description}',
             onChanged: (product) {
               setState(() {
                 _selectedProduct = product;
