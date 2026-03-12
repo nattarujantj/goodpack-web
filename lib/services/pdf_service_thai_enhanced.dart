@@ -461,9 +461,12 @@ class PdfServiceThaiEnhanced {
                         ),
                       ),
                       pw.Expanded(
-                        child: pw.Text(
-                          _formatDateThai(quotation.validUntil!),
-                          style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
+                        child: pw.Container(
+                          color: PdfColors.yellow100,
+                          child: pw.Text(
+                            _formatDateThai(quotation.validUntil!),
+                            style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
+                          )
                         ),
                       ),
                     ],
