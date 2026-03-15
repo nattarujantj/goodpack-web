@@ -49,24 +49,30 @@ class AppRouter {
             ),
           ),
           // Product detail route
-      GoRoute(
-        path: '/product/:id',
+          GoRoute(
+            path: '/product/:id',
             pageBuilder: (context, state) {
-          final productId = state.pathParameters['id']!;
+              final productId = state.pathParameters['id']!;
               return _noAnimationPage(
                 Scaffold(
-            appBar: AppBar(
-              title: const Text('รายละเอียดสินค้า'),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.go('/'),
-              ),
-            ),
-            body: ProductDetailScreen(productId: productId),
+                  appBar: AppBar(
+                    title: const Text('รายละเอียดสินค้า'),
+                    leading: IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/');
+                        }
+                      },
+                    ),
+                  ),
+                  body: ProductDetailScreen(productId: productId),
                 ),
                 state,
-          );
-        },
+              );
+            },
           ),
           // Product form route
           GoRoute(
@@ -102,7 +108,13 @@ class AppRouter {
                     title: const Text('รายละเอียดลูกค้า'),
                     leading: IconButton(
                       icon: const Icon(Icons.arrow_back),
-                      onPressed: () => context.go('/customers'),
+                      onPressed: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/customers');
+                        }
+                      },
                     ),
                   ),
                   body: CustomerDetailScreen(customerId: customerId),
@@ -144,7 +156,13 @@ class AppRouter {
                     title: const Text('รายละเอียดซัพพลายเออร์'),
                     leading: IconButton(
                       icon: const Icon(Icons.arrow_back),
-                      onPressed: () => context.go('/suppliers'),
+                      onPressed: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/suppliers');
+                        }
+                      },
                     ),
                   ),
                   body: SupplierDetailScreen(supplierId: supplierId),
@@ -195,7 +213,13 @@ class AppRouter {
                     title: const Text('รายละเอียดการซื้อ'),
                     leading: IconButton(
                       icon: const Icon(Icons.arrow_back),
-                      onPressed: () => context.go('/purchases'),
+                      onPressed: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/purchases');
+                        }
+                      },
                     ),
                   ),
                   body: PurchaseDetailScreen(purchaseId: purchaseId),
@@ -246,7 +270,13 @@ class AppRouter {
                     title: const Text('รายละเอียดการขาย'),
                     leading: IconButton(
                       icon: const Icon(Icons.arrow_back),
-                      onPressed: () => context.go('/sales'),
+                      onPressed: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/sales');
+                        }
+                      },
                     ),
                   ),
                   body: SaleDetailScreen(saleId: saleId),
@@ -299,7 +329,13 @@ class AppRouter {
                     title: const Text('รายละเอียดเสนอราคา'),
                     leading: IconButton(
                       icon: const Icon(Icons.arrow_back),
-                      onPressed: () => context.go('/quotations'),
+                      onPressed: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/quotations');
+                        }
+                      },
                     ),
                   ),
                   body: QuotationDetailScreen(quotationId: quotationId),
