@@ -515,7 +515,67 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
     final fmt = (double v) => v.toStringAsFixed(2).replaceAllMapped(
         RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
 
-    String? lastMonthKey;
+    // Group rows by monthKey to inject subtotal rows
+    final Map<String, List<Map<String, dynamic>>> byMonth = {};
+    for (final row in rows) {
+      final mk = row['monthKey'] as String;
+      byMonth.putIfAbsent(mk, () => []).add(row);
+    }
+
+    final List<DataRow> dataRows = [];
+    for (final monthKey in byMonth.keys) {
+      final monthRows = byMonth[monthKey]!;
+      bool isFirstInMonth = true;
+      double monthTotalVat = 0;
+      double monthGrandTotal = 0;
+
+      for (final row in monthRows) {
+        monthTotalVat += row['vat'] as double;
+        monthGrandTotal += row['total'] as double;
+
+        dataRows.add(DataRow(
+          color: WidgetStateProperty.resolveWith((states) {
+            return isFirstInMonth ? Colors.indigo.shade50.withOpacity(0.5) : null;
+          }),
+          cells: [
+            DataCell(Text(isFirstInMonth ? row['monthLabel'] as String : '',
+                style: const TextStyle(fontWeight: FontWeight.w600))),
+            DataCell(Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(row['productName'] as String),
+                if ((row['productCode'] as String).isNotEmpty)
+                  Text(row['productCode'] as String,
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+              ],
+            )),
+            DataCell(Text('${row['qty']}')),
+            DataCell(Text(fmt(row['net'] as double))),
+            DataCell(Text(fmt(row['vat'] as double))),
+            DataCell(Text(fmt(row['total'] as double),
+                style: const TextStyle(fontWeight: FontWeight.w600))),
+          ],
+        ));
+        isFirstInMonth = false;
+      }
+
+      // Subtotal row for this month
+      dataRows.add(DataRow(
+        color: WidgetStateProperty.all(Colors.indigo.shade100),
+        cells: [
+          const DataCell(Text('')),
+          const DataCell(Text('รวมเดือน',
+              style: TextStyle(fontWeight: FontWeight.bold, fontStyle: FontStyle.italic))),
+          const DataCell(Text('')),
+          const DataCell(Text('')),
+          DataCell(Text(fmt(monthTotalVat),
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
+          DataCell(Text(fmt(monthGrandTotal),
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
+        ],
+      ));
+    }
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -530,34 +590,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
           DataColumn(label: Text('VAT (7%)', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
           DataColumn(label: Text('รวมทั้งสิ้น', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
         ],
-        rows: rows.map((row) {
-          final isNewMonth = row['monthKey'] != lastMonthKey;
-          lastMonthKey = row['monthKey'] as String;
-          return DataRow(
-            color: WidgetStateProperty.resolveWith((states) {
-              return isNewMonth ? Colors.indigo.shade50.withOpacity(0.5) : null;
-            }),
-            cells: [
-              DataCell(Text(isNewMonth ? row['monthLabel'] as String : '',
-                  style: const TextStyle(fontWeight: FontWeight.w600))),
-              DataCell(Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(row['productName'] as String),
-                  if ((row['productCode'] as String).isNotEmpty)
-                    Text(row['productCode'] as String,
-                        style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                ],
-              )),
-              DataCell(Text('${row['qty']}')),
-              DataCell(Text(fmt(row['net'] as double))),
-              DataCell(Text(fmt(row['vat'] as double))),
-              DataCell(Text(fmt(row['total'] as double),
-                  style: const TextStyle(fontWeight: FontWeight.w600))),
-            ],
-          );
-        }).toList(),
+        rows: dataRows,
       ),
     );
   }
