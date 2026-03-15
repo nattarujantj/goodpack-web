@@ -297,6 +297,10 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
             ),
             onChanged: (value) {
               _filterItems(value);
+              // When user manually clears the text, reset the selected value
+              if (value.isEmpty && widget.value != null) {
+                widget.onChanged?.call(null);
+              }
             },
             onTap: () {
               if (!_isOpen) {
