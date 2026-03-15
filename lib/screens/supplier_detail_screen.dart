@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/supplier_provider.dart';
 import '../models/supplier.dart';
+import '../models/purchase.dart';
+import '../services/purchase_api_service.dart';
 import '../widgets/responsive_layout.dart';
 import '../utils/date_formatter.dart';
 
@@ -18,10 +20,17 @@ class SupplierDetailScreen extends StatefulWidget {
 class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
   String? _error;
 
+  List<Purchase> _supplierPurchases = [];
+  bool _purchasesLoading = false;
+  String? _purchasesError;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadSupplier());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSupplier();
+      _loadSupplierPurchases();
+    });
   }
 
   Future<void> _loadSupplier() async {
@@ -31,6 +40,82 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
     if (mounted && supplier == null) {
       setState(() => _error = 'ไม่พบข้อมูลซัพพลายเออร์');
     }
+  }
+
+  Future<void> _loadSupplierPurchases() async {
+    if (!mounted) return;
+    setState(() {
+      _purchasesLoading = true;
+      _purchasesError = null;
+    });
+    try {
+      final purchases = await PurchaseApiService.getPurchasesBySupplier(widget.supplierId);
+      if (mounted) {
+        setState(() {
+          _supplierPurchases = purchases;
+          _purchasesLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _purchasesError = e.toString();
+          _purchasesLoading = false;
+        });
+      }
+    }
+  }
+
+  /// Aggregate purchases into monthly summary per product
+  List<Map<String, dynamic>> _buildMonthlyPurchaseSummaryData() {
+    final Map<String, Map<String, dynamic>> grouped = {};
+
+    for (final purchase in _supplierPurchases) {
+      final thaiDate = DateFormatter.toThailand(purchase.purchaseDate);
+      final monthKey = '${thaiDate.year.toString().padLeft(4, '0')}-${thaiDate.month.toString().padLeft(2, '0')}';
+      final monthLabel = '${thaiDate.month.toString().padLeft(2, '0')}/${thaiDate.year}';
+
+      for (final item in purchase.items) {
+        final key = '$monthKey||${item.productId}';
+        if (!grouped.containsKey(key)) {
+          grouped[key] = {
+            'monthKey': monthKey,
+            'monthLabel': monthLabel,
+            'productName': item.productName,
+            'productCode': item.productCode,
+            'qty': 0,
+            'net': 0.0,
+            'vat': 0.0,
+            'total': 0.0,
+          };
+        }
+
+        double net, vat, total;
+        if (!purchase.isVAT) {
+          net = item.totalPrice;
+          vat = 0.0;
+          total = item.totalPrice;
+        } else if (purchase.vatType == 'exclusive') {
+          net = item.totalPrice;
+          vat = item.totalPrice * 0.07;
+          total = item.totalPrice * 1.07;
+        } else {
+          // inclusive
+          total = item.totalPrice;
+          net = item.totalPrice / 1.07;
+          vat = item.totalPrice - net;
+        }
+
+        grouped[key]!['qty'] = (grouped[key]!['qty'] as int) + item.quantity;
+        grouped[key]!['net'] = (grouped[key]!['net'] as double) + net;
+        grouped[key]!['vat'] = (grouped[key]!['vat'] as double) + vat;
+        grouped[key]!['total'] = (grouped[key]!['total'] as double) + total;
+      }
+    }
+
+    final result = grouped.values.toList();
+    result.sort((a, b) => (b['monthKey'] as String).compareTo(a['monthKey'] as String));
+    return result;
   }
 
   @override
@@ -82,6 +167,16 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
                   
                   // Bank Accounts Section
                   _buildBankAccountsSection(supplier),
+
+                  const SizedBox(height: 24),
+
+                  // Monthly Purchases Summary
+                  _buildMonthlyPurchasesSummary(),
+
+                  const SizedBox(height: 24),
+
+                  // Recent Purchases Transactions
+                  _buildRecentPurchasesTransactions(),
                   
                   const SizedBox(height: 32),
                 ],
@@ -374,6 +469,205 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
                   ),
                 );
               }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthlyPurchasesSummary() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.bar_chart, color: Colors.deepPurple),
+                const SizedBox(width: 8),
+                const Text(
+                  'สรุปยอดซื้อรายเดือน',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (_purchasesLoading)
+              const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+            else if (_purchasesError != null)
+              Text('เกิดข้อผิดพลาด: $_purchasesError', style: const TextStyle(color: Colors.red))
+            else if (_supplierPurchases.isEmpty)
+              Text('ไม่มีข้อมูลการซื้อ', style: TextStyle(color: Colors.grey.shade600))
+            else
+              _buildMonthlyPurchaseSummaryTable(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthlyPurchaseSummaryTable() {
+    final rows = _buildMonthlyPurchaseSummaryData();
+    final fmt = (double v) => v.toStringAsFixed(2).replaceAllMapped(
+        RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
+
+    String? lastMonthKey;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columnSpacing: 16,
+        headingRowColor: WidgetStateProperty.all(Colors.deepPurple.shade50),
+        columns: const [
+          DataColumn(label: Text('เดือน', style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text('สินค้า', style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text('จำนวน', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+          DataColumn(label: Text('ราคาก่อน VAT', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+          DataColumn(label: Text('VAT (7%)', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+          DataColumn(label: Text('รวมทั้งสิ้น', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+        ],
+        rows: rows.map((row) {
+          final isNewMonth = row['monthKey'] != lastMonthKey;
+          lastMonthKey = row['monthKey'] as String;
+          return DataRow(
+            color: WidgetStateProperty.resolveWith((states) {
+              return isNewMonth ? Colors.deepPurple.shade50.withOpacity(0.5) : null;
+            }),
+            cells: [
+              DataCell(Text(isNewMonth ? row['monthLabel'] as String : '',
+                  style: const TextStyle(fontWeight: FontWeight.w600))),
+              DataCell(Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(row['productName'] as String),
+                  if ((row['productCode'] as String).isNotEmpty)
+                    Text(row['productCode'] as String,
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                ],
+              )),
+              DataCell(Text('${row['qty']}')),
+              DataCell(Text(fmt(row['net'] as double))),
+              DataCell(Text(fmt(row['vat'] as double))),
+              DataCell(Text(fmt(row['total'] as double),
+                  style: const TextStyle(fontWeight: FontWeight.w600))),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildRecentPurchasesTransactions() {
+    final recent = _supplierPurchases.take(10).toList();
+    final fmt = (double v) => v.toStringAsFixed(2).replaceAllMapped(
+        RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.receipt_long, color: Colors.deepOrange),
+                const SizedBox(width: 8),
+                const Text(
+                  'รายการซื้อล่าสุด 10 รายการ',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (_purchasesLoading)
+              const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+            else if (_purchasesError != null)
+              Text('เกิดข้อผิดพลาด: $_purchasesError', style: const TextStyle(color: Colors.red))
+            else if (recent.isEmpty)
+              Text('ไม่มีข้อมูลการซื้อ', style: TextStyle(color: Colors.grey.shade600))
+            else
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  columnSpacing: 16,
+                  headingRowColor: WidgetStateProperty.all(Colors.deepOrange.shade50),
+                  columns: const [
+                    DataColumn(label: Text('เลขที่บิล', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('วันที่', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('รายการสินค้า', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('ยอดรวม', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+                    DataColumn(label: Text('VAT', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+                    DataColumn(label: Text('สถานะชำระ', style: TextStyle(fontWeight: FontWeight.bold))),
+                  ],
+                  rows: recent.map((purchase) {
+                    double totalNet = 0, totalVat = 0, grandTotal = 0;
+                    for (final item in purchase.items) {
+                      if (!purchase.isVAT) {
+                        totalNet += item.totalPrice;
+                      } else if (purchase.vatType == 'exclusive') {
+                        totalNet += item.totalPrice;
+                        totalVat += item.totalPrice * 0.07;
+                        grandTotal += item.totalPrice * 1.07;
+                      } else {
+                        grandTotal += item.totalPrice;
+                        final net = item.totalPrice / 1.07;
+                        totalNet += net;
+                        totalVat += item.totalPrice - net;
+                      }
+                    }
+                    if (!purchase.isVAT) grandTotal = totalNet;
+                    grandTotal += purchase.shippingCost;
+
+                    final itemSummary = purchase.items.length == 1
+                        ? purchase.items.first.productName
+                        : '${purchase.items.first.productName} +${purchase.items.length - 1} รายการ';
+
+                    return DataRow(cells: [
+                      DataCell(
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: () => context.go('/purchase/${purchase.id}'),
+                          child: Text(
+                            purchase.purchaseCode,
+                            style: const TextStyle(
+                              color: Colors.deepPurple,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ),
+                      DataCell(Text(DateFormatter.formatDate(purchase.purchaseDate))),
+                      DataCell(Text(itemSummary, overflow: TextOverflow.ellipsis)),
+                      DataCell(Text(fmt(grandTotal), style: const TextStyle(fontWeight: FontWeight.w600))),
+                      DataCell(Text(fmt(totalVat))),
+                      DataCell(
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: purchase.payment.isPaid ? Colors.green.shade100 : Colors.orange.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            purchase.payment.isPaid ? 'ชำระแล้ว' : 'ค้างชำระ',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: purchase.payment.isPaid ? Colors.green.shade700 : Colors.orange.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ]);
+                  }).toList(),
+                ),
+              ),
           ],
         ),
       ),

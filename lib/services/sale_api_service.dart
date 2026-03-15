@@ -85,4 +85,22 @@ class SaleApiService {
       throw Exception('Failed to delete sale: ${response.statusCode}');
     }
   }
+
+  Future<List<Sale>> getSalesByCustomer(String customerId) async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/customers/$customerId/sales'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      if (response.body.isEmpty || response.body == 'null') return [];
+      final decoded = json.decode(response.body);
+      if (decoded == null || decoded is! List) return [];
+      return decoded.map((j) => Sale.fromJson(j)).toList();
+    } else if (response.statusCode == 404) {
+      return [];
+    } else {
+      throw Exception('Failed to load customer sales: ${response.statusCode}');
+    }
+  }
 }

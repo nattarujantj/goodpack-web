@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/customer_provider.dart';
 import '../models/customer.dart';
+import '../models/sale.dart';
+import '../services/sale_api_service.dart';
 import '../widgets/responsive_layout.dart';
 import '../utils/date_formatter.dart';
 
@@ -18,10 +20,19 @@ class CustomerDetailScreen extends StatefulWidget {
 class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
   String? _error;
 
+  List<Sale> _customerSales = [];
+  bool _salesLoading = false;
+  String? _salesError;
+
+  final SaleApiService _saleApiService = SaleApiService();
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadCustomer());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCustomer();
+      _loadCustomerSales();
+    });
   }
 
   Future<void> _loadCustomer() async {
@@ -31,6 +42,83 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
     if (mounted && customer == null) {
       setState(() => _error = 'ไม่พบข้อมูลลูกค้า');
     }
+  }
+
+  Future<void> _loadCustomerSales() async {
+    if (!mounted) return;
+    setState(() {
+      _salesLoading = true;
+      _salesError = null;
+    });
+    try {
+      final sales = await _saleApiService.getSalesByCustomer(widget.customerId);
+      if (mounted) {
+        setState(() {
+          _customerSales = sales;
+          _salesLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _salesError = e.toString();
+          _salesLoading = false;
+        });
+      }
+    }
+  }
+
+  /// Aggregate sales into monthly summary per product
+  /// Returns list of maps: {monthKey, monthLabel, productName, qty, net, vat, total}
+  List<Map<String, dynamic>> _buildMonthlySummaryData() {
+    final Map<String, Map<String, dynamic>> grouped = {};
+
+    for (final sale in _customerSales) {
+      final thaiDate = DateFormatter.toThailand(sale.saleDate);
+      final monthKey = '${thaiDate.year.toString().padLeft(4, '0')}-${thaiDate.month.toString().padLeft(2, '0')}';
+      final monthLabel = '${thaiDate.month.toString().padLeft(2, '0')}/${thaiDate.year}';
+
+      for (final item in sale.items) {
+        final key = '$monthKey||${item.productId}';
+        if (!grouped.containsKey(key)) {
+          grouped[key] = {
+            'monthKey': monthKey,
+            'monthLabel': monthLabel,
+            'productName': item.productName,
+            'productCode': item.productCode,
+            'qty': 0,
+            'net': 0.0,
+            'vat': 0.0,
+            'total': 0.0,
+          };
+        }
+
+        double net, vat, total;
+        if (!sale.isVAT) {
+          net = item.totalPrice;
+          vat = 0.0;
+          total = item.totalPrice;
+        } else if (sale.vatType == 'exclusive') {
+          net = item.totalPrice;
+          vat = item.totalPrice * 0.07;
+          total = item.totalPrice * 1.07;
+        } else {
+          // inclusive
+          total = item.totalPrice;
+          net = item.totalPrice / 1.07;
+          vat = item.totalPrice - net;
+        }
+
+        grouped[key]!['qty'] = (grouped[key]!['qty'] as int) + item.quantity;
+        grouped[key]!['net'] = (grouped[key]!['net'] as double) + net;
+        grouped[key]!['vat'] = (grouped[key]!['vat'] as double) + vat;
+        grouped[key]!['total'] = (grouped[key]!['total'] as double) + total;
+      }
+    }
+
+    final result = grouped.values.toList();
+    result.sort((a, b) => (b['monthKey'] as String).compareTo(a['monthKey'] as String));
+    return result;
   }
 
   @override
@@ -82,6 +170,16 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                   
                   // Bank Accounts Section
                   _buildBankAccountsSection(customer),
+
+                  const SizedBox(height: 24),
+
+                  // Monthly Sales Summary
+                  _buildMonthlySalesSummary(),
+
+                  const SizedBox(height: 24),
+
+                  // Recent Sales Transactions
+                  _buildRecentSalesTransactions(),
                   
                   const SizedBox(height: 32),
                 ],
@@ -374,6 +472,205 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                   ),
                 );
               }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthlySalesSummary() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.bar_chart, color: Colors.indigo),
+                const SizedBox(width: 8),
+                const Text(
+                  'สรุปยอดขายรายเดือน',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (_salesLoading)
+              const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+            else if (_salesError != null)
+              Text('เกิดข้อผิดพลาด: $_salesError', style: const TextStyle(color: Colors.red))
+            else if (_customerSales.isEmpty)
+              Text('ไม่มีข้อมูลการขาย', style: TextStyle(color: Colors.grey.shade600))
+            else
+              _buildMonthlySummaryTable(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthlySummaryTable() {
+    final rows = _buildMonthlySummaryData();
+    final fmt = (double v) => v.toStringAsFixed(2).replaceAllMapped(
+        RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
+
+    String? lastMonthKey;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columnSpacing: 16,
+        headingRowColor: WidgetStateProperty.all(Colors.indigo.shade50),
+        columns: const [
+          DataColumn(label: Text('เดือน', style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text('สินค้า', style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text('จำนวน', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+          DataColumn(label: Text('ราคาก่อน VAT', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+          DataColumn(label: Text('VAT (7%)', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+          DataColumn(label: Text('รวมทั้งสิ้น', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+        ],
+        rows: rows.map((row) {
+          final isNewMonth = row['monthKey'] != lastMonthKey;
+          lastMonthKey = row['monthKey'] as String;
+          return DataRow(
+            color: WidgetStateProperty.resolveWith((states) {
+              return isNewMonth ? Colors.indigo.shade50.withOpacity(0.5) : null;
+            }),
+            cells: [
+              DataCell(Text(isNewMonth ? row['monthLabel'] as String : '',
+                  style: const TextStyle(fontWeight: FontWeight.w600))),
+              DataCell(Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(row['productName'] as String),
+                  if ((row['productCode'] as String).isNotEmpty)
+                    Text(row['productCode'] as String,
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                ],
+              )),
+              DataCell(Text('${row['qty']}')),
+              DataCell(Text(fmt(row['net'] as double))),
+              DataCell(Text(fmt(row['vat'] as double))),
+              DataCell(Text(fmt(row['total'] as double),
+                  style: const TextStyle(fontWeight: FontWeight.w600))),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildRecentSalesTransactions() {
+    final recent = _customerSales.take(10).toList();
+    final fmt = (double v) => v.toStringAsFixed(2).replaceAllMapped(
+        RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.receipt_long, color: Colors.teal),
+                const SizedBox(width: 8),
+                const Text(
+                  'รายการขายล่าสุด 10 รายการ',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (_salesLoading)
+              const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+            else if (_salesError != null)
+              Text('เกิดข้อผิดพลาด: $_salesError', style: const TextStyle(color: Colors.red))
+            else if (recent.isEmpty)
+              Text('ไม่มีข้อมูลการขาย', style: TextStyle(color: Colors.grey.shade600))
+            else
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  columnSpacing: 16,
+                  headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
+                  columns: const [
+                    DataColumn(label: Text('เลขที่บิล', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('วันที่', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('รายการสินค้า', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('ยอดรวม', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+                    DataColumn(label: Text('VAT', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+                    DataColumn(label: Text('สถานะชำระ', style: TextStyle(fontWeight: FontWeight.bold))),
+                  ],
+                  rows: recent.map((sale) {
+                    double totalNet = 0, totalVat = 0, grandTotal = 0;
+                    for (final item in sale.items) {
+                      if (!sale.isVAT) {
+                        totalNet += item.totalPrice;
+                      } else if (sale.vatType == 'exclusive') {
+                        totalNet += item.totalPrice;
+                        totalVat += item.totalPrice * 0.07;
+                        grandTotal += item.totalPrice * 1.07;
+                      } else {
+                        grandTotal += item.totalPrice;
+                        final net = item.totalPrice / 1.07;
+                        totalNet += net;
+                        totalVat += item.totalPrice - net;
+                      }
+                    }
+                    if (!sale.isVAT) grandTotal = totalNet;
+                    grandTotal += sale.shippingCost;
+
+                    final itemSummary = sale.items.length == 1
+                        ? sale.items.first.productName
+                        : '${sale.items.first.productName} +${sale.items.length - 1} รายการ';
+
+                    return DataRow(cells: [
+                      DataCell(
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: () => context.go('/sale/${sale.id}'),
+                          child: Text(
+                            sale.saleCode,
+                            style: const TextStyle(
+                              color: Colors.indigo,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ),
+                      DataCell(Text(DateFormatter.formatDate(sale.saleDate))),
+                      DataCell(Text(itemSummary, overflow: TextOverflow.ellipsis)),
+                      DataCell(Text(fmt(grandTotal), style: const TextStyle(fontWeight: FontWeight.w600))),
+                      DataCell(Text(fmt(totalVat))),
+                      DataCell(
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: sale.payment.isPaid ? Colors.green.shade100 : Colors.orange.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            sale.payment.isPaid ? 'ชำระแล้ว' : 'ค้างชำระ',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: sale.payment.isPaid ? Colors.green.shade700 : Colors.orange.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ]);
+                  }).toList(),
+                ),
+              ),
           ],
         ),
       ),

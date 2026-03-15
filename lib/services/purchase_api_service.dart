@@ -112,4 +112,27 @@ class PurchaseApiService {
       throw Exception('Error deleting purchase: $e');
     }
   }
+
+  // Get purchases by supplier ID
+  static Future<List<Purchase>> getPurchasesBySupplier(String supplierId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/suppliers/$supplierId/purchases'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        if (response.body.isEmpty || response.body == 'null') return [];
+        final decoded = json.decode(response.body);
+        if (decoded == null || decoded is! List) return [];
+        return decoded.map((j) => Purchase.fromJson(j)).toList();
+      } else if (response.statusCode == 404) {
+        return [];
+      } else {
+        throw Exception('Failed to load supplier purchases: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error loading supplier purchases: $e');
+    }
+  }
 }
