@@ -23,6 +23,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _isUploadingImage = false;
   double _uploadProgress = 0.0;
   String? _error;
+  bool _isSavingTier = false;
 
   @override
   void initState() {
@@ -474,6 +475,258 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
+  PriceInfo _buildZeroPriceInfo(double latestPrice) {
+    return PriceInfo(
+      latest: latestPrice,
+      min: 0.0,
+      max: 0.0,
+      average: 0.0,
+      averageYTD: 0.0,
+      averageMTD: 0.0,
+      totalQuantity: 0,
+      totalAmount: 0.0,
+      ytdYear: 0,
+      ytdQuantity: 0,
+      ytdTotalAmount: 0.0,
+      mtdMonth: 0,
+      mtdYear: 0,
+      mtdQuantity: 0,
+      mtdTotalAmount: 0.0,
+    );
+  }
+
+  Future<void> _showTierDialog(Product product, {int index = -1}) async {
+    final isEdit = index >= 0;
+    final existingTier = isEdit ? product.price.salesTiers[index] : null;
+
+    final minQtyController = TextEditingController(
+      text: existingTier?.minQuantity.toString() ?? '',
+    );
+    final maxQtyController = TextEditingController(
+      text: existingTier?.maxQuantity?.toString() ?? '',
+    );
+    final priceController = TextEditingController(
+      text: existingTier != null ? existingTier.price.latest.toString() : '',
+    );
+    final wholesalePriceController = TextEditingController(
+      text: existingTier?.wholesalePrice.toString() ?? '',
+    );
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isEdit ? 'แก้ไข Tier ${index + 1}' : 'เพิ่ม Tier ใหม่'),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: minQtyController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'จำนวนขั้นต่ำ',
+                          hintText: '1',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'กรุณากรอก';
+                          if (int.tryParse(v.trim()) == null) return 'ตัวเลขเท่านั้น';
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: maxQtyController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'จำนวนสูงสุด',
+                          hintText: 'ว่าง = ไม่จำกัด',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) {
+                          if (v != null && v.trim().isNotEmpty && int.tryParse(v.trim()) == null) {
+                            return 'ตัวเลขเท่านั้น';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: priceController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'ราคาขาย (บาท)',
+                          hintText: '0.00',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'กรุณากรอก';
+                          if (double.tryParse(v.trim()) == null) return 'ตัวเลขเท่านั้น';
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: wholesalePriceController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'ราคาขายส่ง (บาท)',
+                          hintText: '0.00',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'กรุณากรอก';
+                          if (double.tryParse(v.trim()) == null) return 'ตัวเลขเท่านั้น';
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              Navigator.of(ctx).pop();
+
+              final minQty = int.parse(minQtyController.text.trim());
+              final maxQtyText = maxQtyController.text.trim();
+              final maxQty = maxQtyText.isEmpty ? null : int.parse(maxQtyText);
+              final price = double.parse(priceController.text.trim());
+              final wholesalePrice = double.parse(wholesalePriceController.text.trim());
+
+              final newTier = TierPrice(
+                minQuantity: minQty,
+                maxQuantity: maxQty,
+                price: _buildZeroPriceInfo(price),
+                wholesalePrice: wholesalePrice,
+              );
+
+              final updatedTiers = List<TierPrice>.from(product.price.salesTiers);
+              if (isEdit) {
+                updatedTiers[index] = newTier;
+              } else {
+                updatedTiers.add(newTier);
+              }
+
+              final updatedPrice = Price(
+                purchaseVAT: product.price.purchaseVAT,
+                purchaseNonVAT: product.price.purchaseNonVAT,
+                saleVAT: product.price.saleVAT,
+                saleNonVAT: product.price.saleNonVAT,
+                salesTiers: updatedTiers,
+              );
+              final updatedProduct = product.copyWith(
+                price: updatedPrice,
+                updatedAt: DateTime.now(),
+              );
+
+              final provider = context.read<ProductProvider>();
+              setState(() => _isSavingTier = true);
+              try {
+                final success = await provider.updateProduct(updatedProduct);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(success
+                          ? (isEdit ? 'อัปเดต Tier เรียบร้อยแล้ว' : 'เพิ่ม Tier เรียบร้อยแล้ว')
+                          : 'เกิดข้อผิดพลาด กรุณาลองใหม่'),
+                      backgroundColor: success ? Colors.green : Colors.red,
+                    ),
+                  );
+                }
+              } finally {
+                if (mounted) setState(() => _isSavingTier = false);
+              }
+            },
+            child: const Text('บันทึก'),
+          ),
+        ],
+      ),
+    );
+
+    minQtyController.dispose();
+    maxQtyController.dispose();
+    priceController.dispose();
+    wholesalePriceController.dispose();
+  }
+
+  Future<void> _deleteTier(Product product, int index) async {
+    final provider = context.read<ProductProvider>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ลบ Tier'),
+        content: Text('คุณต้องการลบ Tier ${index + 1} ใช่หรือไม่?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('ลบ', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final updatedTiers = List<TierPrice>.from(product.price.salesTiers)..removeAt(index);
+    final updatedPrice = Price(
+      purchaseVAT: product.price.purchaseVAT,
+      purchaseNonVAT: product.price.purchaseNonVAT,
+      saleVAT: product.price.saleVAT,
+      saleNonVAT: product.price.saleNonVAT,
+      salesTiers: updatedTiers,
+    );
+    final updatedProduct = product.copyWith(
+      price: updatedPrice,
+      updatedAt: DateTime.now(),
+    );
+
+    setState(() => _isSavingTier = true);
+    try {
+      final success = await provider.updateProduct(updatedProduct);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success ? 'ลบ Tier เรียบร้อยแล้ว' : 'เกิดข้อผิดพลาด กรุณาลองใหม่'),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingTier = false);
+    }
+  }
+
   Widget _buildSalesTierSection(Product product) {
     return Card(
       child: Padding(
@@ -481,17 +734,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ResponsiveText(
-              'ราคาขายตาม Tier',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ResponsiveText(
+                  'ราคาขายตาม Tier',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                _isSavingTier
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : TextButton.icon(
+                        onPressed: () => _showTierDialog(product),
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('เพิ่ม Tier'),
+                      ),
+              ],
             ),
             const SizedBox(height: 16),
-            
+
             if (product.price.salesTiers.isNotEmpty) ...[
-              // Table Header
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
@@ -541,12 +809,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(width: 72),
                   ],
                 ),
               ),
               const SizedBox(height: 8),
             ],
-            
+
             if (product.price.salesTiers.isEmpty)
               Container(
                 padding: const EdgeInsets.all(16),
@@ -561,7 +830,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: ResponsiveText(
-                        'ยังไม่มีราคาขายตาม Tier',
+                        'ยังไม่มีราคาขายตาม Tier\nกดปุ่ม "เพิ่ม Tier" เพื่อเพิ่มราคาขายตามจำนวน',
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 14,
@@ -575,7 +844,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ...product.price.salesTiers.asMap().entries.map((entry) {
                 final index = entry.key;
                 final tier = entry.value;
-                return _buildTierRow(index, tier);
+                return _buildTierRow(product, index, tier);
               }),
           ],
         ),
@@ -583,7 +852,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildTierRow(int index, TierPrice tier) {
+  Widget _buildTierRow(Product product, int index, TierPrice tier) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -632,6 +901,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 fontSize: 16,
               ),
             ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                onPressed: _isSavingTier ? null : () => _showTierDialog(product, index: index),
+                icon: const Icon(Icons.edit, size: 18),
+                color: Colors.blue,
+                tooltip: 'แก้ไข Tier นี้',
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                padding: EdgeInsets.zero,
+              ),
+              IconButton(
+                onPressed: _isSavingTier ? null : () => _deleteTier(product, index),
+                icon: const Icon(Icons.delete, size: 18),
+                color: Colors.red,
+                tooltip: 'ลบ Tier นี้',
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                padding: EdgeInsets.zero,
+              ),
+            ],
           ),
         ],
       ),
