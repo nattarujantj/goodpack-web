@@ -30,9 +30,10 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
   
-  // Customer filter
+  // Supplier filter
   String? _selectedSupplierId;
-  
+  int _filterResetKey = 0;
+
   // Draggable FAB position
   Offset _fabPosition = const Offset(16, 16);
 
@@ -652,6 +653,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
 
   void _clearFilters() {
     setState(() {
+      _filterResetKey++;
       _searchQuery = '';
       _vatFilter = 'ทั้งหมด';
       _startDate = null;
@@ -867,7 +869,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
         }
 
         return SearchableDropdown<String>(
-          key: ValueKey('supplier_dropdown_${_selectedSupplierId ?? "none"}'),
+          key: ValueKey('supplier_dropdown_${_selectedSupplierId}_$_filterResetKey'),
           value: _selectedSupplierId,
           items: suppliers.map((s) => s.id).toList(),
           itemAsString: (id) {

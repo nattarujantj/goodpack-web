@@ -34,7 +34,8 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
   
   // Customer filter
   String? _selectedCustomerId;
-  
+  int _filterResetKey = 0;
+
   // Draggable FAB position
   Offset _fabPosition = const Offset(16, 16);
 
@@ -867,6 +868,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
 
   void _clearFilters() {
     setState(() {
+      _filterResetKey++;
       _statusFilter = 'ทั้งหมด';
       _vatFilter = 'ทั้งหมด';
       _searchQuery = '';
@@ -1084,7 +1086,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
         }
 
         return SearchableDropdown<String>(
-          key: ValueKey('customer_dropdown_${_selectedCustomerId ?? "none"}'),
+          key: ValueKey('customer_dropdown_${_selectedCustomerId}_$_filterResetKey'),
           value: _selectedCustomerId,
           items: customers.map((c) => c.id).toList(),
           itemAsString: (id) {
