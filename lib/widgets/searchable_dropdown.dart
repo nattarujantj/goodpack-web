@@ -69,6 +69,12 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
         });
         _searchController.clear();
       }
+    } else if (widget.value == null && _searchController.text.isNotEmpty) {
+      // value is still null but text field has stale text — force clear
+      _searchController.clear();
+      setState(() {
+        _filteredItems = widget.items;
+      });
     }
     
     // Update filtered items when items list changes (e.g., data loaded asynchronously)

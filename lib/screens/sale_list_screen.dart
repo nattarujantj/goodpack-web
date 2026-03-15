@@ -547,6 +547,7 @@ class _SaleListScreenState extends State<SaleListScreen> {
         }
 
         return SearchableDropdown<String>(
+          key: ValueKey('customer_dropdown_${_selectedCustomerId ?? "none"}'),
           value: _selectedCustomerId,
           items: customers.map((c) => c.id).toList(),
           itemAsString: (id) {

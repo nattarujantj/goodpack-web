@@ -867,6 +867,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
         }
 
         return SearchableDropdown<String>(
+          key: ValueKey('supplier_dropdown_${_selectedSupplierId ?? "none"}'),
           value: _selectedSupplierId,
           items: suppliers.map((s) => s.id).toList(),
           itemAsString: (id) {
