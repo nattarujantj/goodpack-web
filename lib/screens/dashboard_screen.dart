@@ -22,6 +22,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   /// เดือนที่เลือกสำหรับดูสรุป (ใช้เฉพาะ year, month)
   late DateTime _selectedMonth;
 
+  /// เดือนที่เลือกในตาราง Revenue vs Expense เพื่อดู Top Spenders
+  int _revenueChartSelectedMonth = DateTime.now().month;
+
   @override
   void initState() {
     super.initState();
@@ -686,6 +689,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     }
 
+    final topSpenders = _getTopSpenders(sales, chartYear, _revenueChartSelectedMonth, 5);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -709,56 +714,210 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 8),
 
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildLegendItem('รายได้', Colors.green),
-                const SizedBox(width: 24),
-                _buildLegendItem('รายจ่าย', Colors.red),
-              ],
-            ),
-            const SizedBox(height: 16),
+                // ===== ฝั่งซ้าย: ตารางรายได้ vs รายจ่าย =====
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          _buildLegendItem('รายได้', Colors.green),
+                          const SizedBox(width: 16),
+                          _buildLegendItem('รายจ่าย', Colors.red),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columnSpacing: 16,
+                          showCheckboxColumn: false,
+                          columns: const [
+                            DataColumn(label: Text('เดือน')),
+                            DataColumn(label: Text('รายได้'), numeric: true),
+                            DataColumn(label: Text('รายจ่าย'), numeric: true),
+                            DataColumn(label: Text('กำไร'), numeric: true),
+                          ],
+                          rows: List.generate(12, (index) {
+                            final month = index + 1;
+                            final revenue = monthlyData[month]!['revenue']!;
+                            final expense = monthlyData[month]!['expense']!;
+                            final profit = revenue - expense;
+                            final isSelectedMonth = month == selectedMonth.month;
+                            final isChartSelected = month == _revenueChartSelectedMonth;
 
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columnSpacing: 16,
-                columns: const [
-                  DataColumn(label: Text('เดือน')),
-                  DataColumn(label: Text('รายได้'), numeric: true),
-                  DataColumn(label: Text('รายจ่าย'), numeric: true),
-                  DataColumn(label: Text('กำไร'), numeric: true),
-                ],
-                rows: List.generate(12, (index) {
-                  final month = index + 1;
-                  final revenue = monthlyData[month]!['revenue']!;
-                  final expense = monthlyData[month]!['expense']!;
-                  final profit = revenue - expense;
-                  final isSelectedMonth = month == selectedMonth.month;
-
-                  return DataRow(
-                    cells: [
-                      DataCell(Text(
-                        _thaiMonths[index],
-                        style: isSelectedMonth ? const TextStyle(fontWeight: FontWeight.bold) : null,
-                      )),
-                      DataCell(Text(_formatShortCurrency(revenue), style: const TextStyle(color: Colors.green))),
-                      DataCell(Text(_formatShortCurrency(expense), style: const TextStyle(color: Colors.red))),
-                      DataCell(Text(
-                        _formatShortCurrency(profit),
-                        style: TextStyle(
-                          color: profit >= 0 ? Colors.blue : Colors.orange,
-                          fontWeight: FontWeight.bold,
+                            return DataRow(
+                              selected: isChartSelected,
+                              color: WidgetStateProperty.resolveWith((states) {
+                                if (isChartSelected) return Colors.purple.withOpacity(0.08);
+                                return null;
+                              }),
+                              onSelectChanged: (_) {
+                                setState(() => _revenueChartSelectedMonth = month);
+                              },
+                              cells: [
+                                DataCell(Text(
+                                  _thaiMonths[index],
+                                  style: isSelectedMonth
+                                      ? const TextStyle(fontWeight: FontWeight.bold)
+                                      : null,
+                                )),
+                                DataCell(Text(_formatShortCurrency(revenue),
+                                    style: const TextStyle(color: Colors.green))),
+                                DataCell(Text(_formatShortCurrency(expense),
+                                    style: const TextStyle(color: Colors.red))),
+                                DataCell(Text(
+                                  _formatShortCurrency(profit),
+                                  style: TextStyle(
+                                    color: profit >= 0 ? Colors.blue : Colors.orange,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                )),
+                              ],
+                            );
+                          }),
                         ),
-                      )),
+                      ),
                     ],
-                  );
-                }),
-              ),
+                  ),
+                ),
+
+                const SizedBox(width: 16),
+                const VerticalDivider(width: 1),
+                const SizedBox(width: 16),
+
+                // ===== ฝั่งขวา: Top 5 Spenders ของเดือนที่เลือก =====
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.people_alt, color: Colors.deepOrange, size: 18),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Top 5 ลูกค้า • ${_thaiMonths[_revenueChartSelectedMonth - 1]} ${chartYear + 543}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.deepOrange,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'แตะแถวเดือนด้านซ้ายเพื่อเปลี่ยนเดือน',
+                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 8),
+                      if (topSpenders.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Center(
+                            child: Text('ไม่มีข้อมูลเดือนนี้',
+                                style: TextStyle(color: Colors.grey)),
+                          ),
+                        )
+                      else
+                        ...topSpenders.asMap().entries.map((entry) {
+                          final rank = entry.key;
+                          final spender = entry.value;
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: rank == 0
+                                  ? Colors.amber.withOpacity(0.12)
+                                  : Colors.grey.withOpacity(0.06),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: rank == 0
+                                    ? Colors.amber.withOpacity(0.5)
+                                    : Colors.grey.withOpacity(0.2),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 14,
+                                  backgroundColor: _getMedalColor(rank),
+                                  child: Text(
+                                    '${rank + 1}',
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        spender['name'] as String,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600, fontSize: 13),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        '${spender['count']} ออเดอร์',
+                                        style: const TextStyle(
+                                            fontSize: 11, color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  _formatShortCurrency(spender['total'] as double),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: Colors.deepOrange[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  List<Map<String, dynamic>> _getTopSpenders(
+      List<Sale> sales, int year, int month, int limit) {
+    final spenderMap = <String, Map<String, dynamic>>{};
+
+    for (final sale in sales) {
+      if (sale.saleDate.year == year && sale.saleDate.month == month) {
+        final id = sale.customerId;
+        if (!spenderMap.containsKey(id)) {
+          spenderMap[id] = {
+            'name': sale.customerName,
+            'total': 0.0,
+            'count': 0,
+          };
+        }
+        spenderMap[id]!['total'] =
+            (spenderMap[id]!['total'] as double) + _calculateSaleTotal(sale);
+        spenderMap[id]!['count'] = (spenderMap[id]!['count'] as int) + 1;
+      }
+    }
+
+    final sorted = spenderMap.values.toList()
+      ..sort((a, b) => (b['total'] as double).compareTo(a['total'] as double));
+
+    return sorted.take(limit).toList();
   }
 
   Widget _buildLegendItem(String label, Color color) {
