@@ -38,13 +38,31 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
   // Draggable FAB position
   Offset _fabPosition = const Offset(16, 16);
 
+  // Static cache to preserve filters when navigating via VAT dropdown
+  static String? _cachedCustomerId;
+  static DateTime? _cachedStartDate;
+  static DateTime? _cachedEndDate;
+  static String _cachedSearchQuery = '';
+  static String _cachedStatusFilter = 'ทั้งหมด';
+  static bool _hasCachedFilters = false;
+
   @override
   void initState() {
     super.initState();
     if (widget.initialVatFilter != null) {
       _vatFilter = widget.initialVatFilter!;
     }
-    _initDefaultDateRange();
+    if (_hasCachedFilters) {
+      _selectedCustomerId = _cachedCustomerId;
+      _startDate = _cachedStartDate;
+      _endDate = _cachedEndDate;
+      _searchQuery = _cachedSearchQuery;
+      _searchController.text = _cachedSearchQuery;
+      _statusFilter = _cachedStatusFilter;
+      _hasCachedFilters = false;
+    } else {
+      _initDefaultDateRange();
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<QuotationProvider>().loadQuotationsIfNeeded();
       context.read<CustomerProvider>().loadCustomersIfNeeded();
@@ -305,6 +323,49 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
                       DropdownMenuItem<String>(value: 'accepted', child: Text('ยอมรับ')),
                       DropdownMenuItem<String>(value: 'rejected', child: Text('ปฏิเสธ')),
                       DropdownMenuItem<String>(value: 'expired', child: Text('หมดอายุ')),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // VAT Filter
+            Row(
+              children: [
+                Expanded(
+                  child: ResponsiveText(
+                    'ประเภท VAT:',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: DropdownButton<String>(
+                    value: _vatFilter,
+                    isExpanded: true,
+                    onChanged: (value) {
+                      _cachedCustomerId = _selectedCustomerId;
+                      _cachedStartDate = _startDate;
+                      _cachedEndDate = _endDate;
+                      _cachedSearchQuery = _searchQuery;
+                      _cachedStatusFilter = _statusFilter;
+                      _hasCachedFilters = true;
+                      if (value == 'VAT') {
+                        context.go('/quotations?vat=true');
+                      } else if (value == 'Non-VAT') {
+                        context.go('/quotations?vat=false');
+                      } else {
+                        context.go('/quotations');
+                      }
+                    },
+                    items: const [
+                      DropdownMenuItem(value: 'ทั้งหมด', child: Text('ทั้งหมด')),
+                      DropdownMenuItem(value: 'VAT', child: Text('VAT')),
+                      DropdownMenuItem(value: 'Non-VAT', child: Text('Non-VAT')),
                     ],
                   ),
                 ),

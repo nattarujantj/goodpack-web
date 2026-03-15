@@ -36,11 +36,26 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   // Draggable FAB position
   Offset _fabPosition = const Offset(16, 16);
 
+  // Static cache to preserve filters when navigating via VAT dropdown
+  static String? _cachedSupplierId;
+  static DateTime? _cachedStartDate;
+  static DateTime? _cachedEndDate;
+  static String _cachedSearchQuery = '';
+  static bool _hasCachedFilters = false;
+
   @override
   void initState() {
     super.initState();
     _vatFilter = widget.initialVatFilter ?? 'ทั้งหมด';
-    _initDefaultDateRange();
+    if (_hasCachedFilters) {
+      _selectedSupplierId = _cachedSupplierId;
+      _startDate = _cachedStartDate;
+      _endDate = _cachedEndDate;
+      _searchQuery = _cachedSearchQuery;
+      _hasCachedFilters = false;
+    } else {
+      _initDefaultDateRange();
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PurchaseProvider>().loadPurchasesIfNeeded();
       context.read<SupplierProvider>().loadSuppliersIfNeeded();
@@ -235,6 +250,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
                 });
               },
               hintText: 'ค้นหารายการซื้อ...',
+              initialValue: _searchQuery.isNotEmpty ? _searchQuery : null,
             ),
             
             const SizedBox(height: 16),
@@ -266,9 +282,18 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
                     value: _vatFilter,
                     isExpanded: true,
                     onChanged: (value) {
-                      setState(() {
-                        _vatFilter = value!;
-                      });
+                      _cachedSupplierId = _selectedSupplierId;
+                      _cachedStartDate = _startDate;
+                      _cachedEndDate = _endDate;
+                      _cachedSearchQuery = _searchQuery;
+                      _hasCachedFilters = true;
+                      if (value == 'VAT') {
+                        context.go('/purchases?vat=true');
+                      } else if (value == 'Non-VAT') {
+                        context.go('/purchases?vat=false');
+                      } else {
+                        context.go('/purchases');
+                      }
                     },
                     items: const [
                       DropdownMenuItem(value: 'ทั้งหมด', child: Text('ทั้งหมด')),

@@ -64,6 +64,9 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
       if (widget.value != null) {
         _searchController.text = widget.itemAsString(widget.value!);
       } else {
+        setState(() {
+          _filteredItems = widget.items;
+        });
         _searchController.clear();
       }
     }

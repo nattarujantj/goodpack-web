@@ -32,6 +32,13 @@ class _SaleListScreenState extends State<SaleListScreen> {
   
   // Customer filter
   String? _selectedCustomerId;
+
+  // Static cache to preserve filters when navigating via VAT dropdown
+  static String? _cachedCustomerId;
+  static DateTime? _cachedStartDate;
+  static DateTime? _cachedEndDate;
+  static String _cachedSearchQuery = '';
+  static bool _hasCachedFilters = false;
   
   // Draggable FAB position
   Offset _fabPosition = const Offset(16, 16); // Bottom-right offset
@@ -40,7 +47,16 @@ class _SaleListScreenState extends State<SaleListScreen> {
   void initState() {
     super.initState();
     _vatFilter = widget.initialVatFilter;
-    _initDefaultDateRange();
+    if (_hasCachedFilters) {
+      _selectedCustomerId = _cachedCustomerId;
+      _startDate = _cachedStartDate;
+      _endDate = _cachedEndDate;
+      _searchQuery = _cachedSearchQuery;
+      _searchController.text = _cachedSearchQuery;
+      _hasCachedFilters = false;
+    } else {
+      _initDefaultDateRange();
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SaleProvider>().loadSalesIfNeeded();
       context.read<CustomerProvider>().loadCustomersIfNeeded();
@@ -294,9 +310,18 @@ class _SaleListScreenState extends State<SaleListScreen> {
             value: _vatFilter,
                     isExpanded: true,
                     onChanged: (value) {
-                      setState(() {
-                        _vatFilter = value;
-                      });
+                      _cachedCustomerId = _selectedCustomerId;
+                      _cachedStartDate = _startDate;
+                      _cachedEndDate = _endDate;
+                      _cachedSearchQuery = _searchQuery;
+                      _hasCachedFilters = true;
+                      if (value == 'VAT') {
+                        context.go('/sales?vat=true');
+                      } else if (value == 'Non-VAT') {
+                        context.go('/sales?vat=false');
+                      } else {
+                        context.go('/sales');
+                      }
                     },
             items: const [
               DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
