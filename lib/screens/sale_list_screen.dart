@@ -5,6 +5,7 @@ import '../models/sale.dart';
 import '../providers/sale_provider.dart';
 import '../providers/customer_provider.dart';
 import '../widgets/responsive_layout.dart';
+import '../widgets/searchable_dropdown.dart';
 import '../utils/date_formatter.dart';
 
 class SaleListScreen extends StatefulWidget {
@@ -138,6 +139,9 @@ class _SaleListScreenState extends State<SaleListScreen> {
               children: [
                 // Filters Section
                 _buildFiltersSection(saleProvider),
+                
+                // Summary Section
+                _buildSummarySection(sortedSales),
                 
                 // Sale Count
                 ResponsivePadding(
@@ -499,54 +503,44 @@ class _SaleListScreenState extends State<SaleListScreen> {
       builder: (context, customerProvider, child) {
         final customers = customerProvider.allCustomers;
         final isLoading = customerProvider.isLoading;
-        
-        return Row(
-          children: [
-            Expanded(
-              child: Text(
-                'ลูกค้า: ${isLoading ? "(กำลังโหลด...)" : "(${customers.length})"}',
-                style: const TextStyle(fontWeight: FontWeight.w500),
+
+        if (isLoading) {
+          return Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'ลูกค้า: (กำลังโหลด...)',
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
               ),
-            ),
-            Expanded(
-              flex: 2,
-              child: isLoading 
-                ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
-                : DropdownButton<String?>(
-                    value: _selectedCustomerId,
-                    isExpanded: true,
-                    hint: const Text('ทั้งหมด'),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedCustomerId = value;
-                      });
-                    },
-                    items: [
-                      const DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
-                      ...customers.map((customer) {
-                        final companyName = customer.companyName.isNotEmpty ? customer.companyName : 'ไม่มีชื่อบริษัท';
-                        final contactName = customer.contactName.isNotEmpty ? customer.contactName : '';
-                        final phoneNumber = customer.phone.isNotEmpty ? customer.phone : '';
-                        final customerCode = customer.customerCode.isNotEmpty ? '[${customer.customerCode}]' : '';
-                        
-                        // Build display text: ชื่อบริษัท [รหัส] - ผู้ติดต่อ (เบอร์โทร)
-                        String displayText = companyName;
-                        if (customerCode.isNotEmpty) displayText += ' $customerCode';
-                        if (contactName.isNotEmpty) displayText += ' - $contactName';
-                        if (phoneNumber.isNotEmpty) displayText += ' ($phoneNumber)';
-                        
-                        return DropdownMenuItem<String?>(
-                          value: customer.id,
-                          child: Text(
-                            displayText,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-            ),
-          ],
+              const Expanded(
+                flex: 2,
+                child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+              ),
+            ],
+          );
+        }
+
+        return SearchableDropdown<String>(
+          value: _selectedCustomerId,
+          items: customers.map((c) => c.id).toList(),
+          itemAsString: (id) {
+            final customer = customers.firstWhere((c) => c.id == id, orElse: () => customers.first);
+            final companyName = customer.companyName.isNotEmpty ? customer.companyName : 'ไม่มีชื่อบริษัท';
+            final contactName = customer.contactName.isNotEmpty ? customer.contactName : '';
+            final phoneNumber = customer.phone.isNotEmpty ? customer.phone : '';
+            final customerCode = customer.customerCode.isNotEmpty ? '[${customer.customerCode}]' : '';
+            String displayText = companyName;
+            if (customerCode.isNotEmpty) displayText += ' $customerCode';
+            if (contactName.isNotEmpty) displayText += ' - $contactName';
+            if (phoneNumber.isNotEmpty) displayText += ' ($phoneNumber)';
+            return displayText;
+          },
+          onChanged: (value) => setState(() => _selectedCustomerId = value),
+          hint: 'ทั้งหมด',
+          label: 'ลูกค้า (${customers.length})',
+          allowClear: true,
+          prefixIcon: const Icon(Icons.person_outline),
         );
       },
     );
@@ -994,6 +988,143 @@ class _SaleListScreenState extends State<SaleListScreen> {
     });
   }
 
+
+  Widget _buildSummarySection(List<Sale> sales) {
+    double totalGrandAmount = 0.0;
+    double totalPaid = 0.0;
+    double totalUnpaid = 0.0;
+    double totalVAT = 0.0;
+    double totalBeforeVAT = 0.0;
+
+    for (final sale in sales) {
+      final beforeVAT = sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);
+      final vat = sale.isVAT ? beforeVAT * 0.07 : 0.0;
+      final grand = beforeVAT + vat + sale.shippingCost;
+
+      totalBeforeVAT += beforeVAT;
+      totalVAT += vat;
+      totalGrandAmount += grand;
+
+      if (sale.payment.isPaid) {
+        totalPaid += grand;
+      } else {
+        totalUnpaid += grand;
+      }
+    }
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.blue[50],
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.summarize, color: Colors.blue[700], size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'สรุปยอด (${sales.length} รายการ)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.blue[700],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(),
+            const SizedBox(height: 8),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth > 500;
+                if (isWide) {
+                  return Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(child: _buildSummaryItem('ยอดก่อน VAT', totalBeforeVAT, Colors.grey[700]!)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildSummaryItem('VAT', totalVAT, Colors.orange[700]!)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildSummaryItem('ยอดรวมทั้งหมด', totalGrandAmount, Colors.blue[700]!)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: _buildSummaryItem('จ่ายแล้ว', totalPaid, Colors.green[700]!)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildSummaryItem('ยังไม่จ่าย', totalUnpaid, Colors.red[700]!)),
+                          const SizedBox(width: 8),
+                          Expanded(child: Container()),
+                        ],
+                      ),
+                    ],
+                  );
+                } else {
+                  return Column(
+                    children: [
+                      _buildSummaryItem('ยอดก่อน VAT', totalBeforeVAT, Colors.grey[700]!),
+                      const SizedBox(height: 8),
+                      _buildSummaryItem('VAT', totalVAT, Colors.orange[700]!),
+                      const SizedBox(height: 8),
+                      _buildSummaryItem('ยอดรวมทั้งหมด', totalGrandAmount, Colors.blue[700]!),
+                      const Divider(height: 16),
+                      _buildSummaryItem('จ่ายแล้ว', totalPaid, Colors.green[700]!),
+                      const SizedBox(height: 8),
+                      _buildSummaryItem('ยังไม่จ่าย', totalUnpaid, Colors.red[700]!),
+                    ],
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryItem(String label, double value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '฿${_formatNumber(value)}',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatNumber(double value) {
+    return value.toStringAsFixed(2).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+  }
 
   double _calculateGrandTotal(Sale sale) {
     final totalBeforeVAT = sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);

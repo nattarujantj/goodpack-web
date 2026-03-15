@@ -6,6 +6,7 @@ import '../providers/supplier_provider.dart';
 import '../models/purchase.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/search_bar.dart';
+import '../widgets/searchable_dropdown.dart';
 import '../utils/date_formatter.dart';
 
 class PurchaseListScreen extends StatefulWidget {
@@ -822,54 +823,44 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
       builder: (context, supplierProvider, child) {
         final suppliers = supplierProvider.allSuppliers;
         final isLoading = supplierProvider.isLoading;
-        
-        return Row(
-          children: [
-            Expanded(
-              child: Text(
-                'ซัพพลายเออร์: ${isLoading ? "(กำลังโหลด...)" : "(${suppliers.length})"}',
-                style: const TextStyle(fontWeight: FontWeight.w500),
+
+        if (isLoading) {
+          return Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'ซัพพลายเออร์: (กำลังโหลด...)',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
               ),
-            ),
-            Expanded(
-              flex: 2,
-              child: isLoading 
-                ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
-                : DropdownButton<String?>(
-                    value: _selectedSupplierId,
-                    isExpanded: true,
-                    hint: const Text('ทั้งหมด'),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedSupplierId = value;
-                      });
-                    },
-                    items: [
-                      const DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
-                      ...suppliers.map((supplier) {
-                        final companyName = supplier.companyName.isNotEmpty ? supplier.companyName : 'ไม่มีชื่อบริษัท';
-                        final contactName = supplier.contactName.isNotEmpty ? supplier.contactName : '';
-                        final phoneNumber = supplier.phone.isNotEmpty ? supplier.phone : '';
-                        final supplierCode = supplier.supplierCode.isNotEmpty ? '[${supplier.supplierCode}]' : '';
-                        
-                        // Build display text: ชื่อบริษัท [รหัส] - ผู้ติดต่อ (เบอร์โทร)
-                        String displayText = companyName;
-                        if (supplierCode.isNotEmpty) displayText += ' $supplierCode';
-                        if (contactName.isNotEmpty) displayText += ' - $contactName';
-                        if (phoneNumber.isNotEmpty) displayText += ' ($phoneNumber)';
-                        
-                        return DropdownMenuItem<String?>(
-                          value: supplier.id,
-                          child: Text(
-                            displayText,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-            ),
-          ],
+              const Expanded(
+                flex: 2,
+                child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+              ),
+            ],
+          );
+        }
+
+        return SearchableDropdown<String>(
+          value: _selectedSupplierId,
+          items: suppliers.map((s) => s.id).toList(),
+          itemAsString: (id) {
+            final supplier = suppliers.firstWhere((s) => s.id == id, orElse: () => suppliers.first);
+            final companyName = supplier.companyName.isNotEmpty ? supplier.companyName : 'ไม่มีชื่อบริษัท';
+            final contactName = supplier.contactName.isNotEmpty ? supplier.contactName : '';
+            final phoneNumber = supplier.phone.isNotEmpty ? supplier.phone : '';
+            final supplierCode = supplier.supplierCode.isNotEmpty ? '[${supplier.supplierCode}]' : '';
+            String displayText = companyName;
+            if (supplierCode.isNotEmpty) displayText += ' $supplierCode';
+            if (contactName.isNotEmpty) displayText += ' - $contactName';
+            if (phoneNumber.isNotEmpty) displayText += ' ($phoneNumber)';
+            return displayText;
+          },
+          onChanged: (value) => setState(() => _selectedSupplierId = value),
+          hint: 'ทั้งหมด',
+          label: 'ซัพพลายเออร์ (${suppliers.length})',
+          allowClear: true,
+          prefixIcon: const Icon(Icons.business_outlined),
         );
       },
     );

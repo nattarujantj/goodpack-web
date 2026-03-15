@@ -6,6 +6,7 @@ import '../providers/quotation_provider.dart';
 import '../providers/sale_provider.dart';
 import '../providers/customer_provider.dart';
 import '../widgets/responsive_layout.dart';
+import '../widgets/searchable_dropdown.dart';
 import '../utils/date_formatter.dart';
 
 class QuotationListScreen extends StatefulWidget {
@@ -1003,54 +1004,44 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
       builder: (context, customerProvider, child) {
         final customers = customerProvider.allCustomers;
         final isLoading = customerProvider.isLoading;
-        
-        return Row(
-          children: [
-            Expanded(
-              child: Text(
-                'ลูกค้า: ${isLoading ? "(กำลังโหลด...)" : "(${customers.length})"}',
-                style: const TextStyle(fontWeight: FontWeight.w500),
+
+        if (isLoading) {
+          return Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'ลูกค้า: (กำลังโหลด...)',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
               ),
-            ),
-            Expanded(
-              flex: 2,
-              child: isLoading 
-                ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
-                : DropdownButton<String?>(
-                    value: _selectedCustomerId,
-                    isExpanded: true,
-                    hint: const Text('ทั้งหมด'),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedCustomerId = value;
-                      });
-                    },
-                    items: [
-                      const DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
-                      ...customers.map((customer) {
-                        final companyName = customer.companyName.isNotEmpty ? customer.companyName : 'ไม่มีชื่อบริษัท';
-                        final contactName = customer.contactName.isNotEmpty ? customer.contactName : '';
-                        final phoneNumber = customer.phone.isNotEmpty ? customer.phone : '';
-                        final customerCode = customer.customerCode.isNotEmpty ? '[${customer.customerCode}]' : '';
-                        
-                        // Build display text: ชื่อบริษัท [รหัส] - ผู้ติดต่อ (เบอร์โทร)
-                        String displayText = companyName;
-                        if (customerCode.isNotEmpty) displayText += ' $customerCode';
-                        if (contactName.isNotEmpty) displayText += ' - $contactName';
-                        if (phoneNumber.isNotEmpty) displayText += ' ($phoneNumber)';
-                        
-                        return DropdownMenuItem<String?>(
-                          value: customer.id,
-                          child: Text(
-                            displayText,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-            ),
-          ],
+              const Expanded(
+                flex: 2,
+                child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+              ),
+            ],
+          );
+        }
+
+        return SearchableDropdown<String>(
+          value: _selectedCustomerId,
+          items: customers.map((c) => c.id).toList(),
+          itemAsString: (id) {
+            final customer = customers.firstWhere((c) => c.id == id, orElse: () => customers.first);
+            final companyName = customer.companyName.isNotEmpty ? customer.companyName : 'ไม่มีชื่อบริษัท';
+            final contactName = customer.contactName.isNotEmpty ? customer.contactName : '';
+            final phoneNumber = customer.phone.isNotEmpty ? customer.phone : '';
+            final customerCode = customer.customerCode.isNotEmpty ? '[${customer.customerCode}]' : '';
+            String displayText = companyName;
+            if (customerCode.isNotEmpty) displayText += ' $customerCode';
+            if (contactName.isNotEmpty) displayText += ' - $contactName';
+            if (phoneNumber.isNotEmpty) displayText += ' ($phoneNumber)';
+            return displayText;
+          },
+          onChanged: (value) => setState(() => _selectedCustomerId = value),
+          hint: 'ทั้งหมด',
+          label: 'ลูกค้า (${customers.length})',
+          allowClear: true,
+          prefixIcon: const Icon(Icons.person_outline),
         );
       },
     );

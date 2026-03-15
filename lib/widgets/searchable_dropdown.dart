@@ -10,6 +10,7 @@ class SearchableDropdown<T> extends StatefulWidget {
   final String? label;
   final String? Function(T?)? validator;
   final bool enabled;
+  final bool allowClear;
   final Widget? prefixIcon;
   final Widget? suffixIcon;
 
@@ -24,6 +25,7 @@ class SearchableDropdown<T> extends StatefulWidget {
     this.label,
     this.validator,
     this.enabled = true,
+    this.allowClear = false,
     this.prefixIcon,
     this.suffixIcon,
   }) : super(key: key);
@@ -263,7 +265,19 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
             decoration: InputDecoration(
               hintText: widget.hint,
               prefixIcon: widget.prefixIcon,
-              suffixIcon: widget.suffixIcon ?? const Icon(Icons.arrow_drop_down),
+              suffixIcon: widget.suffixIcon ??
+                  (widget.allowClear && widget.value != null
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            widget.onChanged?.call(null);
+                            _searchController.clear();
+                            _filterItems('');
+                            _focusNode.unfocus();
+                            _removeOverlay();
+                          },
+                        )
+                      : const Icon(Icons.arrow_drop_down)),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
