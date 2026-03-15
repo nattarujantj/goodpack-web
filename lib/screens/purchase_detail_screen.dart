@@ -538,12 +538,25 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ResponsiveText(
-              'ข้อมูลลูกค้า',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: ResponsiveText(
+                    'ข้อมูลซัพพลายเออร์',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                if (purchase.supplierId.isNotEmpty)
+                  TextButton.icon(
+                    onPressed: () => context.go('/supplier/${purchase.supplierId}'),
+                    icon: const Icon(Icons.open_in_new, size: 16),
+                    label: const Text('ดูข้อมูลซัพพลายเออร์'),
+                    style: TextButton.styleFrom(foregroundColor: Colors.deepPurple),
+                  ),
+              ],
             ),
             const SizedBox(height: 16),
             

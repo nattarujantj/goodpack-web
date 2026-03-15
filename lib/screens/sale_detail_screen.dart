@@ -281,12 +281,25 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ResponsiveText(
-              'ข้อมูลลูกค้า',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: ResponsiveText(
+                    'ข้อมูลลูกค้า',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                if (sale.customerId.isNotEmpty)
+                  TextButton.icon(
+                    onPressed: () => context.go('/customer/${sale.customerId}'),
+                    icon: const Icon(Icons.open_in_new, size: 16),
+                    label: const Text('ดูข้อมูลลูกค้า'),
+                    style: TextButton.styleFrom(foregroundColor: Colors.indigo),
+                  ),
+              ],
             ),
             const SizedBox(height: 16),
             _buildDetailRow('ชื่อบริษัท', _customer?.companyName ?? sale.customerName ?? 'ไม่ระบุ'),

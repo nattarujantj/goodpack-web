@@ -191,12 +191,25 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ResponsiveText(
-                        'ข้อมูลลูกค้า',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ResponsiveText(
+                              'ข้อมูลลูกค้า',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          if (quotation.customerId.isNotEmpty)
+                            TextButton.icon(
+                              onPressed: () => context.go('/customer/${quotation.customerId}'),
+                              icon: const Icon(Icons.open_in_new, size: 16),
+                              label: const Text('ดูข้อมูลลูกค้า'),
+                              style: TextButton.styleFrom(foregroundColor: Colors.indigo),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       _buildInfoRow('ชื่อลูกค้า', quotation.customerName),
