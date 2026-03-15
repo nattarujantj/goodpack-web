@@ -162,23 +162,12 @@ class _SaleListScreenState extends State<SaleListScreen> {
                 
                 // Sale Count
                 ResponsivePadding(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ResponsiveText(
-                        'แสดง ${sortedSales.length} จาก ${saleProvider.sales.length} รายการ',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  child: ResponsiveText(
+                    'แสดง ${sortedSales.length} จาก ${saleProvider.sales.length} รายการ',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.grey[600],
                     ),
                   ),
-                      if (_hasActiveFilters())
-                        TextButton.icon(
-                          onPressed: _clearFilters,
-                          icon: const Icon(Icons.clear, size: 16),
-                          label: const Text('ล้างตัวกรอง'),
-                  ),
-                ],
-              ),
                 ),
                 
                 // Sale Table
@@ -244,10 +233,32 @@ class _SaleListScreenState extends State<SaleListScreen> {
     return Card(
       margin: const EdgeInsets.all(16),
       child: Padding(
-      padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Filter Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'ตัวกรอง',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _clearFilters,
+                  icon: const Icon(Icons.filter_alt_off, size: 16),
+                  label: const Text('ล้างตัวกรอง'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.orange[700],
+                    side: BorderSide(color: Colors.orange[700]!),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
             // Search Bar
             TextField(
               controller: _searchController,
@@ -343,28 +354,9 @@ class _SaleListScreenState extends State<SaleListScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'ช่วงวันที่:',
-                style: TextStyle(fontWeight: FontWeight.w500),
-              ),
-            ),
-            TextButton.icon(
-              onPressed: () {
-                setState(() {
-                  _startDate = null;
-                  _endDate = null;
-                });
-              },
-              icon: const Icon(Icons.clear, size: 16),
-              label: const Text('ล้าง'),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-              ),
-            ),
-          ],
+        const Text(
+          'ช่วงวันที่:',
+          style: TextStyle(fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
         Row(

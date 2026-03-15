@@ -158,22 +158,11 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
                 
                 // Purchase Count
                 ResponsivePadding(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      ResponsiveText(
-                        'แสดง ${filteredPurchases.length} จาก ${purchaseProvider.allPurchases.length} รายการ',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      if (_hasActiveFilters())
-                        TextButton.icon(
-                          onPressed: _clearFilters,
-                          icon: const Icon(Icons.clear, size: 16),
-                          label: const Text('ล้างตัวกรอง'),
-                        ),
-                    ],
+                  child: ResponsiveText(
+                    'แสดง ${filteredPurchases.length} จาก ${purchaseProvider.allPurchases.length} รายการ',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
                   ),
                 ),
                 
@@ -243,6 +232,28 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Filter Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'ตัวกรอง',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _clearFilters,
+                  icon: const Icon(Icons.filter_alt_off, size: 16),
+                  label: const Text('ล้างตัวกรอง'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.orange[700],
+                    side: BorderSide(color: Colors.orange[700]!),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
             // Search Bar
             SearchBar(
               onSearchChanged: (query) {
@@ -666,28 +677,9 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'ช่วงวันที่:',
-                style: TextStyle(fontWeight: FontWeight.w500),
-              ),
-            ),
-            TextButton.icon(
-              onPressed: () {
-                setState(() {
-                  _startDate = null;
-                  _endDate = null;
-                });
-              },
-              icon: const Icon(Icons.clear, size: 16),
-              label: const Text('ล้าง'),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-              ),
-            ),
-          ],
+        const Text(
+          'ช่วงวันที่:',
+          style: TextStyle(fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
         Row(
