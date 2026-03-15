@@ -396,7 +396,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
                   ],
                   rows: quotations.map((quotation) {
                     return DataRow(
-                      onSelectChanged: (_) => context.go('/quotation/${quotation.id}'),
+                      onSelectChanged: (_) => context.push('/quotation/${quotation.id}'),
                       cells: [
                         DataCell(
                           Container(
@@ -545,7 +545,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
                               children: [
                                 _buildHoverIcon(
                                   icon: Icons.visibility,
-                                  onTap: () => context.go('/quotation/${quotation.id}'),
+                                  onTap: () => context.push('/quotation/${quotation.id}'),
                                   tooltip: 'ดูรายละเอียด',
                                 ),
                                 const SizedBox(width: 2),

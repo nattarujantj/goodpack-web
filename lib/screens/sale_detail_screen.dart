@@ -136,7 +136,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => context.go('/sales'),
+                  onPressed: () => context.canPop() ? context.pop() : context.go('/sales'),
                   child: const Text('กลับไปรายการขาย'),
                 ),
               ],
@@ -692,7 +692,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                     backgroundColor: Colors.green,
                   ),
                 );
-                context.go('/sales');
+                if (context.canPop()) { context.pop(); } else { context.go('/sales'); }
               } else if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

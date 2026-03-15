@@ -89,7 +89,7 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () => context.go('/quotations'),
+                      onPressed: () => context.canPop() ? context.pop() : context.go('/quotations'),
                       child: const Text('กลับไปรายการเสนอราคา'),
                     ),
                   ],

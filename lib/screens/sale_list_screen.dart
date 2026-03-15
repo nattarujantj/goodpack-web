@@ -616,7 +616,7 @@ class _SaleListScreenState extends State<SaleListScreen> {
                   ],
                   rows: sales.map((sale) {
             return DataRow(
-              onSelectChanged: (_) => context.go('/sale/${sale.id}'),
+              onSelectChanged: (_) => context.push('/sale/${sale.id}'),
               cells: [
                         DataCell(
                           Container(
@@ -726,7 +726,7 @@ class _SaleListScreenState extends State<SaleListScreen> {
                     children: [
                                 _buildHoverIcon(
                                   icon: Icons.visibility,
-                                  onTap: () => context.go('/sale/${sale.id}'),
+                                  onTap: () => context.push('/sale/${sale.id}'),
                         tooltip: 'ดูรายละเอียด',
                                 ),
                                 const SizedBox(width: 2),

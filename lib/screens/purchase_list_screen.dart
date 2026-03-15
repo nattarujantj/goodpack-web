@@ -1069,7 +1069,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   }
 
   void _navigateToPurchaseDetail(String purchaseId) {
-    context.go('/purchase/$purchaseId');
+    context.push('/purchase/$purchaseId');
   }
 
   String _formatDate(DateTime date) {

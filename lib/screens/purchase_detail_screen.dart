@@ -68,7 +68,7 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
                   Text(_error!, style: TextStyle(color: Colors.red[700], fontSize: 18)),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => context.go('/purchases'),
+                    onPressed: () => context.canPop() ? context.pop() : context.go('/purchases'),
                     child: const Text('กลับไปรายการซื้อ'),
                   ),
                 ],
