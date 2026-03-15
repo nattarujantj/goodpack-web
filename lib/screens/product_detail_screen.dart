@@ -927,7 +927,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
           const SizedBox(height: 8),
           // แสดง Weighted Average เป็นหลัก (รวมต้นทุนทั้งหมด)
-          _buildPriceRow('เฉลี่ย (ต้นทุน):', NumberFormatter.formatPrice(priceInfo.average), isHighlight: true),
+          _buildPriceRow('เฉลี่ย:', NumberFormatter.formatPrice(priceInfo.average), isHighlight: true),
           const SizedBox(height: 4),
           _buildPriceRow('เฉลี่ย YTD:', NumberFormatter.formatPrice(priceInfo.averageYTD)),
           _buildPriceRow('เฉลี่ย MTD:', NumberFormatter.formatPrice(priceInfo.averageMTD)),
