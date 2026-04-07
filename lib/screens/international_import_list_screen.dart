@@ -21,6 +21,7 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
   String _searchQuery = '';
   String _typeFilter = 'ทั้งหมด';
   String _statusFilter = 'ทั้งหมด';
+  String _commissionFilter = 'ทั้งหมด';
   DateTime? _startDate;
   DateTime? _endDate;
   final ScrollController _horizontalScrollController = ScrollController();
@@ -77,6 +78,9 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
               imp.supplierName.toLowerCase().contains(q);
           if (!match) continue;
         }
+        // Commission paid filter
+        if (_commissionFilter == 'paid' && !item.commissionPaid) continue;
+        if (_commissionFilter == 'unpaid' && item.commissionPaid) continue;
         rows.add(_FlatRow(import_: imp, item: item));
       }
     }
@@ -152,6 +156,19 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
                             onSelected: (s) => setState(() => _statusFilter = s ? 'purchased' : 'ทั้งหมด'),
                           ),
                           const SizedBox(width: 12),
+                          // Commission paid filter
+                          ChoiceChip(
+                            label: const Text('จ่าย Comm. แล้ว'),
+                            selected: _commissionFilter == 'paid',
+                            onSelected: (s) => setState(() => _commissionFilter = s ? 'paid' : 'ทั้งหมด'),
+                          ),
+                          const SizedBox(width: 4),
+                          ChoiceChip(
+                            label: const Text('ยังไม่จ่าย Comm.'),
+                            selected: _commissionFilter == 'unpaid',
+                            onSelected: (s) => setState(() => _commissionFilter = s ? 'unpaid' : 'ทั้งหมด'),
+                          ),
+                          const SizedBox(width: 12),
                           // Date range
                           ActionChip(
                             avatar: const Icon(Icons.date_range, size: 18),
@@ -198,6 +215,8 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
                                   DataColumn(label: Text('CBM'), numeric: true),
                                   DataColumn(label: Text('ต้นทุน/ชิ้น\n(ก่อน VAT)'), numeric: true),
                                   DataColumn(label: Text('ต้นทุน/ชิ้น\n(หลัง VAT)'), numeric: true),
+                                  DataColumn(label: Text('Commission'), numeric: true),
+                                  DataColumn(label: Text('จ่าย Comm.')),
                                   DataColumn(label: Text('สถานะ')),
                                 ],
                                 rows: rows.map((row) {
@@ -220,6 +239,8 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
                                       DataCell(Text(row.item.cbm.toStringAsFixed(1))),
                                       DataCell(Text(_currencyFormat.format(row.item.costPerUnitBeforeVAT))),
                                       DataCell(Text(_currencyFormat.format(row.item.costPerUnitAfterVAT))),
+                                      DataCell(Text(_currencyFormat.format(row.item.commission))),
+                                      DataCell(_buildCommissionBadge(row.item.commissionPaid)),
                                       DataCell(_buildStatusBadge(row.import_.status)),
                                     ],
                                   );
@@ -263,6 +284,20 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(type, style: TextStyle(color: isLCL ? Colors.blue[700] : Colors.orange[700], fontWeight: FontWeight.w500, fontSize: 12)),
+    );
+  }
+
+  Widget _buildCommissionBadge(bool paid) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: paid ? Colors.green[50] : Colors.red[50],
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        paid ? 'จ่ายแล้ว' : 'ยังไม่จ่าย',
+        style: TextStyle(color: paid ? Colors.green[700] : Colors.red[700], fontWeight: FontWeight.w500, fontSize: 12),
+      ),
     );
   }
 

@@ -148,6 +148,7 @@ class ImportItem {
   final double cbm;
   final double shippingCostPerUnit;
   final double commission;
+  final bool commissionPaid;
   final double costPerUnitBeforeVAT;
   final double vatPerUnit;
   final double costPerUnitAfterVAT;
@@ -166,6 +167,7 @@ class ImportItem {
     required this.cbm,
     required this.shippingCostPerUnit,
     required this.commission,
+    this.commissionPaid = false,
     required this.costPerUnitBeforeVAT,
     required this.vatPerUnit,
     required this.costPerUnitAfterVAT,
@@ -186,6 +188,7 @@ class ImportItem {
       cbm: (json['cbm'] ?? 0).toDouble(),
       shippingCostPerUnit: (json['shippingCostPerUnit'] ?? 0).toDouble(),
       commission: (json['commission'] ?? 0).toDouble(),
+      commissionPaid: json['commissionPaid'] ?? false,
       costPerUnitBeforeVAT: (json['costPerUnitBeforeVAT'] ?? 0).toDouble(),
       vatPerUnit: (json['vatPerUnit'] ?? 0).toDouble(),
       costPerUnitAfterVAT: (json['costPerUnitAfterVAT'] ?? 0).toDouble(),
@@ -207,6 +210,7 @@ class ImportItem {
       'cbm': cbm,
       'shippingCostPerUnit': shippingCostPerUnit,
       'commission': commission,
+      'commissionPaid': commissionPaid,
       'costPerUnitBeforeVAT': costPerUnitBeforeVAT,
       'vatPerUnit': vatPerUnit,
       'costPerUnitAfterVAT': costPerUnitAfterVAT,
@@ -227,6 +231,7 @@ class ImportItem {
     double? cbm,
     double? shippingCostPerUnit,
     double? commission,
+    bool? commissionPaid,
     double? costPerUnitBeforeVAT,
     double? vatPerUnit,
     double? costPerUnitAfterVAT,
@@ -245,6 +250,7 @@ class ImportItem {
       cbm: cbm ?? this.cbm,
       shippingCostPerUnit: shippingCostPerUnit ?? this.shippingCostPerUnit,
       commission: commission ?? this.commission,
+      commissionPaid: commissionPaid ?? this.commissionPaid,
       costPerUnitBeforeVAT: costPerUnitBeforeVAT ?? this.costPerUnitBeforeVAT,
       vatPerUnit: vatPerUnit ?? this.vatPerUnit,
       costPerUnitAfterVAT: costPerUnitAfterVAT ?? this.costPerUnitAfterVAT,

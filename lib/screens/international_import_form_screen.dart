@@ -420,6 +420,7 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
                     DataColumn(label: Text('CBM'), numeric: true),
                     DataColumn(label: Text('ค่าส่ง/ชิ้น'), numeric: true),
                     DataColumn(label: Text('Commission'), numeric: true),
+                    DataColumn(label: Text('จ่าย Comm.')),
                     DataColumn(label: Text('ต้นทุน/ชิ้น\n(ก่อน VAT)'), numeric: true),
                     DataColumn(label: Text('ต้นทุน/ชิ้น\n(หลัง VAT)'), numeric: true),
                     DataColumn(label: Text('')),
@@ -441,6 +442,12 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
                       DataCell(Text(cbm.toStringAsFixed(1))),
                       DataCell(Text(_currencyFormat.format(shipPU))),
                       DataCell(Text(_currencyFormat.format(item.commission))),
+                      DataCell(Checkbox(
+                        value: item.commissionPaid,
+                        onChanged: (v) => setState(() {
+                          _items[idx] = item.copyWith(commissionPaid: v ?? false);
+                        }),
+                      )),
                       DataCell(Text(_currencyFormat.format(costBV))),
                       DataCell(Text(_currencyFormat.format(costAV))),
                       DataCell(Row(
@@ -764,6 +771,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
   final _heightController = TextEditingController();
   final _piecesPerBoxController = TextEditingController(text: '1');
   final _commissionController = TextEditingController();
+  bool _commissionPaid = false;
 
   @override
   void initState() {
@@ -777,6 +785,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
       _lengthController.text = e.boxLength.toString();
       _heightController.text = e.boxHeight.toString();
       _commissionController.text = e.commission.toString();
+      _commissionPaid = e.commissionPaid;
     }
   }
 
@@ -908,6 +917,14 @@ class _AddItemDialogState extends State<_AddItemDialog> {
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(labelText: 'ค่าคอมมิชชั่น (บาท/ชิ้น)'),
                 ),
+                const SizedBox(height: 8),
+                CheckboxListTile(
+                  title: const Text('จ่ายค่าคอมมิชชั่นแล้ว'),
+                  value: _commissionPaid,
+                  onChanged: (v) => setState(() => _commissionPaid = v ?? false),
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
               ],
             ),
           ),
@@ -934,6 +951,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
               cbm: _cbmPreview,
               shippingCostPerUnit: 0,
               commission: double.tryParse(_commissionController.text) ?? 0,
+              commissionPaid: _commissionPaid,
               costPerUnitBeforeVAT: 0,
               vatPerUnit: 0,
               costPerUnitAfterVAT: 0,
