@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/auth_user.dart';
 import '../services/auth_service.dart';
 import '../services/auth_token.dart';
+import '../services/config_service.dart';
 
 class AuthProvider with ChangeNotifier {
   static const _tokenKey = 'jwt_token';
@@ -27,6 +28,7 @@ class AuthProvider with ChangeNotifier {
       AuthToken.setToken(token);
       try {
         _user = await AuthService.getMe();
+        await ConfigService().loadConfig();
       } catch (_) {
         await _clearToken();
       }
@@ -51,6 +53,9 @@ class AuthProvider with ChangeNotifier {
       _user = response.user;
       _isLoading = false;
       notifyListeners();
+
+      ConfigService().loadConfig();
+
       return true;
     } catch (e) {
       _error = e.toString();

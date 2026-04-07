@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart'; // For kIsWeb
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../config/env_config.dart';
+import 'auth_token.dart';
 
 class ConfigItem {
   final String name;
@@ -86,19 +87,12 @@ class ConfigService {
   bool get isLoaded => _isLoaded;
 
   void initialize() {
-    // Don't override dart-define settings - just load config
-    // The API URL is already set via --dart-define=API_BASE_URL
-    // Only configure runtime if dart-define is using default localhost value
     if (kIsWeb && EnvConfig.apiBaseUrl == 'http://localhost:8080/api') {
-      // Check if we're running on web and not localhost
       final hostname = html.window.location.hostname;
       if (hostname != null && hostname != 'localhost' && hostname != '127.0.0.1') {
-        // Running on production server, try to use current host as API host
         EnvConfig.configureForMobile(hostname);
       }
     }
-    // Load config from server
-    loadConfig();
   }
 
   // Manual configuration methods for debugging/testing
@@ -135,7 +129,7 @@ class ConfigService {
     try {
     final response = await http.get(
       Uri.parse('${AppConfig.baseUrl}/config/categories'),
-      headers: {'Content-Type': 'application/json'},
+      headers: AuthToken.headers,
       ).timeout(const Duration(seconds: 10));
 
     if (response.statusCode == 200) {
@@ -157,7 +151,7 @@ class ConfigService {
     try {
     final response = await http.get(
       Uri.parse('${AppConfig.baseUrl}/config/colors'),
-      headers: {'Content-Type': 'application/json'},
+      headers: AuthToken.headers,
       ).timeout(const Duration(seconds: 10));
 
     if (response.statusCode == 200) {
@@ -179,7 +173,7 @@ class ConfigService {
     try {
     final response = await http.get(
       Uri.parse('${AppConfig.baseUrl}/config/accounts'),
-      headers: {'Content-Type': 'application/json'},
+      headers: AuthToken.headers,
       ).timeout(const Duration(seconds: 10));
 
     if (response.statusCode == 200) {
