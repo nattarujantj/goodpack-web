@@ -231,70 +231,144 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
 
   Widget _buildExpenseCard(Expense expense) {
     final dateStr = DateFormat('dd/MM/yyyy').format(expense.expenseDate);
-    
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: _getCategoryColor(expense.category).withOpacity(0.15),
-          child: Icon(
-            _getCategoryIcon(expense.category),
-            color: _getCategoryColor(expense.category),
-            size: 20,
+
+    return Dismissible(
+      key: Key(expense.id),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (direction) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('ลบรายการค่าใช้จ่าย'),
+            content: Text('ต้องการลบ "${expense.category}${expense.description.isNotEmpty ? ' - ${expense.description}' : ''}" ใช่ไหม?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('ยกเลิก'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('ลบ'),
+              ),
+            ],
           ),
+        ) ?? false;
+      },
+      onDismissed: (_) => _deleteWithUndo(expense),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.red.shade400,
+          borderRadius: BorderRadius.circular(12),
         ),
-        title: Text(
-          expense.category,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            if (expense.description.isNotEmpty)
-              Text(expense.description, style: const TextStyle(fontSize: 12)),
-            Text(dateStr, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+            Text('ลบ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            SizedBox(width: 8),
+            Icon(Icons.delete_outline, color: Colors.white),
           ],
         ),
-        trailing: Text(
-          '฿${_currencyFormat.format(expense.amount)}',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            color: Colors.orange.shade800,
+      ),
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: _getCategoryColor(expense.category).withOpacity(0.15),
+            child: Icon(
+              _getCategoryIcon(expense.category),
+              color: _getCategoryColor(expense.category),
+              size: 20,
+            ),
           ),
+          title: Text(
+            expense.category,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (expense.description.isNotEmpty)
+                Text(expense.description, style: const TextStyle(fontSize: 12)),
+              Text(dateStr, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+            ],
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '฿${_currencyFormat.format(expense.amount)}',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.orange.shade800,
+                ),
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                icon: Icon(Icons.delete_outline, size: 20, color: Colors.grey[400]),
+                onPressed: () => _deleteWithConfirmation(expense),
+                tooltip: 'ลบ',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
+            ],
+          ),
+          onTap: () => context.go('/expense-form?id=${expense.id}'),
         ),
-        onTap: () => context.go('/expense-form?id=${expense.id}'),
-        onLongPress: () => _showDeleteDialog(expense),
       ),
     );
   }
 
-  void _showDeleteDialog(Expense expense) {
-    showDialog(
+  void _deleteWithConfirmation(Expense expense) {
+    showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('ลบรายการค่าใช้จ่าย'),
-        content: Text('ต้องการลบ "${expense.category} - ${expense.description}" ใช่ไหม?'),
+        content: Text('ต้องการลบ "${expense.category}${expense.description.isNotEmpty ? ' - ${expense.description}' : ''}" ใช่ไหม?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('ยกเลิก'),
           ),
           TextButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(ctx);
-              final success =
-                  await context.read<ExpenseProvider>().deleteExpense(expense.id);
-              if (mounted && success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('ลบรายการสำเร็จ')),
-                );
-              }
+              _deleteWithUndo(expense);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('ลบ'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _deleteWithUndo(Expense expense) {
+    final provider = context.read<ExpenseProvider>();
+    provider.deleteExpense(expense.id);
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('ลบ "${expense.category}" แล้ว'),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: 'ยกเลิก (Undo)',
+          textColor: Colors.yellow,
+          onPressed: () {
+            provider.createExpense(ExpenseRequest(
+              category: expense.category,
+              description: expense.description,
+              amount: expense.amount,
+              expenseDate: DateFormat('yyyy-MM-dd').format(expense.expenseDate),
+              notes: expense.notes,
+            ));
+          },
+        ),
       ),
     );
   }
