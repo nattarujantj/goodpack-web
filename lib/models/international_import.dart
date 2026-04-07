@@ -18,6 +18,7 @@ class InternationalImport {
   final double grandTotal;
   final String status;
   final String? purchaseId;
+  final bool? purchaseIsVAT;
   final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -42,6 +43,7 @@ class InternationalImport {
     required this.grandTotal,
     required this.status,
     this.purchaseId,
+    this.purchaseIsVAT,
     this.notes,
     required this.createdAt,
     required this.updatedAt,
@@ -76,6 +78,7 @@ class InternationalImport {
       grandTotal: (json['grandTotal'] ?? 0).toDouble(),
       status: json['status'] ?? 'draft',
       purchaseId: json['purchaseId'],
+      purchaseIsVAT: json['purchaseIsVAT'],
       notes: json['notes'],
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])

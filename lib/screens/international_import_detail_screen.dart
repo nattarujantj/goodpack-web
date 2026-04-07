@@ -128,7 +128,7 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
             _infoRow('Supplier', imp.supplierName),
             _infoRow('Shipping Company', imp.shippingCompanyName),
             _infoRow('อัตราแลกเปลี่ยน', '${_currencyFormat.format(imp.usdToThbRate)} THB/USD'),
-            if (imp.status == 'purchased' && imp.purchaseId != null)
+            if (imp.status == 'purchased' && imp.purchaseId != null) ...[
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: InkWell(
@@ -143,6 +143,14 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
                   ),
                 ),
               ),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: _infoRow(
+                  'ประเภทรายการซื้อ',
+                  imp.purchaseIsVAT == true ? 'VAT' : 'ไม่ VAT',
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -352,33 +360,61 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
   }
 
   void _createPurchase(InternationalImport imp) {
+    bool isVAT = true;
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('สร้างรายการซื้อ'),
-        content: const Text('ระบบจะสร้างรายการซื้อจากรายการนำเข้านี้\nต้องการดำเนินการต่อหรือไม่?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              setState(() => _isLoading = true);
-              final provider = context.read<InternationalImportProvider>();
-              final result = await provider.createPurchaseFromImport(imp.id);
-              if (result != null && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('สร้างรายการซื้อเรียบร้อย'), backgroundColor: Colors.green),
-                );
-                await _loadData();
-              } else if (mounted) {
-                ErrorDialog.showServerError(context, provider.error);
-                setState(() => _isLoading = false);
-              }
-            },
-            child: const Text('สร้างรายการซื้อ'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('สร้างรายการซื้อ'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('ระบบจะสร้างรายการซื้อจากรายการนำเข้านี้'),
+              const SizedBox(height: 16),
+              const Text('ประเภทรายการซื้อ', style: TextStyle(fontWeight: FontWeight.w500)),
+              const SizedBox(height: 8),
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(value: true, label: Text('VAT')),
+                  ButtonSegment(value: false, label: Text('ไม่ VAT')),
+                ],
+                selected: {isVAT},
+                onSelectionChanged: (v) => setDialogState(() => isVAT = v.first),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                isVAT ? 'ราคาต่อชิ้นจะใช้ราคาหลัง VAT' : 'ราคาต่อชิ้นจะใช้ราคาก่อน VAT',
+                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              ),
+            ],
           ),
-        ],
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+              onPressed: () async {
+                Navigator.pop(ctx);
+                setState(() => _isLoading = true);
+                final provider = context.read<InternationalImportProvider>();
+                final result = await provider.createPurchaseFromImport(imp.id, isVAT: isVAT);
+                if (result != null && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('สร้างรายการซื้อเรียบร้อย (${isVAT ? "VAT" : "ไม่ VAT"})'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  await _loadData();
+                } else if (mounted) {
+                  ErrorDialog.showServerError(context, provider.error);
+                  setState(() => _isLoading = false);
+                }
+              },
+              child: const Text('สร้างรายการซื้อ'),
+            ),
+          ],
+        ),
       ),
     );
   }
