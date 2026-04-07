@@ -138,6 +138,7 @@ class ImportItem {
   final String productCode;
   final double usdPricePerUnit;
   final int quantity;
+  final int piecesPerBox;
   final double boxWidth;
   final double boxLength;
   final double boxHeight;
@@ -155,6 +156,7 @@ class ImportItem {
     required this.productCode,
     required this.usdPricePerUnit,
     required this.quantity,
+    this.piecesPerBox = 1,
     required this.boxWidth,
     required this.boxLength,
     required this.boxHeight,
@@ -174,6 +176,7 @@ class ImportItem {
       productCode: json['productCode'] ?? '',
       usdPricePerUnit: (json['usdPricePerUnit'] ?? 0).toDouble(),
       quantity: json['quantity'] ?? 0,
+      piecesPerBox: json['piecesPerBox'] ?? 1,
       boxWidth: (json['boxWidth'] ?? 0).toDouble(),
       boxLength: (json['boxLength'] ?? 0).toDouble(),
       boxHeight: (json['boxHeight'] ?? 0).toDouble(),
@@ -194,6 +197,7 @@ class ImportItem {
       'productCode': productCode,
       'usdPricePerUnit': usdPricePerUnit,
       'quantity': quantity,
+      'piecesPerBox': piecesPerBox,
       'boxWidth': boxWidth,
       'boxLength': boxLength,
       'boxHeight': boxHeight,
@@ -213,6 +217,7 @@ class ImportItem {
     String? productCode,
     double? usdPricePerUnit,
     int? quantity,
+    int? piecesPerBox,
     double? boxWidth,
     double? boxLength,
     double? boxHeight,
@@ -230,6 +235,7 @@ class ImportItem {
       productCode: productCode ?? this.productCode,
       usdPricePerUnit: usdPricePerUnit ?? this.usdPricePerUnit,
       quantity: quantity ?? this.quantity,
+      piecesPerBox: piecesPerBox ?? this.piecesPerBox,
       boxWidth: boxWidth ?? this.boxWidth,
       boxLength: boxLength ?? this.boxLength,
       boxHeight: boxHeight ?? this.boxHeight,

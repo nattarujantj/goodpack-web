@@ -112,7 +112,9 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
   // --- CBM & cost calculations (client-side preview) ---
 
   double _calcItemCBM(ImportItem item) {
-    double raw = item.boxWidth * item.boxLength * item.boxHeight * item.quantity / 1000000;
+    int ppb = item.piecesPerBox > 0 ? item.piecesPerBox : 1;
+    double numBoxes = (item.quantity / ppb).ceilToDouble();
+    double raw = numBoxes * item.boxWidth * item.boxLength * item.boxHeight / 1000000;
     return raw.ceilToDouble();
   }
 
@@ -426,6 +428,7 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
                     DataColumn(label: Text('สินค้า')),
                     DataColumn(label: Text('USD/ชิ้น'), numeric: true),
                     DataColumn(label: Text('จำนวน'), numeric: true),
+                    DataColumn(label: Text('ชิ้น/ลัง'), numeric: true),
                     DataColumn(label: Text('กล่อง (กxยxส cm)')),
                     DataColumn(label: Text('CBM'), numeric: true),
                     DataColumn(label: Text('ค่าส่ง/ชิ้น'), numeric: true),
@@ -446,6 +449,7 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
                       DataCell(Text('${item.productCode}\n${item.productName}', style: const TextStyle(fontSize: 12))),
                       DataCell(Text(_currencyFormat.format(item.usdPricePerUnit))),
                       DataCell(Text('${item.quantity}')),
+                      DataCell(Text('${item.piecesPerBox}')),
                       DataCell(Text('${item.boxWidth}x${item.boxLength}x${item.boxHeight}')),
                       DataCell(Text(cbm.toStringAsFixed(0))),
                       DataCell(Text(_currencyFormat.format(shipPU))),
@@ -771,6 +775,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
   final _widthController = TextEditingController();
   final _lengthController = TextEditingController();
   final _heightController = TextEditingController();
+  final _piecesPerBoxController = TextEditingController(text: '1');
   final _commissionController = TextEditingController();
 
   @override
@@ -780,6 +785,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
       final e = widget.existing!;
       _usdPriceController.text = e.usdPricePerUnit.toString();
       _quantityController.text = e.quantity.toString();
+      _piecesPerBoxController.text = e.piecesPerBox.toString();
       _widthController.text = e.boxWidth.toString();
       _lengthController.text = e.boxLength.toString();
       _heightController.text = e.boxHeight.toString();
@@ -791,6 +797,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
   void dispose() {
     _usdPriceController.dispose();
     _quantityController.dispose();
+    _piecesPerBoxController.dispose();
     _widthController.dispose();
     _lengthController.dispose();
     _heightController.dispose();
@@ -803,7 +810,10 @@ class _AddItemDialogState extends State<_AddItemDialog> {
     double l = double.tryParse(_lengthController.text) ?? 0;
     double h = double.tryParse(_heightController.text) ?? 0;
     int qty = int.tryParse(_quantityController.text) ?? 0;
-    double raw = w * l * h * qty / 1000000;
+    int ppb = int.tryParse(_piecesPerBoxController.text) ?? 1;
+    if (ppb <= 0) ppb = 1;
+    double numBoxes = (qty / ppb).ceilToDouble();
+    double raw = numBoxes * w * l * h / 1000000;
     return raw.ceilToDouble();
   }
 
@@ -848,10 +858,20 @@ class _AddItemDialogState extends State<_AddItemDialog> {
                 TextFormField(
                   controller: _quantityController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'จำนวน *'),
+                  decoration: const InputDecoration(labelText: 'จำนวน (ชิ้น) *'),
                   onChanged: (_) => setState(() {}),
                   validator: (v) => (v == null || v.isEmpty || int.tryParse(v) == null || int.parse(v) <= 0)
                       ? 'กรุณากรอกจำนวน'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _piecesPerBoxController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'จำนวนชิ้นต่อลัง *'),
+                  onChanged: (_) => setState(() {}),
+                  validator: (v) => (v == null || v.isEmpty || int.tryParse(v) == null || int.parse(v) <= 0)
+                      ? 'กรุณากรอกจำนวนชิ้นต่อลัง'
                       : null,
                 ),
                 const SizedBox(height: 12),
@@ -921,6 +941,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
               productCode: product?.code ?? widget.existing!.productCode,
               usdPricePerUnit: double.parse(_usdPriceController.text),
               quantity: int.parse(_quantityController.text),
+              piecesPerBox: int.tryParse(_piecesPerBoxController.text) ?? 1,
               boxWidth: double.tryParse(_widthController.text) ?? 0,
               boxLength: double.tryParse(_lengthController.text) ?? 0,
               boxHeight: double.tryParse(_heightController.text) ?? 0,
