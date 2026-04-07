@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/shipping_company.dart';
 import '../config/app_config.dart';
+import 'auth_token.dart';
 
 class ShippingCompanyApiService {
   static String get _baseUrl => AppConfig.baseUrl;
@@ -11,7 +12,7 @@ class ShippingCompanyApiService {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl$_endpoint'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
       );
       if (response.statusCode == 200) {
         if (response.body.isEmpty || response.body == 'null') return [];
@@ -32,7 +33,7 @@ class ShippingCompanyApiService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl$_endpoint'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
         body: json.encode(request.toJson()),
       );
       if (response.statusCode == 201) {
@@ -49,7 +50,7 @@ class ShippingCompanyApiService {
     try {
       final response = await http.put(
         Uri.parse('$_baseUrl$_endpoint/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
         body: json.encode(request.toJson()),
       );
       if (response.statusCode == 200) {
@@ -66,7 +67,7 @@ class ShippingCompanyApiService {
     try {
       final response = await http.delete(
         Uri.parse('$_baseUrl$_endpoint/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
       );
       return response.statusCode == 200;
     } catch (e) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'providers/auth_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/customer_provider.dart';
 import 'providers/supplier_provider.dart';
@@ -13,20 +14,34 @@ import 'providers/expense_provider.dart';
 import 'services/config_service.dart';
 import 'config/app_config.dart';
 import 'config/app_router.dart';
+
 void main() {
-  // Initialize configuration
   ConfigService().initialize();
-  
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final AuthProvider _authProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _authProvider = AuthProvider();
+    _authProvider.initialize();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider.value(value: _authProvider),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => CustomerProvider()),
         ChangeNotifierProvider(create: (_) => SupplierProvider()),
@@ -69,7 +84,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        routerConfig: AppRouter.router,
+        routerConfig: AppRouter.createRouter(_authProvider),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/expense.dart';
 import '../config/app_config.dart';
+import 'auth_token.dart';
 
 class ExpenseApiService {
   static String get _baseUrl => AppConfig.baseUrl;
@@ -11,7 +12,7 @@ class ExpenseApiService {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl$_endpoint'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
       );
 
       if (response.statusCode == 200 || response.statusCode == 404) {
@@ -34,7 +35,7 @@ class ExpenseApiService {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl$_endpoint/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
       );
 
       if (response.statusCode == 200) {
@@ -51,7 +52,7 @@ class ExpenseApiService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl$_endpoint'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
         body: json.encode(request.toJson()),
       );
 
@@ -69,7 +70,7 @@ class ExpenseApiService {
     try {
       final response = await http.put(
         Uri.parse('$_baseUrl$_endpoint/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
         body: json.encode(request.toJson()),
       );
 
@@ -87,7 +88,7 @@ class ExpenseApiService {
     try {
       final response = await http.delete(
         Uri.parse('$_baseUrl$_endpoint/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
       );
 
       if (response.statusCode != 200) {
@@ -102,7 +103,7 @@ class ExpenseApiService {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl$_endpoint/categories'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
       );
 
       if (response.statusCode == 200) {

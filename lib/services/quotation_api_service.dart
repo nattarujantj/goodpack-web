@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/quotation.dart';
 import '../config/app_config.dart';
+import 'auth_token.dart';
 
 class QuotationApiService {
   static String get _baseUrl => AppConfig.baseUrl;
@@ -10,7 +11,7 @@ class QuotationApiService {
   Future<List<Quotation>> getQuotations() async {
     final response = await http.get(
       Uri.parse('$_baseUrl$_endpoint'),
-      headers: {'Content-Type': 'application/json'},
+      headers: AuthToken.headers,
     );
 
     // 200 = success, 404 = no data (treat as empty list)
@@ -37,7 +38,7 @@ class QuotationApiService {
   Future<Quotation> getQuotation(String id) async {
     final response = await http.get(
       Uri.parse('$_baseUrl$_endpoint/$id'),
-      headers: {'Content-Type': 'application/json'},
+      headers: AuthToken.headers,
     );
 
     if (response.statusCode == 200) {
@@ -50,7 +51,7 @@ class QuotationApiService {
   Future<Quotation> addQuotation(QuotationRequest quotationRequest) async {
     final response = await http.post(
       Uri.parse('$_baseUrl$_endpoint'),
-      headers: {'Content-Type': 'application/json'},
+      headers: AuthToken.headers,
       body: json.encode(quotationRequest.toJson()),
     );
 
@@ -64,7 +65,7 @@ class QuotationApiService {
   Future<Quotation> updateQuotation(String id, QuotationRequest quotationRequest) async {
     final response = await http.put(
       Uri.parse('$_baseUrl$_endpoint/$id'),
-      headers: {'Content-Type': 'application/json'},
+      headers: AuthToken.headers,
       body: json.encode(quotationRequest.toJson()),
     );
 
@@ -78,7 +79,7 @@ class QuotationApiService {
   Future<void> deleteQuotation(String id) async {
     final response = await http.delete(
       Uri.parse('$_baseUrl$_endpoint/$id'),
-      headers: {'Content-Type': 'application/json'},
+      headers: AuthToken.headers,
     );
 
     if (response.statusCode != 200) {
@@ -89,7 +90,7 @@ class QuotationApiService {
   Future<Map<String, dynamic>> copyToSale(String id) async {
     final response = await http.get(
       Uri.parse('$_baseUrl$_endpoint/$id/copy-to-sale'),
-      headers: {'Content-Type': 'application/json'},
+      headers: AuthToken.headers,
     );
 
     if (response.statusCode == 200) {
@@ -104,7 +105,7 @@ class QuotationApiService {
   Future<Quotation> updateQuotationStatus(String id, String status) async {
     final response = await http.patch(
       Uri.parse('$_baseUrl$_endpoint/$id/status'),
-      headers: {'Content-Type': 'application/json'},
+      headers: AuthToken.headers,
       body: json.encode({'status': status}),
     );
 

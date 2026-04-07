@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import '../config/env_config.dart';
+import 'auth_token.dart';
 
 class ImageUploadService {
   static final ImagePicker _picker = ImagePicker();
@@ -43,7 +44,7 @@ class ImageUploadService {
       
       // Add headers
       request.headers.addAll({
-        'Accept': 'application/json',
+        ...AuthToken.authOnlyHeaders,
       });
       
       // Add file to request
@@ -134,9 +135,7 @@ class ImageUploadService {
       
       final response = await http.delete(
         Uri.parse('${EnvConfig.apiUrl}/products/$productId/image'),
-        headers: {
-          'Accept': 'application/json',
-        },
+        headers: AuthToken.authOnlyHeaders,
       );
       
       print('Response status: ${response.statusCode}');

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/supplier.dart';
 import '../config/app_config.dart';
+import 'auth_token.dart';
 
 class SupplierApiService {
   static String get _baseUrl => AppConfig.baseUrl;
@@ -12,7 +13,7 @@ class SupplierApiService {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl$_endpoint'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
       );
 
       // 200 = success, 404 = no data (treat as empty list)
@@ -44,7 +45,7 @@ class SupplierApiService {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl$_endpoint/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
       );
 
       if (response.statusCode == 200) {
@@ -64,7 +65,7 @@ class SupplierApiService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl$_endpoint'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
         body: json.encode(supplierRequest.toJson()),
       );
 
@@ -83,7 +84,7 @@ class SupplierApiService {
     try {
       final response = await http.put(
         Uri.parse('$_baseUrl$_endpoint/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
         body: json.encode(supplierRequest.toJson()),
       );
 
@@ -104,7 +105,7 @@ class SupplierApiService {
     try {
       final response = await http.delete(
         Uri.parse('$_baseUrl$_endpoint/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
       );
 
       return response.statusCode == 200;

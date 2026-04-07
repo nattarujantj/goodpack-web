@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/responsive_layout.dart';
 import 'product_list_screen.dart';
 
@@ -94,6 +96,7 @@ class _MainScreenState extends State<MainScreen> {
     if (path.startsWith('/expense')) return 7;
     if (path == '/export') return 8;
     if (path.startsWith('/international')) return 9;
+    if (path == '/users') return 10;
     return _currentIndex;
   }
 
@@ -304,17 +307,39 @@ class _MainScreenState extends State<MainScreen> {
                 _buildNavItem(8, Icons.file_download, 'Export'),
                 // International
                 _buildNavItem(9, Icons.public, 'International'),
+
+                if (context.read<AuthProvider>().isSuperAdmin) ...[
+                  const Divider(height: 24, indent: 16, endIndent: 16),
+                  _buildNavItem(10, Icons.people, 'จัดการ Users'),
+                ],
               ],
             ),
           ),
           
-          // Footer
+          // Logout + Footer
           Container(
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 const Divider(),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
+                Consumer<AuthProvider>(
+                  builder: (context, auth, _) {
+                    return ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.logout, size: 20, color: Colors.red),
+                      title: Text(
+                        'ออกจากระบบ (${auth.user?.displayName ?? ""})',
+                        style: const TextStyle(fontSize: 13, color: Colors.red),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      onTap: () => auth.logout(),
+                    );
+                  },
+                ),
+                const SizedBox(height: 4),
                 ResponsiveText(
                   'เวอร์ชัน 1.0.0',
                   style: TextStyle(
@@ -473,6 +498,9 @@ class _MainScreenState extends State<MainScreen> {
           break;
         case 9:
           context.go('/internationals');
+          break;
+        case 10:
+          context.go('/users');
           break;
       }
     } else {

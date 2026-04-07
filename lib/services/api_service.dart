@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../models/product.dart';
 import '../models/stock_adjustment.dart';
+import 'auth_token.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -12,10 +13,7 @@ class ApiService {
   final http.Client _client = http.Client();
 
   // Headers
-  Map<String, String> get _headers => {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  };
+  Map<String, String> get _headers => AuthToken.headers;
 
   // GET all products
   Future<List<Product>> getProducts() async {

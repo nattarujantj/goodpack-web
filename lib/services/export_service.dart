@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/env_config.dart';
+import 'auth_token.dart';
 
 class ExportService {
   static String get _baseUrl => EnvConfig.apiUrl;
@@ -14,7 +15,7 @@ class ExportService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/export/email'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
         body: json.encode({
           'month': month,
           'year': year,

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/international_import.dart';
 import '../config/app_config.dart';
+import 'auth_token.dart';
 
 class InternationalImportApiService {
   static String get _baseUrl => AppConfig.baseUrl;
@@ -11,7 +12,7 @@ class InternationalImportApiService {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl$_endpoint'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
       );
       if (response.statusCode == 200) {
         if (response.body.isEmpty || response.body == 'null') return [];
@@ -32,7 +33,7 @@ class InternationalImportApiService {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl$_endpoint/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
       );
       if (response.statusCode == 200) {
         return InternationalImport.fromJson(json.decode(response.body));
@@ -50,7 +51,7 @@ class InternationalImportApiService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl$_endpoint'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
         body: json.encode(request.toJson()),
       );
       if (response.statusCode == 201) {
@@ -67,7 +68,7 @@ class InternationalImportApiService {
     try {
       final response = await http.put(
         Uri.parse('$_baseUrl$_endpoint/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
         body: json.encode(request.toJson()),
       );
       if (response.statusCode == 200) {
@@ -86,7 +87,7 @@ class InternationalImportApiService {
     try {
       final response = await http.delete(
         Uri.parse('$_baseUrl$_endpoint/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
       );
       return response.statusCode == 200;
     } catch (e) {
@@ -98,7 +99,7 @@ class InternationalImportApiService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl$_endpoint/$id/create-purchase'),
-        headers: {'Content-Type': 'application/json'},
+        headers: AuthToken.headers,
         body: json.encode({'isVAT': isVAT}),
       );
       if (response.statusCode == 201) {
