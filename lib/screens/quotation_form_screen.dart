@@ -737,6 +737,11 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
                   ),
                 ),
                 IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.blue),
+                  onPressed: () => _editItem(index),
+                  tooltip: 'แก้ไขสินค้านี้',
+                ),
+                IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
                   onPressed: () => _removeItem(index),
                 ),
@@ -885,6 +890,46 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
     );
   }
 
+  void _editItem(int index) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return Consumer<ProductProvider>(
+          builder: (context, productProvider, child) {
+            if (productProvider.isLoading) {
+              return AlertDialog(
+                title: const Text('แก้ไขสินค้า'),
+                content: const SizedBox(
+                  height: 100,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('กำลังโหลดข้อมูลสินค้า...'),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return _AddItemDialog(
+              products: productProvider.allProducts,
+              initialItem: _quotationItems[index],
+              onAdd: (item) {
+                setState(() {
+                  _quotationItems[index] = item;
+                });
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _removeItem(int index) {
     setState(() {
       _quotationItems.removeAt(index);
@@ -1011,10 +1056,12 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
 class _AddItemDialog extends StatefulWidget {
   final List<Product> products;
   final Function(QuotationItem) onAdd;
+  final QuotationItem? initialItem;
 
   const _AddItemDialog({
     required this.products,
     required this.onAdd,
+    this.initialItem,
   });
 
   @override
@@ -1026,6 +1073,22 @@ class _AddItemDialogState extends State<_AddItemDialog> {
   final _quantityController = TextEditingController();
   final _unitPriceController = TextEditingController();
 
+  bool get _isEditMode => widget.initialItem != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialItem != null) {
+      final item = widget.initialItem!;
+      _selectedProduct = widget.products.cast<Product?>().firstWhere(
+        (p) => p!.id == item.productId,
+        orElse: () => null,
+      );
+      _quantityController.text = item.quantity.toString();
+      _unitPriceController.text = item.unitPrice.toString();
+    }
+  }
+
   @override
   void dispose() {
     _quantityController.dispose();
@@ -1036,7 +1099,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('เพิ่มสินค้า'),
+      title: Text(_isEditMode ? 'แก้ไขสินค้า' : 'เพิ่มสินค้า'),
       content: SizedBox(
         width: double.maxFinite,
         child: Column(
@@ -1046,10 +1109,10 @@ class _AddItemDialogState extends State<_AddItemDialog> {
             value: _selectedProduct,
             items: widget.products,
             itemAsString: (product) => '${product.skuId} | ${product.name} | ${product.description}',
+            enabled: !_isEditMode,
             onChanged: (product) {
               setState(() {
                 _selectedProduct = product;
-                // ไม่ prefill ราคา ให้ user กรอกเอง
               });
             },
             hint: 'เลือกสินค้า',
@@ -1109,7 +1172,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
         ),
         ElevatedButton(
           onPressed: _addItem,
-          child: const Text('เพิ่ม'),
+          child: Text(_isEditMode ? 'บันทึก' : 'เพิ่ม'),
         ),
       ],
     );

@@ -1167,6 +1167,11 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                 ),
               ),
               IconButton(
+                onPressed: () => _editPurchaseItem(index),
+                icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                tooltip: 'แก้ไขสินค้านี้',
+              ),
+              IconButton(
                 onPressed: () => _removePurchaseItem(index),
                 icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                 tooltip: 'ลบสินค้านี้',
@@ -1512,6 +1517,55 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     );
   }
 
+  void _editPurchaseItem(int index) {
+    showDialog(
+      context: context,
+      builder: (context) => _buildEditItemDialog(index),
+    );
+  }
+
+  Widget _buildEditItemDialog(int index) {
+    return Consumer<ProductProvider>(
+      builder: (context, productProvider, child) {
+        if (productProvider.isLoading) {
+          return AlertDialog(
+            title: const Text('แก้ไขสินค้า'),
+            content: const SizedBox(
+              height: 100,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('กำลังโหลดข้อมูลสินค้า...'),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        return AlertDialog(
+          title: const Text('แก้ไขสินค้า'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: _AddItemForm(
+              products: productProvider.allProducts,
+              initialItem: _purchaseItems[index],
+              onAdd: (item) {
+                setState(() {
+                  _purchaseItems[index] = item;
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _removePurchaseItem(int index) {
     setState(() {
       _purchaseItems.removeAt(index);
@@ -1823,10 +1877,12 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 class _AddItemForm extends StatefulWidget {
   final List<Product> products;
   final Function(PurchaseItem) onAdd;
+  final PurchaseItem? initialItem;
 
   const _AddItemForm({
     required this.products,
     required this.onAdd,
+    this.initialItem,
   });
 
   @override
@@ -1840,9 +1896,30 @@ class _AddItemFormState extends State<_AddItemForm> {
   final _quantityController = TextEditingController();
   final _unitPriceController = TextEditingController();
 
-  // Get preform products (category = "พรีฟอร์ม")
+  bool get _isEditMode => widget.initialItem != null;
+
   List<Product> get _preformProducts {
     return widget.products.where((product) => product.category == 'พรีฟอร์ม').toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialItem != null) {
+      final item = widget.initialItem!;
+      _selectedProduct = widget.products.cast<Product?>().firstWhere(
+        (p) => p!.id == item.productId,
+        orElse: () => null,
+      );
+      _quantityController.text = item.quantity.toString();
+      _unitPriceController.text = item.unitPrice.toString();
+      if (item.preformProductId != null) {
+        _selectedPreform = widget.products.cast<Product?>().firstWhere(
+          (p) => p!.id == item.preformProductId,
+          orElse: () => null,
+        );
+      }
+    }
   }
 
   @override
@@ -1860,11 +1937,11 @@ class _AddItemFormState extends State<_AddItemForm> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Product Selection
           SearchableDropdown<Product>(
             value: _selectedProduct,
             items: widget.products,
             itemAsString: (product) => '${product.skuId} | ${product.name} | ${product.description}',
+            enabled: !_isEditMode,
             onChanged: (product) {
               setState(() {
                 _selectedProduct = product;
@@ -1943,7 +2020,6 @@ class _AddItemFormState extends State<_AddItemForm> {
           
           const SizedBox(height: 24),
           
-          // Action Buttons
           Row(
             children: [
               Expanded(
@@ -1956,7 +2032,7 @@ class _AddItemFormState extends State<_AddItemForm> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: _addItem,
-                  child: const Text('เพิ่ม'),
+                  child: Text(_isEditMode ? 'บันทึก' : 'เพิ่ม'),
                 ),
               ),
             ],

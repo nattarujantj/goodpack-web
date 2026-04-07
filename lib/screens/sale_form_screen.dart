@@ -996,6 +996,11 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
                 ),
               ),
               IconButton(
+                onPressed: () => _editSaleItem(index),
+                icon: const Icon(Icons.edit, color: Colors.green, size: 20),
+                tooltip: 'แก้ไขสินค้านี้',
+              ),
+              IconButton(
                 onPressed: () => _removeSaleItem(index),
                 icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                 tooltip: 'ลบสินค้านี้',
@@ -1365,6 +1370,55 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     );
   }
 
+  void _editSaleItem(int index) {
+    showDialog(
+      context: context,
+      builder: (context) => _buildEditSaleItemDialog(index),
+    );
+  }
+
+  Widget _buildEditSaleItemDialog(int index) {
+    return Consumer<ProductProvider>(
+      builder: (context, productProvider, child) {
+        if (productProvider.isLoading) {
+          return AlertDialog(
+            title: const Text('แก้ไขสินค้า'),
+            content: const SizedBox(
+              height: 100,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('กำลังโหลดข้อมูลสินค้า...'),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        return AlertDialog(
+          title: const Text('แก้ไขสินค้า'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: _AddItemForm(
+              products: productProvider.allProducts,
+              initialItem: _saleItems[index],
+              onAdd: (item) {
+                setState(() {
+                  _saleItems[index] = item;
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _removeSaleItem(int index) {
     setState(() {
       _saleItems.removeAt(index);
@@ -1675,10 +1729,12 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
 class _AddItemForm extends StatefulWidget {
   final List<Product> products;
   final Function(SaleItem) onAdd;
+  final SaleItem? initialItem;
 
   const _AddItemForm({
     required this.products,
     required this.onAdd,
+    this.initialItem,
   });
 
   @override
@@ -1690,6 +1746,22 @@ class _AddItemFormState extends State<_AddItemForm> {
   Product? _selectedProduct;
   final _quantityController = TextEditingController();
   final _unitPriceController = TextEditingController();
+
+  bool get _isEditMode => widget.initialItem != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialItem != null) {
+      final item = widget.initialItem!;
+      _selectedProduct = widget.products.cast<Product?>().firstWhere(
+        (p) => p!.id == item.productId,
+        orElse: () => null,
+      );
+      _quantityController.text = item.quantity.toString();
+      _unitPriceController.text = item.unitPrice.toString();
+    }
+  }
 
   @override
   void dispose() {
@@ -1710,10 +1782,10 @@ class _AddItemFormState extends State<_AddItemForm> {
             value: _selectedProduct,
             items: widget.products,
             itemAsString: (product) => '${product.skuId} | ${product.name} | ${product.description}',
+            enabled: !_isEditMode,
             onChanged: (product) {
               setState(() {
                 _selectedProduct = product;
-                // ไม่ prefill ราคา ให้ user กรอกเอง
               });
             },
             hint: 'เลือกสินค้า',
@@ -1781,7 +1853,7 @@ class _AddItemFormState extends State<_AddItemForm> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: _addItem,
-                  child: const Text('เพิ่ม'),
+                  child: Text(_isEditMode ? 'บันทึก' : 'เพิ่ม'),
                 ),
               ),
             ],
