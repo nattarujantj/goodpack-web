@@ -62,6 +62,10 @@ class _MainScreenState extends State<MainScreen> {
       icon: Icon(Icons.upload_file),
       label: 'Import',
     ),
+    const BottomNavigationBarItem(
+      icon: Icon(Icons.public),
+      label: 'International',
+    ),
   ];
 
   @override
@@ -89,6 +93,7 @@ class _MainScreenState extends State<MainScreen> {
     if (path.startsWith('/quotation')) return 6;
     if (path == '/export') return 7;
     if (path == '/import') return 8;
+    if (path.startsWith('/international')) return 9;
     return _currentIndex;
   }
 
@@ -296,6 +301,8 @@ class _MainScreenState extends State<MainScreen> {
                 _buildNavItem(7, Icons.file_download, 'Export'),
                 // Import
                 _buildNavItem(8, Icons.upload_file, 'Import'),
+                // International
+                _buildNavItem(9, Icons.public, 'International'),
               ],
             ),
           ),
@@ -462,6 +469,9 @@ class _MainScreenState extends State<MainScreen> {
           break;
         case 8:
           context.go('/import');
+          break;
+        case 9:
+          context.go('/internationals');
           break;
       }
     } else {

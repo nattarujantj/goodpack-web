@@ -22,6 +22,9 @@ import '../screens/quotation_form_screen.dart';
 import '../screens/export_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/import_screen.dart';
+import '../screens/international_import_list_screen.dart';
+import '../screens/international_import_detail_screen.dart';
+import '../screens/international_import_form_screen.dart';
 
 class AppRouter {
   // Helper function to build page with no animation
@@ -381,6 +384,34 @@ class AppRouter {
               const ImportScreen(),
               state,
             ),
+          ),
+          // International Import routes
+          GoRoute(
+            path: '/internationals',
+            pageBuilder: (context, state) => _noAnimationPage(
+              const InternationalImportListScreen(),
+              state,
+            ),
+          ),
+          GoRoute(
+            path: '/international/:id',
+            pageBuilder: (context, state) {
+              final importId = state.pathParameters['id']!;
+              return _noAnimationPage(
+                InternationalImportDetailScreen(importId: importId),
+                state,
+              );
+            },
+          ),
+          GoRoute(
+            path: '/international-form',
+            pageBuilder: (context, state) {
+              final importId = state.uri.queryParameters['id'];
+              return _noAnimationPage(
+                InternationalImportFormScreen(importId: importId),
+                state,
+              );
+            },
           ),
         ],
       ),

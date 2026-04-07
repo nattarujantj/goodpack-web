@@ -7,6 +7,8 @@ import 'providers/purchase_provider.dart';
 import 'providers/sale_provider.dart';
 import 'providers/quotation_provider.dart';
 import 'providers/bank_account_provider.dart';
+import 'providers/shipping_company_provider.dart';
+import 'providers/international_import_provider.dart';
 import 'services/config_service.dart';
 import 'config/app_config.dart';
 import 'config/app_router.dart';
@@ -33,6 +35,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SaleProvider()),
         ChangeNotifierProvider(create: (_) => QuotationProvider()),
         ChangeNotifierProvider(create: (_) => BankAccountProvider()),
+        ChangeNotifierProvider(create: (_) => ShippingCompanyProvider()),
+        ChangeNotifierProvider(create: (_) => InternationalImportProvider()),
       ],
       child: MaterialApp.router(
         title: AppConfig.appName,
