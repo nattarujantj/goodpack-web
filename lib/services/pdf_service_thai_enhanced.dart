@@ -4,6 +4,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:http/http.dart' as http;
 import 'dart:html' as html;
 import '../models/quotation.dart';
 import '../models/bank_account.dart';
@@ -11,10 +12,9 @@ import '../models/bank_account.dart';
 class PdfServiceThaiEnhanced {
   static const String defaultSignerName = 'สุภาวดี บูรณะโอสถ';
   
-  static Future<void> generateAndPrintQuotation(Quotation quotation, {BankAccount? bankAccount, String? signerName}) async {
+  static Future<void> generateAndPrintQuotation(Quotation quotation, {BankAccount? bankAccount, String? signerName, Map<String, Uint8List>? productImages}) async {
     try {
-      // สร้าง PDF document
-      final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName);
+      final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName, productImages: productImages);
       final pdfBytes = await pdf.save();
       
       // เปิด PDF ใน tab ใหม่สำหรับ Web
@@ -35,16 +35,16 @@ class PdfServiceThaiEnhanced {
     }
   }
 
-  static Future<Uint8List> generateQuotationPdfBytes(Quotation quotation, {BankAccount? bankAccount, String? signerName}) async {
+  static Future<Uint8List> generateQuotationPdfBytes(Quotation quotation, {BankAccount? bankAccount, String? signerName, Map<String, Uint8List>? productImages}) async {
     try {
-      final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName);
+      final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName, productImages: productImages);
       return pdf.save();
     } catch (e) {
       throw Exception('เกิดข้อผิดพลาดในการสร้าง PDF: $e');
     }
   }
 
-  static Future<pw.Document> _createQuotationPdf(Quotation quotation, {BankAccount? bankAccount, required String signerName}) async {
+  static Future<pw.Document> _createQuotationPdf(Quotation quotation, {BankAccount? bankAccount, required String signerName, Map<String, Uint8List>? productImages}) async {
     final pdf = pw.Document();
 
     // กำหนดขนาดฟอนต์
@@ -117,7 +117,7 @@ class PdfServiceThaiEnhanced {
               pw.SizedBox(height: 5),
               
               // Items Table
-              _buildItemsTable(quotation, thaiFont, fontSizeText),
+              _buildItemsTable(quotation, thaiFont, fontSizeText, productImages: productImages),
               // pw.SizedBox(height: 5),
               
               // Summary Section
@@ -480,7 +480,9 @@ class PdfServiceThaiEnhanced {
     );
   }
 
-  static pw.Widget _buildItemsTable(Quotation quotation, pw.Font? thaiFont, double fontSizeText) {
+  static pw.Widget _buildItemsTable(Quotation quotation, pw.Font? thaiFont, double fontSizeText, {Map<String, Uint8List>? productImages}) {
+    final bool hasImages = productImages != null && productImages.isNotEmpty;
+
     return pw.Container(
       width: double.infinity,
       child: pw.Column(
@@ -506,8 +508,21 @@ class PdfServiceThaiEnhanced {
                     textAlign: pw.TextAlign.center,
                   ),
                 ),
+                if (hasImages)
+                  pw.Expanded(
+                    flex: 2,
+                    child: pw.Text(
+                      'รูป',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: fontSizeText,
+                        font: thaiFont,
+                      ),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
                 pw.Expanded(
-                  flex: 4,
+                  flex: hasImages ? 3 : 4,
                   child: pw.Text(
                     'รายการ',
                     style: pw.TextStyle(
@@ -562,6 +577,7 @@ class PdfServiceThaiEnhanced {
           ...quotation.items.asMap().entries.map((entry) {
             final index = entry.key + 1;
             final item = entry.value;
+            final imageBytes = hasImages ? productImages[item.productId] : null;
             
             return pw.Container(
               padding: const pw.EdgeInsets.all(2),
@@ -569,10 +585,10 @@ class PdfServiceThaiEnhanced {
                 border: pw.Border(
                   left: const pw.BorderSide(color: PdfColors.black),
                   right: const pw.BorderSide(color: PdfColors.black),
-                  // bottom: const pw.BorderSide(color: PdfColors.black),
                 ),
               ),
               child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
                   pw.Expanded(
                     flex: 1,
@@ -582,8 +598,22 @@ class PdfServiceThaiEnhanced {
                       textAlign: pw.TextAlign.center,
                     ),
                   ),
+                  if (hasImages)
+                    pw.Expanded(
+                      flex: 2,
+                      child: pw.Center(
+                        child: imageBytes != null
+                            ? pw.Image(
+                                pw.MemoryImage(imageBytes),
+                                width: 50,
+                                height: 50,
+                                fit: pw.BoxFit.contain,
+                              )
+                            : pw.SizedBox(width: 50, height: 50),
+                      ),
+                    ),
                   pw.Expanded(
-                    flex: 4,
+                    flex: hasImages ? 3 : 4,
                     child: pw.Text(
                       item.productName,
                       style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
@@ -961,6 +991,24 @@ class PdfServiceThaiEnhanced {
         ],
       ),
     );
+  }
+
+  static Future<Map<String, Uint8List>> downloadProductImages(Map<String, String?> imageUrls) async {
+    final Map<String, Uint8List> result = {};
+    for (final entry in imageUrls.entries) {
+      final productId = entry.key;
+      final url = entry.value;
+      if (url == null || url.isEmpty) continue;
+      try {
+        final response = await http.get(Uri.parse(url));
+        if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+          result[productId] = response.bodyBytes;
+        }
+      } catch (e) {
+        print('Failed to download image for product $productId: $e');
+      }
+    }
+    return result;
   }
 
   static String _formatDateThai(DateTime date) {

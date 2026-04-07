@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
@@ -5,9 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'dart:html' as html;
 import '../models/quotation.dart';
 import '../providers/quotation_provider.dart';
+import '../providers/product_provider.dart';
 import '../providers/sale_provider.dart';
 import '../widgets/responsive_layout.dart';
 import '../services/pdf_service_thai_enhanced.dart';
+import '../services/image_upload_service.dart';
 import '../models/bank_account.dart';
 import '../utils/number_formatter.dart';
 import '../utils/date_formatter.dart';
@@ -630,22 +633,38 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
   }
 
   void _printQuotationPdf(Quotation quotation) async {
-    // แสดง dialog ให้ระบุชื่อผู้ลงนาม
     final signerNameController = TextEditingController(
       text: PdfServiceThaiEnhanced.defaultSignerName,
     );
+    final showImages = ValueNotifier<bool>(false);
     
     final confirmed = await showDialog<bool>(
-        context: context,
+      context: context,
       builder: (context) => AlertDialog(
-        title: const Text('ระบุชื่อผู้ลงนาม'),
-        content: TextField(
-          controller: signerNameController,
-          decoration: const InputDecoration(
-            labelText: 'ชื่อผู้ลงนาม',
-            hintText: 'กรอกชื่อผู้ลงนาม',
-            border: OutlineInputBorder(),
-          ),
+        title: const Text('ตั้งค่าพิมพ์ PDF'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: signerNameController,
+              decoration: const InputDecoration(
+                labelText: 'ชื่อผู้ลงนาม',
+                hintText: 'กรอกชื่อผู้ลงนาม',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ValueListenableBuilder<bool>(
+              valueListenable: showImages,
+              builder: (context, value, _) => CheckboxListTile(
+                title: const Text('แสดงรูปสินค้า'),
+                subtitle: const Text('เพิ่มคอลัมน์รูปภาพในตาราง'),
+                value: value,
+                onChanged: (v) => showImages.value = v ?? false,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -656,8 +675,8 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('พิมพ์ PDF'),
           ),
-            ],
-          ),
+        ],
+      ),
     );
     
     if (confirmed != true) return;
@@ -666,7 +685,12 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
     if (signerName.isEmpty) return;
     
     try {
-      // สร้าง BankAccount จากข้อมูลใน quotation
+      // ดึงรูปสินค้าถ้าเลือกแสดงรูป
+      Map<String, Uint8List>? productImages;
+      if (showImages.value) {
+        productImages = await _fetchProductImages(quotation.items);
+      }
+
       BankAccount? bankAccount;
       if (quotation.bankAccountId != null) {
         bankAccount = BankAccount(
@@ -677,19 +701,17 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
         );
       }
 
-      // สร้างและพิมพ์ PDF ไทย (สำหรับ Web จะเปิด tab ใหม่ทันที)
       await PdfServiceThaiEnhanced.generateAndPrintQuotation(
         quotation, 
         bankAccount: bankAccount,
         signerName: signerName,
+        productImages: productImages,
       );
 
-      // อัพเดตสถานะเป็น 'sent' เมื่อพิมพ์ (เฉพาะถ้ายังเป็น draft)
       if (quotation.status == 'draft') {
         await context.read<QuotationProvider>().updateQuotationStatus(quotation.id, 'sent');
       }
 
-      // แสดง snackbar เมื่อสำเร็จ
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -708,6 +730,23 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
         );
       }
     }
+  }
+
+  Future<Map<String, Uint8List>?> _fetchProductImages(List<QuotationItem> items) async {
+    final productProvider = context.read<ProductProvider>();
+    final Map<String, String?> imageUrls = {};
+
+    for (final item in items) {
+      if (item.productId.isEmpty) continue;
+      var product = productProvider.getProductById(item.productId);
+      product ??= await productProvider.fetchProductById(item.productId);
+      if (product != null && product.imageUrl != null && product.imageUrl!.isNotEmpty) {
+        imageUrls[item.productId] = ImageUploadService.getImageUrl(product.imageUrl);
+      }
+    }
+
+    if (imageUrls.isEmpty) return null;
+    return PdfServiceThaiEnhanced.downloadProductImages(imageUrls);
   }
 
   void _showDeleteDialog(Quotation quotation) {
