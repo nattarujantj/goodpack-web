@@ -21,7 +21,6 @@ import '../screens/quotation_detail_screen.dart';
 import '../screens/quotation_form_screen.dart';
 import '../screens/export_screen.dart';
 import '../screens/dashboard_screen.dart';
-import '../screens/import_screen.dart';
 import '../screens/expense_list_screen.dart';
 import '../screens/expense_form_screen.dart';
 import '../screens/international_import_list_screen.dart';
@@ -394,14 +393,6 @@ class AppRouter {
             path: '/dashboard',
             pageBuilder: (context, state) => _noAnimationPage(
               const DashboardScreen(),
-              state,
-            ),
-          ),
-          // Import route
-          GoRoute(
-            path: '/import',
-            pageBuilder: (context, state) => _noAnimationPage(
-              const ImportScreen(),
               state,
             ),
           ),

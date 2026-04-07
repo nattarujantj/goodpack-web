@@ -63,10 +63,6 @@ class _MainScreenState extends State<MainScreen> {
       label: 'Export',
     ),
     const BottomNavigationBarItem(
-      icon: Icon(Icons.upload_file),
-      label: 'Import',
-    ),
-    const BottomNavigationBarItem(
       icon: Icon(Icons.public),
       label: 'International',
     ),
@@ -97,8 +93,7 @@ class _MainScreenState extends State<MainScreen> {
     if (path.startsWith('/quotation')) return 6;
     if (path.startsWith('/expense')) return 7;
     if (path == '/export') return 8;
-    if (path == '/import') return 9;
-    if (path.startsWith('/international')) return 10;
+    if (path.startsWith('/international')) return 9;
     return _currentIndex;
   }
 
@@ -307,10 +302,8 @@ class _MainScreenState extends State<MainScreen> {
                 
                 // Export
                 _buildNavItem(8, Icons.file_download, 'Export'),
-                // Import
-                _buildNavItem(9, Icons.upload_file, 'Import'),
                 // International
-                _buildNavItem(10, Icons.public, 'International'),
+                _buildNavItem(9, Icons.public, 'International'),
               ],
             ),
           ),
@@ -479,9 +472,6 @@ class _MainScreenState extends State<MainScreen> {
           context.go('/export');
           break;
         case 9:
-          context.go('/import');
-          break;
-        case 10:
           context.go('/internationals');
           break;
       }

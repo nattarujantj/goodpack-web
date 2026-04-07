@@ -25,7 +25,7 @@ class StockAdjustment {
   final int afterNonVATRemaining;
   final int afterActualStock;
   
-  final String sourceType; // "purchase", "sale", "adjustment", "migration"
+  final String sourceType; // "purchase", "sale", "adjustment"
   final String? sourceId;
   final String? sourceCode;
   final String? notes;
@@ -153,8 +153,6 @@ class StockAdjustment {
         return 'รายการขาย';
       case 'adjustment':
         return 'แก้ไขสต็อก';
-      case 'migration':
-        return 'Migration';
       default:
         return sourceType;
     }

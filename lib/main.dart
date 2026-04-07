@@ -13,8 +13,6 @@ import 'providers/expense_provider.dart';
 import 'services/config_service.dart';
 import 'config/app_config.dart';
 import 'config/app_router.dart';
-import 'services/deep_link_service.dart';
-
 void main() {
   // Initialize configuration
   ConfigService().initialize();
@@ -74,26 +72,5 @@ class MyApp extends StatelessWidget {
         routerConfig: AppRouter.router,
       ),
     );
-  }
-}
-
-class AppWrapper extends StatefulWidget {
-  const AppWrapper({Key? key}) : super(key: key);
-
-  @override
-  State<AppWrapper> createState() => _AppWrapperState();
-}
-
-class _AppWrapperState extends State<AppWrapper> {
-  @override
-  void initState() {
-    super.initState();
-    // Initialize deep link service
-    DeepLinkService().initialize(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox.shrink(); // Router will handle the content
   }
 }

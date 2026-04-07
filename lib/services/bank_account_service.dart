@@ -31,26 +31,4 @@ class BankAccountService {
     }
   }
 
-  // Get all bank accounts
-  static Future<List<BankAccount>> getAllBankAccounts() async {
-    try {
-      final response = await http.get(
-        Uri.parse(_baseUrl),
-        headers: {
-          'Accept': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => BankAccount.fromJson(json)).toList();
-      } else {
-        print('Error fetching bank accounts: ${response.statusCode} - ${response.body}');
-        return [];
-      }
-    } catch (e) {
-      print('Error fetching bank accounts: $e');
-      return [];
-    }
-  }
 }
