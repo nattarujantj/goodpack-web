@@ -7,11 +7,12 @@ import '../models/contact.dart';
 import '../providers/purchase_provider.dart';
 import '../providers/supplier_provider.dart';
 import '../providers/product_provider.dart';
-import '../models/supplier.dart';
 import '../models/customer_bank_account.dart';
 import '../services/config_service.dart';
 import '../widgets/responsive_layout.dart';
-import '../widgets/searchable_dropdown.dart';
+import '../widgets/supplier_dropdown.dart';
+import '../widgets/product_search_dropdown.dart';
+import '../widgets/account_dropdown.dart';
 import '../utils/error_dialog.dart';
 import '../utils/date_formatter.dart';
 
@@ -722,85 +723,32 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   Widget _buildSupplierDropdown() {
     return Consumer<SupplierProvider>(
       builder: (context, supplierProvider, child) {
-        // แสดง loading indicator ถ้ากำลังโหลด
-        if (supplierProvider.isLoading) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'ซัพพลายเออร์ *',
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey[300]!),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.local_shipping, color: Colors.grey),
-                    SizedBox(width: 12),
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    SizedBox(width: 8),
-                    Text('กำลังโหลดข้อมูลซัพพลายเออร์...', style: TextStyle(color: Colors.grey)),
-                  ],
-                ),
-              ),
-            ],
-          );
-        }
-        
-        // ดึงข้อมูลผู้ติดต่อของ supplier ที่เลือก
-        Supplier? selectedSupplier;
         List<Contact> contacts = [];
-        if (_selectedSupplierId != null) {
-          selectedSupplier = supplierProvider.allSuppliers.firstWhere(
+        if (_selectedSupplierId != null && !supplierProvider.isLoading) {
+          final selectedSupplier = supplierProvider.allSuppliers.firstWhere(
             (s) => s.id == _selectedSupplierId,
             orElse: () => supplierProvider.allSuppliers.first,
           );
-          // ดึง contacts หรือสร้างจาก legacy fields
           if (selectedSupplier.contacts.isNotEmpty) {
             contacts = selectedSupplier.contacts;
           } else if (selectedSupplier.contactName.isNotEmpty) {
             contacts = [Contact(name: selectedSupplier.contactName, phone: selectedSupplier.phone, isDefault: true)];
           }
         }
-        
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SearchableDropdown<String>(
-              value: _selectedSupplierId,
-              items: supplierProvider.allSuppliers.map((supplier) => supplier.id).toList(),
-              itemAsString: (supplierId) {
-                final supplier = supplierProvider.allSuppliers.firstWhere((s) => s.id == supplierId);
-                return _formatSupplierDisplay(supplier);
-          },
-              itemAsValue: (supplierId) => supplierId,
-          onChanged: (value) {
-            setState(() {
+            SupplierDropdown(
+              selectedSupplierId: _selectedSupplierId,
+              onChanged: (value) {
+                setState(() {
                   _selectedSupplierId = value;
-                  _selectedContactIndex = 0; // Reset to primary contact
-            });
-          },
-              hint: 'เลือกซัพพลายเออร์',
-              label: 'ซัพพลายเออร์ *',
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-                  return 'กรุณาเลือกซัพพลายเออร์';
-            }
-            return null;
-          },
-              prefixIcon: const Icon(Icons.local_shipping),
+                  _selectedContactIndex = 0;
+                });
+              },
             ),
-            
-            // แสดง dropdown ผู้ติดต่อถ้ามีมากกว่า 1 คน
+
             if (contacts.length > 1) ...[
               const SizedBox(height: 16),
               _buildContactDropdown(contacts),
@@ -1011,115 +959,14 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   }
 
   Widget _buildAccountDropdown() {
-    final configService = ConfigService();
-    
-    return FutureBuilder<void>(
-      future: configService.isLoaded ? Future.value() : configService.loadConfig(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ResponsiveText(
-                'บัญชีที่ใช้จ่าย *',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    SizedBox(width: 8),
-                    Text('กำลังโหลดบัญชี...'),
-                  ],
-                ),
-              ),
-            ],
-          );
-        }
-        
-        if (snapshot.hasError) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ResponsiveText(
-                'บัญชีที่ใช้จ่าย *',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.red),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text('Error: ${snapshot.error}'),
-              ),
-            ],
-          );
-        }
-        
-         final accounts = configService.accounts;
-
-         return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ResponsiveText(
-              'บัญชีที่ใช้จ่าย *',
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _selectedAccountId,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
-              ),
-              hint: const Text('เลือกบัญชี'),
-              items: accounts.map((account) {
-                return DropdownMenuItem<String>(
-                  value: account.id,
-                  child: Text(account.displayName),
-                );
-              }).toList(),
-               onChanged: (String? newValue) {
-                 setState(() {
-                   _selectedAccountId = newValue;
-                 });
-               },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'กรุณาเลือกบัญชี';
-                }
-                return null;
-              },
-            ),
-          ],
-        );
+    return AccountDropdown(
+      selectedAccountId: _selectedAccountId,
+      onChanged: (value) {
+        setState(() {
+          _selectedAccountId = value;
+        });
       },
+      label: 'บัญชีที่ใช้จ่าย *',
     );
   }
 
@@ -1409,34 +1256,6 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       // Fall back to now if parsing fails
     }
     return DateTime.now();
-  }
-
-  String _formatSupplierDisplay(Supplier supplier) {
-    final parts = <String>[];
-    
-    // ชื่อบริษัท หรือ ชื่อผู้ติดต่อ
-    if (supplier.companyName.isNotEmpty) {
-      parts.add(supplier.companyName);
-    } else if (supplier.contactName.isNotEmpty) {
-      parts.add(supplier.contactName);
-    }
-    
-    // รหัสซัพพลายเออร์
-    if (supplier.supplierCode.isNotEmpty) {
-      parts.add('[${supplier.supplierCode}]');
-    }
-    
-    // ชื่อผู้ติดต่อ (ถ้ามีชื่อบริษัทแล้ว)
-    if (supplier.companyName.isNotEmpty && supplier.contactName.isNotEmpty) {
-      parts.add('- ${supplier.contactName}');
-    }
-    
-    // เบอร์โทร
-    if (supplier.phone.isNotEmpty) {
-      parts.add('(${supplier.phone})');
-    }
-    
-    return parts.join(' ');
   }
 
   Widget _buildActionButtons(bool isEdit) {
@@ -1937,25 +1756,15 @@ class _AddItemFormState extends State<_AddItemForm> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SearchableDropdown<Product>(
-            value: _selectedProduct,
-            items: widget.products,
-            itemAsString: (product) => '${product.skuId} | ${product.name} | ${product.description}',
+          ProductSearchDropdown(
+            selectedProduct: _selectedProduct,
+            products: widget.products,
             enabled: !_isEditMode,
             onChanged: (product) {
               setState(() {
                 _selectedProduct = product;
               });
             },
-            hint: 'เลือกสินค้า',
-            label: 'เลือกสินค้า *',
-            validator: (value) {
-              if (value == null) {
-                return 'กรุณาเลือกสินค้า';
-              }
-              return null;
-            },
-            prefixIcon: const Icon(Icons.inventory),
           ),
           
           const SizedBox(height: 16),
@@ -2004,18 +1813,17 @@ class _AddItemFormState extends State<_AddItemForm> {
           
           // Preform Selection (Optional)
           if (_preformProducts.isNotEmpty)
-            SearchableDropdown<Product>(
-              value: _selectedPreform,
-              items: _preformProducts,
-              itemAsString: (product) => '${product.skuId} | ${product.name} | ${product.description}',
+            ProductSearchDropdown(
+              selectedProduct: _selectedPreform,
+              products: _preformProducts,
               onChanged: (product) {
                 setState(() {
                   _selectedPreform = product;
                 });
               },
-              hint: 'เลือกพรีฟอร์ม (ไม่บังคับ)',
               label: 'พรีฟอร์ม',
-              prefixIcon: const Icon(Icons.inventory_2),
+              hint: 'เลือกพรีฟอร์ม (ไม่บังคับ)',
+              validator: (_) => null,
             ),
           
           const SizedBox(height: 24),
@@ -2122,24 +1930,14 @@ class _AddWarehouseItemFormState extends State<_AddWarehouseItemForm> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Product Selection
-          SearchableDropdown<Product>(
-            value: _selectedProduct,
-            items: widget.products,
-            itemAsString: (product) => '${product.skuId} | ${product.name} | ${product.description}',
+          ProductSearchDropdown(
+            selectedProduct: _selectedProduct,
+            products: widget.products,
             onChanged: (product) {
               setState(() {
                 _selectedProduct = product;
               });
             },
-            hint: 'เลือกสินค้า',
-            label: 'เลือกสินค้า *',
-            validator: (value) {
-              if (value == null) {
-                return 'กรุณาเลือกสินค้า';
-              }
-              return null;
-            },
-            prefixIcon: const Icon(Icons.inventory),
           ),
           
           const SizedBox(height: 16),

@@ -5,7 +5,8 @@ import '../models/sale.dart';
 import '../providers/sale_provider.dart';
 import '../providers/customer_provider.dart';
 import '../widgets/responsive_layout.dart';
-import '../widgets/searchable_dropdown.dart';
+import '../widgets/customer_dropdown.dart';
+import '../widgets/vat_filter_dropdown.dart';
 import '../utils/date_formatter.dart';
 
 class SaleListScreen extends StatefulWidget {
@@ -306,43 +307,22 @@ class _SaleListScreenState extends State<SaleListScreen> {
             const SizedBox(height: 16),
             
             // VAT Filter
-            Row(
-        children: [
-                Expanded(
-                  child: ResponsiveText(
-                    'ประเภท VAT:',
-            style: const TextStyle(
-              fontWeight: FontWeight.w500,
-                    ),
-            ),
-          ),
-                Expanded(
-                  flex: 2,
-                  child: DropdownButton<String?>(
-            value: _vatFilter,
-                    isExpanded: true,
-                    onChanged: (value) {
-                      _cachedCustomerId = _selectedCustomerId;
-                      _cachedStartDate = _startDate;
-                      _cachedEndDate = _endDate;
-                      _cachedSearchQuery = _searchQuery;
-                      _hasCachedFilters = true;
-                      if (value == 'VAT') {
-                        context.go('/sales?vat=true');
-                      } else if (value == 'Non-VAT') {
-                        context.go('/sales?vat=false');
-                      } else {
-                        context.go('/sales');
-                      }
-                    },
-            items: const [
-              DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
-                      DropdownMenuItem<String?>(value: 'VAT', child: Text('VAT')),
-                      DropdownMenuItem<String?>(value: 'Non-VAT', child: Text('Non-VAT')),
-            ],
-                  ),
-                ),
-              ],
+            VatFilterDropdown(
+              value: _vatFilter,
+              onChanged: (value) {
+                _cachedCustomerId = _selectedCustomerId;
+                _cachedStartDate = _startDate;
+                _cachedEndDate = _endDate;
+                _cachedSearchQuery = _searchQuery;
+                _hasCachedFilters = true;
+                if (value == 'VAT') {
+                  context.go('/sales?vat=true');
+                } else if (value == 'Non-VAT') {
+                  context.go('/sales?vat=false');
+                } else {
+                  context.go('/sales');
+                }
+              },
             ),
           ],
         ),
@@ -517,51 +497,14 @@ class _SaleListScreenState extends State<SaleListScreen> {
   }
 
   Widget _buildCustomerFilter() {
-    return Consumer<CustomerProvider>(
-      builder: (context, customerProvider, child) {
-        final customers = customerProvider.allCustomers;
-        final isLoading = customerProvider.isLoading;
-
-        if (isLoading) {
-          return Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'ลูกค้า: (กำลังโหลด...)',
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
-              ),
-              const Expanded(
-                flex: 2,
-                child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
-              ),
-            ],
-          );
-        }
-
-        return SearchableDropdown<String>(
-          key: ValueKey('customer_dropdown_${_selectedCustomerId}_$_filterResetKey'),
-          value: _selectedCustomerId,
-          items: customers.map((c) => c.id).toList(),
-          itemAsString: (id) {
-            final customer = customers.firstWhere((c) => c.id == id, orElse: () => customers.first);
-            final companyName = customer.companyName.isNotEmpty ? customer.companyName : 'ไม่มีชื่อบริษัท';
-            final contactName = customer.contactName.isNotEmpty ? customer.contactName : '';
-            final phoneNumber = customer.phone.isNotEmpty ? customer.phone : '';
-            final customerCode = customer.customerCode.isNotEmpty ? '[${customer.customerCode}]' : '';
-            String displayText = companyName;
-            if (customerCode.isNotEmpty) displayText += ' $customerCode';
-            if (contactName.isNotEmpty) displayText += ' - $contactName';
-            if (phoneNumber.isNotEmpty) displayText += ' ($phoneNumber)';
-            return displayText;
-          },
-          onChanged: (value) => setState(() => _selectedCustomerId = value),
-          hint: 'ทั้งหมด',
-          label: 'ลูกค้า (${customers.length})',
-          allowClear: true,
-          prefixIcon: const Icon(Icons.person_outline),
-        );
-      },
+    return CustomerDropdown(
+      dropdownKey: ValueKey('customer_dropdown_${_selectedCustomerId}_$_filterResetKey'),
+      selectedCustomerId: _selectedCustomerId,
+      onChanged: (value) => setState(() => _selectedCustomerId = value),
+      label: 'ลูกค้า',
+      allowClear: true,
+      isRequired: false,
+      prefixIcon: const Icon(Icons.person_outline),
     );
   }
 

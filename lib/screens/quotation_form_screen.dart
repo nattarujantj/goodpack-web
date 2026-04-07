@@ -6,10 +6,10 @@ import '../models/product.dart';
 import '../providers/quotation_provider.dart';
 import '../providers/customer_provider.dart';
 import '../providers/product_provider.dart';
-import '../models/customer.dart';
 import '../providers/bank_account_provider.dart';
 import '../widgets/responsive_layout.dart';
-import '../widgets/searchable_dropdown.dart';
+import '../widgets/customer_dropdown.dart';
+import '../widgets/product_search_dropdown.dart';
 import '../widgets/bank_account_selector.dart';
 import '../models/bank_account.dart';
 import '../utils/error_dialog.dart';
@@ -192,34 +192,6 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
 
   String _formatDate(DateTime date) {
     return DateFormatter.formatDate(date);
-  }
-
-  String _formatCustomerDisplay(Customer customer) {
-    final parts = <String>[];
-    
-    // ชื่อบริษัท หรือ ชื่อผู้ติดต่อ
-    if (customer.companyName.isNotEmpty) {
-      parts.add(customer.companyName);
-    } else if (customer.contactName.isNotEmpty) {
-      parts.add(customer.contactName);
-    }
-    
-    // รหัสลูกค้า
-    if (customer.customerCode.isNotEmpty) {
-      parts.add('[${customer.customerCode}]');
-    }
-    
-    // ชื่อผู้ติดต่อ (ถ้ามีชื่อบริษัทแล้ว)
-    if (customer.companyName.isNotEmpty && customer.contactName.isNotEmpty) {
-      parts.add('- ${customer.contactName}');
-    }
-    
-    // เบอร์โทร
-    if (customer.phone.isNotEmpty) {
-      parts.add('(${customer.phone})');
-    }
-    
-    return parts.join(' ');
   }
 
   DateTime? _parseDate(String dateStr) {
@@ -654,64 +626,12 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
   }
 
   Widget _buildCustomerDropdown() {
-    return Consumer<CustomerProvider>(
-      builder: (context, customerProvider, child) {
-        // แสดง loading indicator ถ้ากำลังโหลด
-        if (customerProvider.isLoading) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'ลูกค้า *',
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey[300]!),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.person, color: Colors.grey),
-                    SizedBox(width: 12),
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    SizedBox(width: 8),
-                    Text('กำลังโหลดข้อมูลลูกค้า...', style: TextStyle(color: Colors.grey)),
-                  ],
-                ),
-              ),
-            ],
-          );
-        }
-        
-        return SearchableDropdown<String>(
-          value: _selectedCustomerId,
-          items: customerProvider.allCustomers.map((customer) => customer.id).toList(),
-          itemAsString: (customerId) {
-            final customer = customerProvider.allCustomers.firstWhere((c) => c.id == customerId);
-            return _formatCustomerDisplay(customer);
-          },
-          onChanged: (value) {
-            setState(() {
-              _selectedCustomerId = value;
-            });
-          },
-          hint: 'เลือกลูกค้า',
-          label: 'ลูกค้า *',
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'กรุณาเลือกลูกค้า';
-            }
-            return null;
-          },
-          prefixIcon: const Icon(Icons.person),
-        );
+    return CustomerDropdown(
+      selectedCustomerId: _selectedCustomerId,
+      onChanged: (value) {
+        setState(() {
+          _selectedCustomerId = value;
+        });
       },
     );
   }
@@ -1105,25 +1025,15 @@ class _AddItemDialogState extends State<_AddItemDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-          SearchableDropdown<Product>(
-            value: _selectedProduct,
-            items: widget.products,
-            itemAsString: (product) => '${product.skuId} | ${product.name} | ${product.description}',
+          ProductSearchDropdown(
+            selectedProduct: _selectedProduct,
+            products: widget.products,
             enabled: !_isEditMode,
             onChanged: (product) {
               setState(() {
                 _selectedProduct = product;
               });
             },
-            hint: 'เลือกสินค้า',
-            label: 'เลือกสินค้า *',
-            validator: (value) {
-              if (value == null) {
-                return 'กรุณาเลือกสินค้า';
-              }
-              return null;
-            },
-            prefixIcon: const Icon(Icons.inventory),
           ),
           const SizedBox(height: 16),
           TextFormField(

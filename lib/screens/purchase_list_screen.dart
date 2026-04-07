@@ -6,7 +6,8 @@ import '../providers/supplier_provider.dart';
 import '../models/purchase.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/search_bar.dart';
-import '../widgets/searchable_dropdown.dart';
+import '../widgets/supplier_dropdown.dart';
+import '../widgets/vat_filter_dropdown.dart';
 import '../utils/date_formatter.dart';
 
 class PurchaseListScreen extends StatefulWidget {
@@ -22,7 +23,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   String _searchQuery = '';
   String _sortBy = 'purchaseDate';
   bool _sortAscending = false; // Newest first
-  late String _vatFilter;
+  String? _vatFilter;
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
   
@@ -47,7 +48,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   @override
   void initState() {
     super.initState();
-    _vatFilter = widget.initialVatFilter ?? 'ทั้งหมด';
+    _vatFilter = widget.initialVatFilter;
     if (_hasCachedFilters) {
       _selectedSupplierId = _cachedSupplierId;
       _startDate = _cachedStartDate;
@@ -75,7 +76,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
     super.didUpdateWidget(oldWidget);
     if (widget.initialVatFilter != oldWidget.initialVatFilter) {
       setState(() {
-        _vatFilter = widget.initialVatFilter ?? 'ทั้งหมด';
+        _vatFilter = widget.initialVatFilter;
       });
     }
   }
@@ -278,43 +279,22 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
             const SizedBox(height: 16),
             
             // VAT Filter
-            Row(
-              children: [
-                Expanded(
-                  child: ResponsiveText(
-                    'ประเภท VAT:',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: DropdownButton<String>(
-                    value: _vatFilter,
-                    isExpanded: true,
-                    onChanged: (value) {
-                      _cachedSupplierId = _selectedSupplierId;
-                      _cachedStartDate = _startDate;
-                      _cachedEndDate = _endDate;
-                      _cachedSearchQuery = _searchQuery;
-                      _hasCachedFilters = true;
-                      if (value == 'VAT') {
-                        context.go('/purchases?vat=true');
-                      } else if (value == 'Non-VAT') {
-                        context.go('/purchases?vat=false');
-                      } else {
-                        context.go('/purchases');
-                      }
-                    },
-                    items: const [
-                      DropdownMenuItem(value: 'ทั้งหมด', child: Text('ทั้งหมด')),
-                      DropdownMenuItem(value: 'VAT', child: Text('VAT')),
-                      DropdownMenuItem(value: 'Non-VAT', child: Text('Non-VAT')),
-                    ],
-                  ),
-                ),
-              ],
+            VatFilterDropdown(
+              value: _vatFilter,
+              onChanged: (value) {
+                _cachedSupplierId = _selectedSupplierId;
+                _cachedStartDate = _startDate;
+                _cachedEndDate = _endDate;
+                _cachedSearchQuery = _searchQuery;
+                _hasCachedFilters = true;
+                if (value == 'VAT') {
+                  context.go('/purchases?vat=true');
+                } else if (value == 'Non-VAT') {
+                  context.go('/purchases?vat=false');
+                } else {
+                  context.go('/purchases');
+                }
+              },
             ),
           ],
         ),
@@ -608,7 +588,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
     }
 
     // Filter by VAT type
-    if (_vatFilter != 'ทั้งหมด') {
+    if (_vatFilter != null) {
       filtered = filtered.where((purchase) {
         if (_vatFilter == 'VAT') {
           return purchase.isVAT;
@@ -656,7 +636,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
 
   bool _hasActiveFilters() {
     return _searchQuery.isNotEmpty || 
-           _vatFilter != 'ทั้งหมด' ||
+           _vatFilter != null ||
            _startDate != null ||
            _endDate != null ||
            _selectedSupplierId != null;
@@ -666,7 +646,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
     setState(() {
       _filterResetKey++;
       _searchQuery = '';
-      _vatFilter = 'ทั้งหมด';
+      _vatFilter = null;
       _startDate = null;
       _endDate = null;
       _selectedSupplierId = null;
@@ -838,51 +818,14 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   }
 
   Widget _buildSupplierFilter() {
-    return Consumer<SupplierProvider>(
-      builder: (context, supplierProvider, child) {
-        final suppliers = supplierProvider.allSuppliers;
-        final isLoading = supplierProvider.isLoading;
-
-        if (isLoading) {
-          return Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'ซัพพลายเออร์: (กำลังโหลด...)',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-              ),
-              const Expanded(
-                flex: 2,
-                child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
-              ),
-            ],
-          );
-        }
-
-        return SearchableDropdown<String>(
-          key: ValueKey('supplier_dropdown_${_selectedSupplierId}_$_filterResetKey'),
-          value: _selectedSupplierId,
-          items: suppliers.map((s) => s.id).toList(),
-          itemAsString: (id) {
-            final supplier = suppliers.firstWhere((s) => s.id == id, orElse: () => suppliers.first);
-            final companyName = supplier.companyName.isNotEmpty ? supplier.companyName : 'ไม่มีชื่อบริษัท';
-            final contactName = supplier.contactName.isNotEmpty ? supplier.contactName : '';
-            final phoneNumber = supplier.phone.isNotEmpty ? supplier.phone : '';
-            final supplierCode = supplier.supplierCode.isNotEmpty ? '[${supplier.supplierCode}]' : '';
-            String displayText = companyName;
-            if (supplierCode.isNotEmpty) displayText += ' $supplierCode';
-            if (contactName.isNotEmpty) displayText += ' - $contactName';
-            if (phoneNumber.isNotEmpty) displayText += ' ($phoneNumber)';
-            return displayText;
-          },
-          onChanged: (value) => setState(() => _selectedSupplierId = value),
-          hint: 'ทั้งหมด',
-          label: 'ซัพพลายเออร์ (${suppliers.length})',
-          allowClear: true,
-          prefixIcon: const Icon(Icons.business_outlined),
-        );
-      },
+    return SupplierDropdown(
+      dropdownKey: ValueKey('supplier_dropdown_${_selectedSupplierId}_$_filterResetKey'),
+      selectedSupplierId: _selectedSupplierId,
+      onChanged: (value) => setState(() => _selectedSupplierId = value),
+      label: 'ซัพพลายเออร์',
+      allowClear: true,
+      isRequired: false,
+      prefixIcon: const Icon(Icons.business_outlined),
     );
   }
 

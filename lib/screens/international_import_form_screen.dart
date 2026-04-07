@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../models/international_import.dart';
 import '../models/product.dart';
-import '../models/supplier.dart';
 import '../models/shipping_company.dart';
 import '../providers/international_import_provider.dart';
 import '../providers/supplier_provider.dart';
@@ -12,6 +11,8 @@ import '../providers/product_provider.dart';
 import '../providers/shipping_company_provider.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/searchable_dropdown.dart';
+import '../widgets/supplier_dropdown.dart';
+import '../widgets/product_search_dropdown.dart';
 import '../utils/error_dialog.dart';
 
 class InternationalImportFormScreen extends StatefulWidget {
@@ -229,25 +230,11 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
             ),
             const SizedBox(height: 16),
             // Supplier dropdown
-            Consumer<SupplierProvider>(
-              builder: (context, supplierProvider, _) {
-                final suppliers = supplierProvider.allSuppliers;
-                Supplier? selected;
-                try {
-                  selected = suppliers.firstWhere((s) => s.id == _selectedSupplierId);
-                } catch (_) {
-                  selected = null;
-                }
-                return SearchableDropdown<Supplier>(
-                  label: 'Supplier *',
-                  hint: 'เลือก Supplier',
-                  value: selected,
-                  items: suppliers,
-                  itemAsString: (s) => '${s.supplierCode} - ${s.companyName}',
-                  onChanged: (s) => setState(() => _selectedSupplierId = s?.id),
-                  validator: (s) => s == null ? 'กรุณาเลือก Supplier' : null,
-                );
-              },
+            SupplierDropdown(
+              selectedSupplierId: _selectedSupplierId,
+              onChanged: (value) => setState(() => _selectedSupplierId = value),
+              label: 'Supplier *',
+              hint: 'เลือก Supplier',
             ),
             const SizedBox(height: 16),
             // Shipping dropdown with add button
@@ -833,14 +820,13 @@ class _AddItemDialogState extends State<_AddItemDialog> {
                 if (widget.existing == null)
                   Consumer<ProductProvider>(
                     builder: (context, productProvider, _) {
-                      return SearchableDropdown<Product>(
+                      return ProductSearchDropdown(
                         label: 'สินค้า *',
                         hint: 'เลือกสินค้า',
-                        value: _selectedProduct,
-                        items: productProvider.allProducts,
+                        selectedProduct: _selectedProduct,
+                        products: productProvider.allProducts,
                         itemAsString: (p) => '${p.code} - ${p.name}',
                         onChanged: (p) => setState(() => _selectedProduct = p),
-                        validator: (p) => p == null ? 'กรุณาเลือกสินค้า' : null,
                       );
                     },
                   )

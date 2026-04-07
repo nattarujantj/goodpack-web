@@ -6,7 +6,8 @@ import '../providers/quotation_provider.dart';
 import '../providers/sale_provider.dart';
 import '../providers/customer_provider.dart';
 import '../widgets/responsive_layout.dart';
-import '../widgets/searchable_dropdown.dart';
+import '../widgets/customer_dropdown.dart';
+import '../widgets/vat_filter_dropdown.dart';
 import '../utils/date_formatter.dart';
 
 class QuotationListScreen extends StatefulWidget {
@@ -22,7 +23,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
   String _sortColumn = 'quotationDate';
   bool _sortAscending = false;
   String _statusFilter = 'ทั้งหมด';
-  String _vatFilter = 'ทั้งหมด';
+  String? _vatFilter;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _horizontalScrollController = ScrollController();
@@ -50,9 +51,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.initialVatFilter != null) {
-      _vatFilter = widget.initialVatFilter!;
-    }
+    _vatFilter = widget.initialVatFilter;
     if (_hasCachedFilters) {
       _selectedCustomerId = _cachedCustomerId;
       _startDate = _cachedStartDate;
@@ -82,7 +81,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
     super.didUpdateWidget(oldWidget);
     if (widget.initialVatFilter != oldWidget.initialVatFilter) {
       setState(() {
-        _vatFilter = widget.initialVatFilter ?? 'ทั้งหมด';
+        _vatFilter = widget.initialVatFilter;
       });
     }
   }
@@ -344,44 +343,23 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
             const SizedBox(height: 16),
 
             // VAT Filter
-            Row(
-              children: [
-                Expanded(
-                  child: ResponsiveText(
-                    'ประเภท VAT:',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: DropdownButton<String>(
-                    value: _vatFilter,
-                    isExpanded: true,
-                    onChanged: (value) {
-                      _cachedCustomerId = _selectedCustomerId;
-                      _cachedStartDate = _startDate;
-                      _cachedEndDate = _endDate;
-                      _cachedSearchQuery = _searchQuery;
-                      _cachedStatusFilter = _statusFilter;
-                      _hasCachedFilters = true;
-                      if (value == 'VAT') {
-                        context.go('/quotations?vat=true');
-                      } else if (value == 'Non-VAT') {
-                        context.go('/quotations?vat=false');
-                      } else {
-                        context.go('/quotations');
-                      }
-                    },
-                    items: const [
-                      DropdownMenuItem(value: 'ทั้งหมด', child: Text('ทั้งหมด')),
-                      DropdownMenuItem(value: 'VAT', child: Text('VAT')),
-                      DropdownMenuItem(value: 'Non-VAT', child: Text('Non-VAT')),
-                    ],
-                  ),
-                ),
-              ],
+            VatFilterDropdown(
+              value: _vatFilter,
+              onChanged: (value) {
+                _cachedCustomerId = _selectedCustomerId;
+                _cachedStartDate = _startDate;
+                _cachedEndDate = _endDate;
+                _cachedSearchQuery = _searchQuery;
+                _cachedStatusFilter = _statusFilter;
+                _hasCachedFilters = true;
+                if (value == 'VAT') {
+                  context.go('/quotations?vat=true');
+                } else if (value == 'Non-VAT') {
+                  context.go('/quotations?vat=false');
+                } else {
+                  context.go('/quotations');
+                }
+              },
             ),
           ],
         ),
@@ -813,7 +791,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
     }
     
     // Filter by VAT
-    if (_vatFilter != 'ทั้งหมด') {
+    if (_vatFilter != null) {
       if (_vatFilter == 'VAT') {
         filtered = filtered.where((quotation) => quotation.isVAT).toList();
       } else if (_vatFilter == 'Non-VAT') {
@@ -870,7 +848,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
 
   bool _hasActiveFilters() {
     return _statusFilter != 'ทั้งหมด' || 
-           _vatFilter != 'ทั้งหมด' || 
+           _vatFilter != null || 
            _searchQuery.isNotEmpty ||
            _startDate != null ||
            _endDate != null ||
@@ -881,7 +859,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
     setState(() {
       _filterResetKey++;
       _statusFilter = 'ทั้งหมด';
-      _vatFilter = 'ทั้งหมด';
+      _vatFilter = null;
       _searchQuery = '';
       _searchController.clear();
       _startDate = null;
@@ -1055,51 +1033,14 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
   }
 
   Widget _buildCustomerFilter() {
-    return Consumer<CustomerProvider>(
-      builder: (context, customerProvider, child) {
-        final customers = customerProvider.allCustomers;
-        final isLoading = customerProvider.isLoading;
-
-        if (isLoading) {
-          return Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'ลูกค้า: (กำลังโหลด...)',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-              ),
-              const Expanded(
-                flex: 2,
-                child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
-              ),
-            ],
-          );
-        }
-
-        return SearchableDropdown<String>(
-          key: ValueKey('customer_dropdown_${_selectedCustomerId}_$_filterResetKey'),
-          value: _selectedCustomerId,
-          items: customers.map((c) => c.id).toList(),
-          itemAsString: (id) {
-            final customer = customers.firstWhere((c) => c.id == id, orElse: () => customers.first);
-            final companyName = customer.companyName.isNotEmpty ? customer.companyName : 'ไม่มีชื่อบริษัท';
-            final contactName = customer.contactName.isNotEmpty ? customer.contactName : '';
-            final phoneNumber = customer.phone.isNotEmpty ? customer.phone : '';
-            final customerCode = customer.customerCode.isNotEmpty ? '[${customer.customerCode}]' : '';
-            String displayText = companyName;
-            if (customerCode.isNotEmpty) displayText += ' $customerCode';
-            if (contactName.isNotEmpty) displayText += ' - $contactName';
-            if (phoneNumber.isNotEmpty) displayText += ' ($phoneNumber)';
-            return displayText;
-          },
-          onChanged: (value) => setState(() => _selectedCustomerId = value),
-          hint: 'ทั้งหมด',
-          label: 'ลูกค้า (${customers.length})',
-          allowClear: true,
-          prefixIcon: const Icon(Icons.person_outline),
-        );
-      },
+    return CustomerDropdown(
+      dropdownKey: ValueKey('customer_dropdown_${_selectedCustomerId}_$_filterResetKey'),
+      selectedCustomerId: _selectedCustomerId,
+      onChanged: (value) => setState(() => _selectedCustomerId = value),
+      label: 'ลูกค้า',
+      allowClear: true,
+      isRequired: false,
+      prefixIcon: const Icon(Icons.person_outline),
     );
   }
 
