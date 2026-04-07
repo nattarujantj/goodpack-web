@@ -93,6 +93,7 @@ class ConfigService {
         EnvConfig.configureForMobile(hostname);
       }
     }
+    loadConfig();
   }
 
   // Manual configuration methods for debugging/testing
