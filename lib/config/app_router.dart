@@ -22,6 +22,8 @@ import '../screens/quotation_form_screen.dart';
 import '../screens/export_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/import_screen.dart';
+import '../screens/expense_list_screen.dart';
+import '../screens/expense_form_screen.dart';
 import '../screens/international_import_list_screen.dart';
 import '../screens/international_import_detail_screen.dart';
 import '../screens/international_import_form_screen.dart';
@@ -357,6 +359,24 @@ class AppRouter {
                 quotationId: quotationId,
                   duplicateId: duplicateId,
                 ),
+                state,
+              );
+            },
+          ),
+          // Expense routes
+          GoRoute(
+            path: '/expenses',
+            pageBuilder: (context, state) => _noAnimationPage(
+              const ExpenseListScreen(),
+              state,
+            ),
+          ),
+          GoRoute(
+            path: '/expense-form',
+            pageBuilder: (context, state) {
+              final expenseId = state.uri.queryParameters['id'];
+              return _noAnimationPage(
+                ExpenseFormScreen(expenseId: expenseId),
                 state,
               );
             },

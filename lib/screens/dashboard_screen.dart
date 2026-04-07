@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 import '../providers/sale_provider.dart';
 import '../providers/purchase_provider.dart';
 import '../providers/product_provider.dart';
+import '../providers/expense_provider.dart';
 import '../models/sale.dart';
 import '../models/purchase.dart';
 import '../models/product.dart';
+import '../models/expense.dart';
 import '../widgets/responsive_layout.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -34,6 +36,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context.read<SaleProvider>().loadSalesIfNeeded();
       context.read<PurchaseProvider>().loadPurchasesIfNeeded();
       context.read<ProductProvider>().loadProducts();
+      context.read<ExpenseProvider>().loadExpensesIfNeeded();
     });
   }
 
@@ -168,8 +171,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      body: Consumer3<SaleProvider, PurchaseProvider, ProductProvider>(
-        builder: (context, saleProvider, purchaseProvider, productProvider, child) {
+      body: Consumer4<SaleProvider, PurchaseProvider, ProductProvider, ExpenseProvider>(
+        builder: (context, saleProvider, purchaseProvider, productProvider, expenseProvider, child) {
           if (saleProvider.isLoading || purchaseProvider.isLoading || productProvider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -177,6 +180,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final sales = saleProvider.sales;
           final purchases = purchaseProvider.allPurchases;
           final products = productProvider.allProducts;
+          final expenses = expenseProvider.expenses;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -184,7 +188,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Summary Cards
-                _buildSummaryCards(sales, purchases, _selectedMonth),
+                _buildSummaryCards(sales, purchases, expenses, _selectedMonth),
                 const SizedBox(height: 24),
 
                 // Monthly Sales Chart
@@ -217,7 +221,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 24),
 
                 // Revenue vs Expense Chart
-                _buildRevenueExpenseChart(sales, purchases, _selectedMonth),
+                _buildRevenueExpenseChart(sales, purchases, expenses, _selectedMonth),
                 const SizedBox(height: 24),
 
                 // Low Stock Alert
@@ -234,10 +238,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     context.read<SaleProvider>().loadSales();
     context.read<PurchaseProvider>().loadPurchases();
     context.read<ProductProvider>().loadProducts();
+    context.read<ExpenseProvider>().loadExpenses();
   }
 
   // ==================== Summary Cards ====================
-  Widget _buildSummaryCards(List<Sale> sales, List<Purchase> purchases, DateTime selectedMonth) {
+  Widget _buildSummaryCards(List<Sale> sales, List<Purchase> purchases, List<Expense> expenses, DateTime selectedMonth) {
     final prevMonth = DateTime(selectedMonth.year, selectedMonth.month - 1, 1);
 
     // Sales ในเดือนที่เลือก
@@ -258,6 +263,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ).toList();
     final thisMonthPurchaseTotal = thisMonthPurchases.fold(0.0, (sum, p) => sum + p.grandTotal);
 
+    // ค่าใช้จ่ายในเดือนที่เลือก
+    final thisMonthExpenses = expenses.where((e) =>
+      e.expenseDate.year == selectedMonth.year && e.expenseDate.month == selectedMonth.month
+    ).toList();
+    final thisMonthExpenseTotal = thisMonthExpenses.fold(0.0, (sum, e) => sum + e.amount);
+
     // Calculate growth percentage
     final growthPercent = lastMonthTotal > 0
         ? ((thisMonthTotal - lastMonthTotal) / lastMonthTotal * 100)
@@ -265,7 +276,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cardWidth = constraints.maxWidth > 600 ? (constraints.maxWidth - 48) / 4 : (constraints.maxWidth - 16) / 2;
+        final isWide = constraints.maxWidth > 800;
+        final cardWidth = isWide ? (constraints.maxWidth - 64) / 5 : (constraints.maxWidth - 16) / 2;
         
         return Wrap(
           spacing: 16,
@@ -296,11 +308,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: cardWidth,
             ),
             _buildSummaryCard(
+              'ค่าใช้จ่ายอื่นๆ',
+              _formatCurrency(thisMonthExpenseTotal),
+              Icons.receipt_long,
+              Colors.deepOrange,
+              subtitle: '${thisMonthExpenses.length} รายการ',
+              width: cardWidth,
+            ),
+            _buildSummaryCard(
               'กำไรขั้นต้น',
-              _formatCurrency(thisMonthTotal - thisMonthPurchaseTotal),
+              _formatCurrency(thisMonthTotal - thisMonthPurchaseTotal - thisMonthExpenseTotal),
               Icons.account_balance_wallet,
-              Colors.orange,
-              subtitle: 'รายได้ - รายจ่าย',
+              (thisMonthTotal - thisMonthPurchaseTotal - thisMonthExpenseTotal) >= 0 ? Colors.orange : Colors.red,
+              subtitle: 'รายได้ - ซื้อ - ค่าใช้จ่าย',
               width: cardWidth,
             ),
           ],
@@ -667,12 +687,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ==================== Revenue vs Expense Chart ====================
-  Widget _buildRevenueExpenseChart(List<Sale> sales, List<Purchase> purchases, DateTime selectedMonth) {
+  Widget _buildRevenueExpenseChart(List<Sale> sales, List<Purchase> purchases, List<Expense> expenses, DateTime selectedMonth) {
     final chartYear = selectedMonth.year;
     final monthlyData = <int, Map<String, double>>{};
 
     for (int i = 1; i <= 12; i++) {
-      monthlyData[i] = {'revenue': 0, 'expense': 0};
+      monthlyData[i] = {'revenue': 0, 'expense': 0, 'otherExpense': 0};
     }
 
     for (final sale in sales) {
@@ -686,6 +706,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (purchase.purchaseDate.year == chartYear) {
         monthlyData[purchase.purchaseDate.month]!['expense'] =
             (monthlyData[purchase.purchaseDate.month]!['expense'] ?? 0) + purchase.grandTotal;
+      }
+    }
+
+    for (final exp in expenses) {
+      if (exp.expenseDate.year == chartYear) {
+        monthlyData[exp.expenseDate.month]!['otherExpense'] =
+            (monthlyData[exp.expenseDate.month]!['otherExpense'] ?? 0) + exp.amount;
       }
     }
 
@@ -724,27 +751,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Row(
                         children: [
                           _buildLegendItem('รายได้', Colors.green),
-                          const SizedBox(width: 16),
-                          _buildLegendItem('รายจ่าย', Colors.red),
+                          const SizedBox(width: 12),
+                          _buildLegendItem('ซื้อสินค้า', Colors.red),
+                          const SizedBox(width: 12),
+                          _buildLegendItem('ค่าใช้จ่าย', Colors.deepOrange),
                         ],
                       ),
                       const SizedBox(height: 8),
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: DataTable(
-                          columnSpacing: 16,
+                          columnSpacing: 12,
                           showCheckboxColumn: false,
                           columns: const [
                             DataColumn(label: Text('เดือน')),
                             DataColumn(label: Text('รายได้'), numeric: true),
-                            DataColumn(label: Text('รายจ่าย'), numeric: true),
+                            DataColumn(label: Text('ซื้อสินค้า'), numeric: true),
+                            DataColumn(label: Text('ค่าใช้จ่าย'), numeric: true),
                             DataColumn(label: Text('กำไร'), numeric: true),
                           ],
                           rows: List.generate(12, (index) {
                             final month = index + 1;
                             final revenue = monthlyData[month]!['revenue']!;
                             final expense = monthlyData[month]!['expense']!;
-                            final profit = revenue - expense;
+                            final otherExpense = monthlyData[month]!['otherExpense']!;
+                            final profit = revenue - expense - otherExpense;
                             final isSelectedMonth = month == selectedMonth.month;
                             final isChartSelected = month == _revenueChartSelectedMonth;
 
@@ -768,6 +799,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     style: const TextStyle(color: Colors.green))),
                                 DataCell(Text(_formatShortCurrency(expense),
                                     style: const TextStyle(color: Colors.red))),
+                                DataCell(Text(_formatShortCurrency(otherExpense),
+                                    style: const TextStyle(color: Colors.deepOrange))),
                                 DataCell(Text(
                                   _formatShortCurrency(profit),
                                   style: TextStyle(

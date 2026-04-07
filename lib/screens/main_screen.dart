@@ -55,6 +55,10 @@ class _MainScreenState extends State<MainScreen> {
       label: 'เสนอราคา',
     ),
     const BottomNavigationBarItem(
+      icon: Icon(Icons.receipt_long),
+      label: 'ค่าใช้จ่าย',
+    ),
+    const BottomNavigationBarItem(
       icon: Icon(Icons.file_download),
       label: 'Export',
     ),
@@ -91,9 +95,10 @@ class _MainScreenState extends State<MainScreen> {
     if (path.startsWith('/purchase')) return 4;
     if (path.startsWith('/sale')) return 5;
     if (path.startsWith('/quotation')) return 6;
-    if (path == '/export') return 7;
-    if (path == '/import') return 8;
-    if (path.startsWith('/international')) return 9;
+    if (path.startsWith('/expense')) return 7;
+    if (path == '/export') return 8;
+    if (path == '/import') return 9;
+    if (path.startsWith('/international')) return 10;
     return _currentIndex;
   }
 
@@ -295,14 +300,17 @@ class _MainScreenState extends State<MainScreen> {
                   ],
                 ),
                 
+                // ค่าใช้จ่าย
+                _buildNavItem(7, Icons.receipt_long, 'ค่าใช้จ่าย'),
+                
                 const Divider(height: 24, indent: 16, endIndent: 16),
                 
                 // Export
-                _buildNavItem(7, Icons.file_download, 'Export'),
+                _buildNavItem(8, Icons.file_download, 'Export'),
                 // Import
-                _buildNavItem(8, Icons.upload_file, 'Import'),
+                _buildNavItem(9, Icons.upload_file, 'Import'),
                 // International
-                _buildNavItem(9, Icons.public, 'International'),
+                _buildNavItem(10, Icons.public, 'International'),
               ],
             ),
           ),
@@ -465,12 +473,15 @@ class _MainScreenState extends State<MainScreen> {
           context.go('/quotations');
           break;
         case 7:
-          context.go('/export');
+          context.go('/expenses');
           break;
         case 8:
-          context.go('/import');
+          context.go('/export');
           break;
         case 9:
+          context.go('/import');
+          break;
+        case 10:
           context.go('/internationals');
           break;
       }
