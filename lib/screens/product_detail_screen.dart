@@ -1217,19 +1217,24 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
           const SizedBox(height: 8),
           // แสดง Weighted Average เป็นหลัก (รวมต้นทุนทั้งหมด)
-          _buildPriceRow('เฉลี่ย:', NumberFormatter.formatPrice(priceInfo.average), isHighlight: true),
+          _buildPriceRow('เฉลี่ย:', _formatPriceOrDash(priceInfo.average), isHighlight: true),
           const SizedBox(height: 4),
-          _buildPriceRow('เฉลี่ย YTD:', NumberFormatter.formatPrice(priceInfo.averageYTD)),
-          _buildPriceRow('เฉลี่ย MTD:', NumberFormatter.formatPrice(priceInfo.averageMTD)),
+          _buildPriceRow('เฉลี่ย YTD:', _formatPriceOrDash(priceInfo.averageYTD)),
+          _buildPriceRow('เฉลี่ย MTD:', _formatPriceOrDash(priceInfo.averageMTD)),
           const SizedBox(height: 8),
           const Divider(height: 1),
           const SizedBox(height: 8),
-          _buildPriceRow('ล่าสุด:', NumberFormatter.formatPrice(priceInfo.latest)),
-          _buildPriceRow('ต่ำสุด:', NumberFormatter.formatPrice(priceInfo.min)),
-          _buildPriceRow('สูงสุด:', NumberFormatter.formatPrice(priceInfo.max)),
+          _buildPriceRow('ล่าสุด:', _formatPriceOrDash(priceInfo.latest)),
+          _buildPriceRow('ต่ำสุด:', _formatPriceOrDash(priceInfo.min)),
+          _buildPriceRow('สูงสุด:', _formatPriceOrDash(priceInfo.max)),
         ],
       ),
     );
+  }
+
+  String _formatPriceOrDash(double price) {
+    if (price == 0) return '-';
+    return '฿${NumberFormatter.formatPrice(price)}';
   }
 
   Widget _buildPriceRow(String label, String value, {bool isHighlight = false}) {
@@ -1251,7 +1256,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
           Expanded(
             child: ResponsiveText(
-              '฿$value',
+              value,
               style: TextStyle(
                 fontSize: isHighlight ? 16 : 14,
                 fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal,
@@ -1610,6 +1615,34 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       );
                       return;
+                    }
+
+                    if (stockType == 'vat') {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('ยืนยันการแก้ไขสต็อก VAT'),
+                          content: const Text(
+                            'คุณกำลังแก้ไขสต็อก VAT\n'
+                            'โดยปกติสต็อก VAT ไม่ควรถูกแก้ไขด้วยมือ\n\n'
+                            'คุณต้องการดำเนินการต่อหรือไม่?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(false),
+                              child: const Text('ยกเลิก'),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                              ),
+                              onPressed: () => Navigator.of(ctx).pop(true),
+                              child: const Text('ยืนยัน'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true) return;
                     }
 
                     Navigator.of(context).pop();
