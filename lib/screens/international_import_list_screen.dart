@@ -217,7 +217,7 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
                                         ),
                                       ),
                                       DataCell(Text('${row.item.quantity}')),
-                                      DataCell(Text(row.item.cbm.toStringAsFixed(0))),
+                                      DataCell(Text(row.item.cbm.toStringAsFixed(1))),
                                       DataCell(Text(_currencyFormat.format(row.item.costPerUnitBeforeVAT))),
                                       DataCell(Text(_currencyFormat.format(row.item.costPerUnitAfterVAT))),
                                       DataCell(_buildStatusBadge(row.import_.status)),

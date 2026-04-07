@@ -116,7 +116,7 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
     int ppb = item.piecesPerBox > 0 ? item.piecesPerBox : 1;
     double numBoxes = (item.quantity / ppb).ceilToDouble();
     double raw = numBoxes * item.boxWidth * item.boxLength * item.boxHeight / 1000000;
-    return raw.ceilToDouble();
+    return (raw * 10).ceilToDouble() / 10;
   }
 
   double get _totalCBM => _items.fold(0.0, (s, i) => s + _calcItemCBM(i));
@@ -438,7 +438,7 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
                       DataCell(Text('${item.quantity}')),
                       DataCell(Text('${item.piecesPerBox}')),
                       DataCell(Text('${item.boxWidth}x${item.boxLength}x${item.boxHeight}')),
-                      DataCell(Text(cbm.toStringAsFixed(0))),
+                      DataCell(Text(cbm.toStringAsFixed(1))),
                       DataCell(Text(_currencyFormat.format(shipPU))),
                       DataCell(Text(_currencyFormat.format(item.commission))),
                       DataCell(Text(_currencyFormat.format(costBV))),
@@ -484,7 +484,7 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
           children: [
             const Text('สรุป', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            _summaryRow('รวม CBM', '${totalCBM.toStringAsFixed(0)} คิว'),
+            _summaryRow('รวม CBM', '${totalCBM.toStringAsFixed(1)} คิว'),
             _summaryRow('รวมต้นทุนสินค้า', '${_currencyFormat.format(totalProductCost)} บาท'),
             _summaryRow('รวมค่าส่ง', '${_currencyFormat.format(totalShipping)} บาท'),
             _summaryRow('รวมค่าคอมมิชชั่น', '${_currencyFormat.format(totalCommission)} บาท'),
@@ -801,7 +801,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
     if (ppb <= 0) ppb = 1;
     double numBoxes = (qty / ppb).ceilToDouble();
     double raw = numBoxes * w * l * h / 1000000;
-    return raw.ceilToDouble();
+    return (raw * 10).ceilToDouble() / 10;
   }
 
   @override
@@ -899,7 +899,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('CBM (ปัดขึ้น): ${_cbmPreview.toStringAsFixed(0)}',
+                  child: Text('CBM (ปัดขึ้น): ${_cbmPreview.toStringAsFixed(1)}',
                       style: TextStyle(color: Colors.blue[700], fontWeight: FontWeight.w500)),
                 ),
                 const SizedBox(height: 12),

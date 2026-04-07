@@ -209,7 +209,7 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
                     DataCell(Text('${item.quantity}')),
                     DataCell(Text('${item.piecesPerBox}')),
                     DataCell(Text('${item.boxWidth}x${item.boxLength}x${item.boxHeight}')),
-                    DataCell(Text(item.cbm.toStringAsFixed(0))),
+                    DataCell(Text(item.cbm.toStringAsFixed(1))),
                     DataCell(Text(_currencyFormat.format(item.shippingCostPerUnit))),
                     DataCell(Text(_currencyFormat.format(item.commission))),
                     DataCell(Text(_currencyFormat.format(item.costPerUnitBeforeVAT))),
@@ -236,7 +236,7 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
           children: [
             const Text('สรุป', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            _infoRow('รวม CBM', '${imp.totalCBM.toStringAsFixed(0)} คิว'),
+            _infoRow('รวม CBM', '${imp.totalCBM.toStringAsFixed(1)} คิว'),
             _infoRow('รวมต้นทุนสินค้า', '${_currencyFormat.format(imp.totalProductCost)} บาท'),
             _infoRow('รวมค่าส่ง', '${_currencyFormat.format(imp.totalShippingCost)} บาท'),
             const Divider(),
