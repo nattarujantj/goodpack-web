@@ -72,12 +72,16 @@ jobs:
           
           echo "🔨 Building..."
           flutter pub get
-          flutter build web --dart-define=API_BASE_URL="http://192.168.1.162:8080/api"
+          flutter build web --dart-define=API_BASE_URL="https://admin.goodpackagingsupply.com/api"
           
-          echo "📦 Deploying to nginx..."
+          echo "📦 Deploying to nginx (LAN access)..."
           sudo rm -rf /var/www/html/*
           sudo cp -r build/web/* /var/www/html/
           sudo systemctl restart nginx
+          
+          echo "📦 Deploying to Go server web/ (Cloudflare Tunnel)..."
+          sudo rm -rf /opt/goodpack-server/web/*
+          sudo cp -r build/web/* /opt/goodpack-server/web/
           
           echo "✅ Flutter Web deployed!"
 
@@ -87,7 +91,8 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "✅ Deployment complete!"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🌐 Web: http://192.168.1.162"
-          echo "📡 API: http://192.168.1.162:8080/api"
+          echo "🌐 Web: https://admin.goodpackagingsupply.com"
+          echo "📡 API: https://admin.goodpackagingsupply.com/api"
+          echo "🏠 LAN: http://192.168.1.162"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
