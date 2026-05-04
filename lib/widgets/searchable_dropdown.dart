@@ -112,6 +112,12 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   void _showOverlay() {
     if (_overlayEntry != null) return;
 
+    // For mobile/tablet, use bottom sheet instead of overlay
+    if (MediaQuery.of(context).size.width < 600) {
+      _showBottomSheet();
+      return;
+    }
+
     _overlayEntry = OverlayEntry(
       builder: (context) => GestureDetector(
         behavior: HitTestBehavior.translucent,
@@ -146,60 +152,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.grey[300]!),
                         ),
-                        child: _filteredItems.isEmpty
-                            ? Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: widget.items.isEmpty
-                                    ? const Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          SizedBox(
-                                            width: 16,
-                                            height: 16,
-                                            child: CircularProgressIndicator(strokeWidth: 2),
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text('กำลังโหลด...'),
-                                        ],
-                                      )
-                                    : const Text('ไม่พบข้อมูล'),
-                              )
-                            : ListView.builder(
-                                shrinkWrap: true,
-                                itemCount: _filteredItems.length,
-                                itemBuilder: (context, index) {
-                                  final item = _filteredItems[index];
-                                  final isSelected = item == widget.value;
-
-                                  return _HoverableListItem(
-                                    isSelected: isSelected,
-                                    onTap: () {
-                                      widget.onChanged?.call(item);
-                                      _searchController.text = widget.itemAsString(item);
-                                      _removeOverlay();
-                                    },
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            widget.itemAsString(item),
-                                            style: TextStyle(
-                                              color: isSelected ? Colors.blue[700] : null,
-                                              fontWeight: isSelected ? FontWeight.w500 : null,
-                                            ),
-                                          ),
-                                        ),
-                                        if (isSelected)
-                                          Icon(
-                                            Icons.check,
-                                            color: Colors.blue[700],
-                                            size: 16,
-                                          ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
+                        child: _buildDropdownContent(),
                       ),
                     ),
                   ),
@@ -212,6 +165,150 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
     );
 
     Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _showBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return DraggableScrollableSheet(
+          expand: false,
+          maxChildSize: 0.6,
+          initialChildSize: 0.5,
+          builder: (BuildContext context, ScrollController scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: Column(
+                children: [
+                  // Header with close button
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          widget.label ?? 'เลือก',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Search field
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'ค้นหา...',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onChanged: _filterItems,
+                    ),
+                  ),
+                  // Items list
+                  Expanded(
+                    child: ListView.builder(
+                      controller: scrollController,
+                      shrinkWrap: true,
+                      itemCount: _filteredItems.length,
+                      itemBuilder: (context, index) {
+                        final item = _filteredItems[index];
+                        final isSelected = item == widget.value;
+
+                        return ListTile(
+                          title: Text(widget.itemAsString(item)),
+                          trailing: isSelected
+                              ? const Icon(Icons.check, color: Colors.blue)
+                              : null,
+                          selected: isSelected,
+                          selectedTileColor: Colors.blue[50],
+                          onTap: () {
+                            widget.onChanged?.call(item);
+                            _searchController.text = widget.itemAsString(item);
+                            Navigator.pop(context);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDropdownContent() {
+    return _filteredItems.isEmpty
+        ? Padding(
+            padding: const EdgeInsets.all(16),
+            child: widget.items.isEmpty
+                ? const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 8),
+                      Text('กำลังโหลด...'),
+                    ],
+                  )
+                : const Text('ไม่พบข้อมูล'),
+          )
+        : ListView.builder(
+            shrinkWrap: true,
+            itemCount: _filteredItems.length,
+            itemBuilder: (context, index) {
+              final item = _filteredItems[index];
+              final isSelected = item == widget.value;
+
+              return _HoverableListItem(
+                isSelected: isSelected,
+                onTap: () {
+                  widget.onChanged?.call(item);
+                  _searchController.text = widget.itemAsString(item);
+                  _removeOverlay();
+                },
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.itemAsString(item),
+                        style: TextStyle(
+                          color: isSelected ? Colors.blue[700] : null,
+                          fontWeight: isSelected ? FontWeight.w500 : null,
+                        ),
+                      ),
+                    ),
+                    if (isSelected)
+                      Icon(
+                        Icons.check,
+                        color: Colors.blue[700],
+                        size: 16,
+                      ),
+                  ],
+                ),
+              );
+            },
+          );
   }
 
   void _removeOverlay() {
