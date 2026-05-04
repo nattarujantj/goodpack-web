@@ -214,7 +214,7 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
                   return DataRow(cells: [
                     DataCell(Text('${idx + 1}')),
                     DataCell(Text('${item.productCode}\n${item.productName}', style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(_currencyFormat.format(item.usdPricePerUnit))),
+                    DataCell(Text(item.usdPricePerUnit.toString())),
                     DataCell(Text('${item.quantity}')),
                     DataCell(Text('${item.piecesPerBox}')),
                     DataCell(Text('${item.boxWidth}x${item.boxLength}x${item.boxHeight}')),

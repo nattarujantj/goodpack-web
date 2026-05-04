@@ -24,6 +24,8 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
   String _commissionFilter = 'ทั้งหมด';
   DateTime? _startDate;
   DateTime? _endDate;
+  int? _sortColumnIndex = 1;
+  bool _sortAscending = false;
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
 
@@ -41,9 +43,8 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
   }
 
   void _initDefaultDateRange() {
-    final now = DateTime.now();
-    _startDate = DateTime(now.year, now.month - 1, 1);
-    _endDate = DateTime(now.year, now.month + 1, 0);
+    _startDate = null;
+    _endDate = null;
   }
 
   @override
@@ -118,7 +119,7 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
             );
           }
 
-          final rows = _buildFlatRows(provider.allImports);
+          final rows = _sortRows(_buildFlatRows(provider.allImports));
 
           return Column(
             children: [
@@ -175,7 +176,7 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
                             label: Text(
                               _startDate != null && _endDate != null
                                   ? '${DateFormat('dd/MM/yy').format(_startDate!)} - ${DateFormat('dd/MM/yy').format(_endDate!)}'
-                                  : 'เลือกช่วงวันที่',
+                                  : 'ย้อนหลังทั้งหมด',
                             ),
                             onPressed: _pickDateRange,
                           ),
@@ -202,12 +203,22 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
                               controller: _horizontalScrollController,
                               scrollDirection: Axis.horizontal,
                               child: DataTable(
+                                sortColumnIndex: _sortColumnIndex,
+                                sortAscending: _sortAscending,
                                 columnSpacing: 16,
                                 headingRowColor: WidgetStateProperty.all(Colors.grey[100]),
-                                columns: const [
-                                  DataColumn(label: Text('เลขที่')),
-                                  DataColumn(label: Text('วันที่')),
-                                  DataColumn(label: Text('ประเภท')),
+                                columns: [
+                                  const DataColumn(label: Text('เลขที่')),
+                                  DataColumn(
+                                    label: const Text('วันที่'),
+                                    onSort: (columnIndex, ascending) {
+                                      setState(() {
+                                        _sortColumnIndex = columnIndex;
+                                        _sortAscending = ascending;
+                                      });
+                                    },
+                                  ),
+                                  const DataColumn(label: Text('ประเภท')),
                                   DataColumn(label: Text('Supplier')),
                                   DataColumn(label: Text('Shipping')),
                                   DataColumn(label: Text('สินค้า')),
@@ -265,6 +276,14 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  List<_FlatRow> _sortRows(List<_FlatRow> rows) {
+    rows.sort((a, b) {
+      final result = a.import_.importDate.compareTo(b.import_.importDate);
+      return _sortAscending ? result : -result;
+    });
+    return rows;
   }
 
   Widget _buildFilterChip(String label, String current, ValueChanged<String> onSelect) {

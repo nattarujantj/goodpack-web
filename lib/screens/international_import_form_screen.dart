@@ -770,6 +770,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
   final _lengthController = TextEditingController();
   final _heightController = TextEditingController();
   final _piecesPerBoxController = TextEditingController(text: '1');
+  final _cbmController = TextEditingController();
   final _commissionController = TextEditingController();
   bool _commissionPaid = false;
 
@@ -784,6 +785,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
       _widthController.text = e.boxWidth.toString();
       _lengthController.text = e.boxLength.toString();
       _heightController.text = e.boxHeight.toString();
+      _cbmController.text = e.cbm.toString();
       _commissionController.text = e.commission.toString();
       _commissionPaid = e.commissionPaid;
     }
@@ -797,6 +799,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
     _widthController.dispose();
     _lengthController.dispose();
     _heightController.dispose();
+    _cbmController.dispose();
     _commissionController.dispose();
     super.dispose();
   }
@@ -913,6 +916,22 @@ class _AddItemDialogState extends State<_AddItemDialog> {
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
+                  controller: _cbmController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'CBM (ใส่เองได้)',
+                    helperText: 'เว้นว่างเพื่อคำนวณอัตโนมัติจากขนาดกล่อง',
+                  ),
+                  onChanged: (_) => setState(() {}),
+                  validator: (v) {
+                    if (v != null && v.isNotEmpty && double.tryParse(v) == null) {
+                      return 'กรุณากรอกค่า CBM ให้ถูกต้อง';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
                   controller: _commissionController,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(labelText: 'ค่าคอมมิชชั่น (บาท/ชิ้น)'),
@@ -948,7 +967,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
               boxWidth: double.tryParse(_widthController.text) ?? 0,
               boxLength: double.tryParse(_lengthController.text) ?? 0,
               boxHeight: double.tryParse(_heightController.text) ?? 0,
-              cbm: _cbmPreview,
+              cbm: double.tryParse(_cbmController.text) ?? _cbmPreview,
               shippingCostPerUnit: 0,
               commission: double.tryParse(_commissionController.text) ?? 0,
               commissionPaid: _commissionPaid,
