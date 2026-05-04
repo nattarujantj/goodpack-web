@@ -105,95 +105,107 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   void _onFocusChange() {
     if (_focusNode.hasFocus) {
       _showOverlay();
-    } else {
-      // Delay removal to allow tap on overlay items
-      Future.delayed(const Duration(milliseconds: 150), () {
-        if (!_focusNode.hasFocus) {
-          _removeOverlay();
-        }
-      });
     }
+    // Don't close overlay on focus loss - let tap-outside handle it
   }
 
   void _showOverlay() {
     if (_overlayEntry != null) return;
 
     _overlayEntry = OverlayEntry(
-      builder: (context) => Material(
-        color: Colors.transparent,
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          showWhenUnlinked: false,
-          offset: const Offset(0, 70),
-          child: GestureDetector(
-            onTap: () {}, // Prevent tap from closing
-            child: Material(
-              elevation: 8,
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                constraints: const BoxConstraints(maxHeight: 200),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: _filteredItems.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: widget.items.isEmpty
-                            ? const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text('กำลังโหลด...'),
-                                ],
-                              )
-                            : const Text('ไม่พบข้อมูล'),
-                      )
-                    : ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: _filteredItems.length,
-                        itemBuilder: (context, index) {
-                          final item = _filteredItems[index];
-                          final isSelected = item == widget.value;
-
-                          return _HoverableListItem(
-                            isSelected: isSelected,
-                            onTap: () {
-                              widget.onChanged?.call(item);
-                              _searchController.text = widget.itemAsString(item);
-                              _focusNode.unfocus();
-                              _removeOverlay();
-                            },
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    widget.itemAsString(item),
-                                    style: TextStyle(
-                                      color: isSelected ? Colors.blue[700] : null,
-                                      fontWeight: isSelected ? FontWeight.w500 : null,
-                                    ),
-                                  ),
-                                ),
-                                if (isSelected)
-                                  Icon(
-                                    Icons.check,
-                                    color: Colors.blue[700],
-                                    size: 16,
-                                  ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
+      builder: (context) => GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          // Tap outside dropdown closes it
+          _removeOverlay();
+        },
+        child: Material(
+          color: Colors.transparent,
+          child: Stack(
+            children: [
+              // Invisible full-screen tap area to catch taps outside dropdown
+              Positioned.fill(
+                child: Container(color: Colors.transparent),
               ),
-            ),
+              // Dropdown content positioned below input
+              Positioned(
+                width: _getDropdownWidth(),
+                child: CompositedTransformFollower(
+                  link: _layerLink,
+                  showWhenUnlinked: false,
+                  offset: const Offset(0, 70),
+                  child: GestureDetector(
+                    onTap: () {}, // Prevent tap from reaching outer GestureDetector
+                    child: Material(
+                      elevation: 8,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        constraints: const BoxConstraints(maxHeight: 200),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: _filteredItems.isEmpty
+                            ? Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: widget.items.isEmpty
+                                    ? const Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text('กำลังโหลด...'),
+                                        ],
+                                      )
+                                    : const Text('ไม่พบข้อมูล'),
+                              )
+                            : ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: _filteredItems.length,
+                                itemBuilder: (context, index) {
+                                  final item = _filteredItems[index];
+                                  final isSelected = item == widget.value;
+
+                                  return _HoverableListItem(
+                                    isSelected: isSelected,
+                                    onTap: () {
+                                      widget.onChanged?.call(item);
+                                      _searchController.text = widget.itemAsString(item);
+                                      _removeOverlay();
+                                    },
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            widget.itemAsString(item),
+                                            style: TextStyle(
+                                              color: isSelected ? Colors.blue[700] : null,
+                                              fontWeight: isSelected ? FontWeight.w500 : null,
+                                            ),
+                                          ),
+                                        ),
+                                        if (isSelected)
+                                          Icon(
+                                            Icons.check,
+                                            color: Colors.blue[700],
+                                            size: 16,
+                                          ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
