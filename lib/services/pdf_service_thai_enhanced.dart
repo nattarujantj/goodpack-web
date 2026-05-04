@@ -12,7 +12,13 @@ import '../models/bank_account.dart';
 class PdfServiceThaiEnhanced {
   static const String defaultSignerName = 'สุภาวดี บูรณะโอสถ';
   
-  static Future<void> generateAndPrintQuotation(Quotation quotation, {BankAccount? bankAccount, String? signerName, Map<String, Uint8List>? productImages}) async {
+  static Future<void> generateAndPrintQuotation(
+    Quotation quotation, {
+    BankAccount? bankAccount,
+    String? signerName,
+    Map<String, Uint8List>? productImages,
+    html.WindowBase? targetWindow,
+  }) async {
     try {
       final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName, productImages: productImages);
       final pdfBytes = await pdf.save();
@@ -21,7 +27,11 @@ class PdfServiceThaiEnhanced {
       if (kIsWeb) {
         final blob = html.Blob([pdfBytes], 'application/pdf');
         final url = html.Url.createObjectUrlFromBlob(blob);
-        html.window.open(url, '_blank');
+        if (targetWindow != null) {
+          targetWindow.location.href = url;
+        } else {
+          html.window.open(url, '_blank');
+        }
         // ไม่ revoke URL ทันทีเพราะจะทำให้ tab ใหม่โหลด PDF ไม่ได้
       } else {
         // สำหรับ mobile/desktop ใช้ Printing.sharePdf เพื่อให้สามารถดาวน์โหลดหรือแชร์ไฟล์ได้

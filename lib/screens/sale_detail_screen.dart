@@ -861,15 +861,20 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     );
   }
 
-  void _printSalePdf(Sale sale, SaleDocumentType documentType) async {
-    final signatureOptions = await showDialog<SaleSignatureOptions>(
+  void _printSalePdf(Sale sale, SaleDocumentType documentType, {html.WindowBase? targetWindow}) async {
+    final result = await showDialog<_SalePrintDialogResult>(
       context: context,
       builder: (context) => _SignatureOptionsDialog(
         documentType: documentType,
         sale: sale,
       ),
     );
-    if (signatureOptions == null) return;
+    if (result == null || result.signatureOptions == null) {
+      targetWindow?.close();
+      return;
+    }
+
+    final signatureOptions = result.signatureOptions!;
 
     try {
       BankAccount? bankAccount = _ourAccount;
@@ -887,6 +892,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
         documentType,
         bankAccount: bankAccount,
         signatureOptions: signatureOptions,
+        targetWindow: result.targetWindow,
       );
 
       if (mounted) {
@@ -1064,10 +1070,22 @@ class _SignatureOptionsDialogState extends State<_SignatureOptionsDialog> {
           child: const Text('ยกเลิก'),
         ),
         ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(_buildOptions()),
+          onPressed: () => Navigator.of(context).pop(
+            _SalePrintDialogResult(
+              _buildOptions(),
+              html.window.open('about:blank', '_blank'),
+            ),
+          ),
           child: const Text('พิมพ์ PDF'),
         ),
       ],
     );
   }
+}
+
+class _SalePrintDialogResult {
+  final SaleSignatureOptions? signatureOptions;
+  final html.WindowBase? targetWindow;
+
+  _SalePrintDialogResult(this.signatureOptions, this.targetWindow);
 }

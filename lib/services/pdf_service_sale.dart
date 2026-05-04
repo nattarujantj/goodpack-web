@@ -103,7 +103,14 @@ class PdfServiceSale {
     }
   }
   
-  static Future<void> generateAndPrintSale(Sale sale, SaleDocumentType documentType, {BankAccount? bankAccount, String? signerName, SaleSignatureOptions? signatureOptions}) async {
+  static Future<void> generateAndPrintSale(
+    Sale sale,
+    SaleDocumentType documentType, {
+    BankAccount? bankAccount,
+    String? signerName,
+    SaleSignatureOptions? signatureOptions,
+    html.WindowBase? targetWindow,
+  }) async {
     try {
       final effectiveSignerName = signatureOptions != null ? null : (signerName ?? defaultSignerName);
       final pdf = await _createSalePdf(sale, documentType, bankAccount: bankAccount, signerName: effectiveSignerName, signatureOptions: signatureOptions);
@@ -113,7 +120,11 @@ class PdfServiceSale {
       if (kIsWeb) {
         final blob = html.Blob([pdfBytes], 'application/pdf');
         final url = html.Url.createObjectUrlFromBlob(blob);
-        html.window.open(url, '_blank');
+        if (targetWindow != null) {
+          targetWindow.location.href = url;
+        } else {
+          html.window.open(url, '_blank');
+        }
         // ไม่ revoke URL ทันทีเพราะจะทำให้ tab ใหม่โหลด PDF ไม่ได้
       } else {
         // สำหรับ mobile/desktop ใช้ Printing.sharePdf เพื่อให้สามารถดาวน์โหลดหรือแชร์ไฟล์ได้

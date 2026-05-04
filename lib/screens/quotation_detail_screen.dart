@@ -638,7 +638,7 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
     );
     final showImages = ValueNotifier<bool>(false);
     
-    final confirmed = await showDialog<bool>(
+    final result = await showDialog<_QuotationPrintDialogResult>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('ตั้งค่าพิมพ์ PDF'),
@@ -668,18 +668,23 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(context).pop(null),
             child: const Text('ยกเลิก'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(context).pop(
+              _QuotationPrintDialogResult(
+                true,
+                html.window.open('about:blank', '_blank'),
+              ),
+            ),
             child: const Text('พิมพ์ PDF'),
           ),
         ],
       ),
     );
     
-    if (confirmed != true) return;
+    if (result == null || !result.confirmed) return;
     
     final signerName = signerNameController.text.trim();
     if (signerName.isEmpty) return;
@@ -706,6 +711,7 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
         bankAccount: bankAccount,
         signerName: signerName,
         productImages: productImages,
+        targetWindow: result.targetWindow,
       );
 
       if (quotation.status == 'draft') {
@@ -780,4 +786,11 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
       ),
     );
   }
+}
+
+class _QuotationPrintDialogResult {
+  final bool confirmed;
+  final html.WindowBase? targetWindow;
+
+  _QuotationPrintDialogResult(this.confirmed, this.targetWindow);
 }
