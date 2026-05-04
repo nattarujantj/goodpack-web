@@ -112,8 +112,9 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   void _showOverlay() {
     if (_overlayEntry != null) return;
 
-    // For mobile/tablet, use bottom sheet instead of overlay
-    if (MediaQuery.of(context).size.width < 600) {
+    // For mobile and tablet, use bottom sheet instead of overlay
+    // Only use overlay on desktop (width >= 1200)
+    if (MediaQuery.of(context).size.width < 1200) {
       _showBottomSheet();
       return;
     }
