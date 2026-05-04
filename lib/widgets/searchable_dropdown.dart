@@ -119,34 +119,18 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
     if (_overlayEntry != null) return;
 
     _overlayEntry = OverlayEntry(
-      builder: (context) => GestureDetector(
-        onTap: () {
-          _focusNode.unfocus();
-          _removeOverlay();
-        },
-        child: Material(
-          color: Colors.transparent,
-          child: Stack(
-            children: [
-              // Invisible full screen tap area
-              Positioned.fill(
-                child: Container(
-                  color: Colors.transparent,
-                ),
-              ),
-              // Dropdown content
-              Positioned(
-                width: _getDropdownWidth(),
-                child: CompositedTransformFollower(
-                  link: _layerLink,
-                  showWhenUnlinked: false,
-                  offset: const Offset(0, 70),
-                  child: GestureDetector(
-                    onTap: () {}, // Prevent tap from closing
-                    child: Material(
-                      elevation: 8,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
+      builder: (context) => Material(
+        color: Colors.transparent,
+        child: CompositedTransformFollower(
+          link: _layerLink,
+          showWhenUnlinked: false,
+          offset: const Offset(0, 70),
+          child: GestureDetector(
+            onTap: () {}, // Prevent tap from closing
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
                         constraints: const BoxConstraints(maxHeight: 200),
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -225,6 +209,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   void _removeOverlay() {
     _overlayEntry?.remove();
     _overlayEntry = null;
+    _isOpen = false;
   }
 
   double _getDropdownWidth() {
