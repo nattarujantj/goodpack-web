@@ -41,6 +41,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   OverlayEntry? _overlayEntry;
   final LayerLink _layerLink = LayerLink();
   final FocusNode _focusNode = FocusNode();
+  bool _isUpdatingProgrammatically = false; // ← NEW: Guard flag
 
   @override
   void initState() {
@@ -62,28 +63,34 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
     // Update text when value changes
     if (widget.value != oldWidget.value) {
       if (widget.value != null) {
+        _isUpdatingProgrammatically = true; // ← NEW: Set guard
         _searchController.text = widget.itemAsString(widget.value!);
+        _isUpdatingProgrammatically = false; // ← NEW: Release guard
       } else {
         setState(() {
           _filteredItems = widget.items;
         });
+        _isUpdatingProgrammatically = true;
         _searchController.clear();
+        _isUpdatingProgrammatically = false;
       }
     } else if (widget.value == null && _searchController.text.isNotEmpty) {
       // value is still null but text field has stale text — force clear
+      _isUpdatingProgrammatically = true;
       _searchController.clear();
+      _isUpdatingProgrammatically = false;
       setState(() {
         _filteredItems = widget.items;
       });
     }
     
-    // Update filtered items when items list changes (e.g., data loaded asynchronously)
+    // Update filtered items when items list changes
     if (widget.items != oldWidget.items) {
       setState(() {
         if (_searchController.text.isNotEmpty) {
-          _filterItems(_searchController.text); // Re-filter with current query
+          _filterItems(_searchController.text);
         } else {
-          _filteredItems = widget.items; // Show all new items
+          _filteredItems = widget.items;
         }
       });
       
@@ -106,14 +113,12 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
     if (_focusNode.hasFocus) {
       _showOverlay();
     }
-    // Don't close overlay on focus loss - let tap-outside handle it
   }
 
   void _showOverlay() {
     if (_overlayEntry != null) return;
 
     // For mobile and tablet, use bottom sheet instead of overlay
-    // Only use overlay on desktop (width >= 1200)
     if (MediaQuery.of(context).size.width < 1200) {
       _showBottomSheet();
       return;
@@ -123,18 +128,15 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
       builder: (context) => GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () {
-          // Tap outside dropdown closes it
           _removeOverlay();
         },
         child: Material(
           color: Colors.transparent,
           child: Stack(
             children: [
-              // Invisible full-screen tap area to catch taps outside dropdown
               Positioned.fill(
                 child: Container(color: Colors.transparent),
               ),
-              // Dropdown content positioned below input
               Positioned(
                 width: _getDropdownWidth(),
                 child: CompositedTransformFollower(
@@ -142,7 +144,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                   showWhenUnlinked: false,
                   offset: const Offset(0, 70),
                   child: GestureDetector(
-                    onTap: () {}, // Prevent tap from reaching outer GestureDetector
+                    onTap: () {},
                     child: Material(
                       elevation: 8,
                       borderRadius: BorderRadius.circular(8),
@@ -166,6 +168,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
     );
 
     Overlay.of(context).insert(_overlayEntry!);
+    _isOpen = true; // ← NEW: Set open flag here
   }
 
   void _showBottomSheet() {
@@ -185,7 +188,6 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
               ),
               child: Column(
                 children: [
-                  // Header with close button
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(
@@ -205,7 +207,6 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                       ],
                     ),
                   ),
-                  // Search field
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: TextField(
@@ -220,7 +221,6 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                       onChanged: _filterItems,
                     ),
                   ),
-                  // Items list
                   Expanded(
                     child: ListView.builder(
                       controller: scrollController,
@@ -239,7 +239,9 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                           selectedTileColor: Colors.blue[50],
                           onTap: () {
                             widget.onChanged?.call(item);
+                            _isUpdatingProgrammatically = true; // ← NEW
                             _searchController.text = widget.itemAsString(item);
+                            _isUpdatingProgrammatically = false; // ← NEW
                             Navigator.pop(context);
                           },
                         );
@@ -284,9 +286,14 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
               return _HoverableListItem(
                 isSelected: isSelected,
                 onTap: () {
-                  widget.onChanged?.call(item);
-                  _searchController.text = widget.itemAsString(item);
+                  // ← FIXED: Remove overlay FIRST
                   _removeOverlay();
+                  
+                  // Then update state
+                  widget.onChanged?.call(item);
+                  _isUpdatingProgrammatically = true;
+                  _searchController.text = widget.itemAsString(item);
+                  _isUpdatingProgrammatically = false;
                 },
                 child: Row(
                   children: [
@@ -324,6 +331,11 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   }
 
   void _filterItems(String query) {
+    // ← FIXED: Don't filter if this is a programmatic update
+    if (_isUpdatingProgrammatically) {
+      return;
+    }
+
     setState(() {
       if (query.isEmpty) {
         _filteredItems = widget.items;
@@ -335,7 +347,6 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
       }
     });
     
-    // Update overlay if it's open
     if (_overlayEntry != null) {
       _overlayEntry!.markNeedsBuild();
     }
@@ -370,11 +381,13 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                       ? IconButton(
                           icon: const Icon(Icons.clear, size: 18),
                           onPressed: () {
+                            _removeOverlay();
                             widget.onChanged?.call(null);
+                            _isUpdatingProgrammatically = true;
                             _searchController.clear();
+                            _isUpdatingProgrammatically = false;
                             _filterItems('');
                             _focusNode.unfocus();
-                            _removeOverlay();
                           },
                         )
                       : const Icon(Icons.arrow_drop_down)),
@@ -388,7 +401,6 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
             ),
             onChanged: (value) {
               _filterItems(value);
-              // When user manually clears the text, reset the selected value
               if (value.isEmpty && widget.value != null) {
                 widget.onChanged?.call(null);
               }
@@ -396,7 +408,6 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
             onTap: () {
               if (!_isOpen) {
                 _showOverlay();
-                _isOpen = true;
               }
             },
             validator: (value) => widget.validator?.call(widget.value),
