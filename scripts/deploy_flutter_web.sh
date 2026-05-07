@@ -38,7 +38,12 @@ flutter build web --dart-define=API_BASE_URL="$API_URL"
 echo -e "${YELLOW}🚀 Deploying to nginx...${NC}"
 sudo rm -rf "$NGINX_DIR"/*
 sudo cp -r build/web/* "$NGINX_DIR"/
-sudo systemctl restart nginx
+
+echo -e "${YELLOW}⚙️  Installing nginx cache config...${NC}"
+sudo cp "$WEB_DIR/scripts/nginx-goodpack.conf" /etc/nginx/sites-available/goodpack
+sudo ln -sf /etc/nginx/sites-available/goodpack /etc/nginx/sites-enabled/goodpack
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
 
 echo -e "${GREEN}✅ Flutter Web deployed successfully!${NC}"
 echo -e "${BLUE}🌐 Web: http://192.168.1.162${NC}"
