@@ -992,6 +992,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
   Product? _selectedProduct;
   final _quantityController = TextEditingController();
   final _unitPriceController = TextEditingController();
+  final _priceFocusNode = FocusNode();
 
   bool get _isEditMode => widget.initialItem != null;
 
@@ -1013,6 +1014,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
   void dispose() {
     _quantityController.dispose();
     _unitPriceController.dispose();
+    _priceFocusNode.dispose();
     super.dispose();
   }
 
@@ -1039,6 +1041,8 @@ class _AddItemDialogState extends State<_AddItemDialog> {
           TextFormField(
             controller: _quantityController,
             keyboardType: const TextInputType.numberWithOptions(decimal: false),
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) => _priceFocusNode.requestFocus(),
             decoration: const InputDecoration(
               labelText: 'จำนวน *',
               border: OutlineInputBorder(),
@@ -1057,7 +1061,9 @@ class _AddItemDialogState extends State<_AddItemDialog> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _unitPriceController,
+            focusNode: _priceFocusNode,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.done,
             decoration: const InputDecoration(
               labelText: 'ราคาต่อหน่วย (บาท) *',
               border: OutlineInputBorder(),

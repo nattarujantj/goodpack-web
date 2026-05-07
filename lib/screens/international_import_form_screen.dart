@@ -774,6 +774,14 @@ class _AddItemDialogState extends State<_AddItemDialog> {
   final _commissionController = TextEditingController();
   bool _commissionPaid = false;
 
+  final _quantityFocusNode = FocusNode();
+  final _piecesPerBoxFocusNode = FocusNode();
+  final _widthFocusNode = FocusNode();
+  final _lengthFocusNode = FocusNode();
+  final _heightFocusNode = FocusNode();
+  final _cbmFocusNode = FocusNode();
+  final _commissionFocusNode = FocusNode();
+
   @override
   void initState() {
     super.initState();
@@ -801,6 +809,13 @@ class _AddItemDialogState extends State<_AddItemDialog> {
     _heightController.dispose();
     _cbmController.dispose();
     _commissionController.dispose();
+    _quantityFocusNode.dispose();
+    _piecesPerBoxFocusNode.dispose();
+    _widthFocusNode.dispose();
+    _lengthFocusNode.dispose();
+    _heightFocusNode.dispose();
+    _cbmFocusNode.dispose();
+    _commissionFocusNode.dispose();
     super.dispose();
   }
 
@@ -849,15 +864,20 @@ class _AddItemDialogState extends State<_AddItemDialog> {
                 TextFormField(
                   controller: _usdPriceController,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  textInputAction: TextInputAction.next,
+                  onFieldSubmitted: (_) => _quantityFocusNode.requestFocus(),
                   decoration: const InputDecoration(labelText: 'ราคา USD/ชิ้น *'),
                   validator: (v) => (v == null || v.isEmpty || double.tryParse(v) == null) ? 'กรุณากรอกราคา' : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _quantityController,
+                  focusNode: _quantityFocusNode,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'จำนวน (ชิ้น) *'),
+                  textInputAction: TextInputAction.next,
                   onChanged: (_) => setState(() {}),
+                  onFieldSubmitted: (_) => _piecesPerBoxFocusNode.requestFocus(),
+                  decoration: const InputDecoration(labelText: 'จำนวน (ชิ้น) *'),
                   validator: (v) => (v == null || v.isEmpty || int.tryParse(v) == null || int.parse(v) <= 0)
                       ? 'กรุณากรอกจำนวน'
                       : null,
@@ -865,9 +885,12 @@ class _AddItemDialogState extends State<_AddItemDialog> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _piecesPerBoxController,
+                  focusNode: _piecesPerBoxFocusNode,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'จำนวนชิ้นต่อลัง *'),
+                  textInputAction: TextInputAction.next,
                   onChanged: (_) => setState(() {}),
+                  onFieldSubmitted: (_) => _widthFocusNode.requestFocus(),
+                  decoration: const InputDecoration(labelText: 'จำนวนชิ้นต่อลัง *'),
                   validator: (v) => (v == null || v.isEmpty || int.tryParse(v) == null || int.parse(v) <= 0)
                       ? 'กรุณากรอกจำนวนชิ้นต่อลัง'
                       : null,
@@ -880,9 +903,12 @@ class _AddItemDialogState extends State<_AddItemDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _widthController,
+                        focusNode: _widthFocusNode,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        textInputAction: TextInputAction.next,
                         decoration: const InputDecoration(labelText: 'กว้าง'),
                         onChanged: (_) => setState(() {}),
+                        onFieldSubmitted: (_) => _lengthFocusNode.requestFocus(),
                         validator: (v) => (v == null || v.isEmpty) ? 'กรอก' : null,
                       ),
                     ),
@@ -890,9 +916,12 @@ class _AddItemDialogState extends State<_AddItemDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _lengthController,
+                        focusNode: _lengthFocusNode,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        textInputAction: TextInputAction.next,
                         decoration: const InputDecoration(labelText: 'ยาว'),
                         onChanged: (_) => setState(() {}),
+                        onFieldSubmitted: (_) => _heightFocusNode.requestFocus(),
                         validator: (v) => (v == null || v.isEmpty) ? 'กรอก' : null,
                       ),
                     ),
@@ -900,9 +929,12 @@ class _AddItemDialogState extends State<_AddItemDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _heightController,
+                        focusNode: _heightFocusNode,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        textInputAction: TextInputAction.next,
                         decoration: const InputDecoration(labelText: 'สูง'),
                         onChanged: (_) => setState(() {}),
+                        onFieldSubmitted: (_) => _cbmFocusNode.requestFocus(),
                         validator: (v) => (v == null || v.isEmpty) ? 'กรอก' : null,
                       ),
                     ),
@@ -917,7 +949,10 @@ class _AddItemDialogState extends State<_AddItemDialog> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _cbmController,
+                  focusNode: _cbmFocusNode,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  textInputAction: TextInputAction.next,
+                  onFieldSubmitted: (_) => _commissionFocusNode.requestFocus(),
                   decoration: const InputDecoration(
                     labelText: 'CBM (ใส่เองได้)',
                     helperText: 'เว้นว่างเพื่อคำนวณอัตโนมัติจากขนาดกล่อง',
@@ -933,7 +968,9 @@ class _AddItemDialogState extends State<_AddItemDialog> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _commissionController,
+                  focusNode: _commissionFocusNode,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  textInputAction: TextInputAction.done,
                   decoration: const InputDecoration(labelText: 'ค่าคอมมิชชั่น (บาท/ชิ้น)'),
                 ),
                 const SizedBox(height: 8),
