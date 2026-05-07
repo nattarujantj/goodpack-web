@@ -45,6 +45,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   final FocusNode _focusNode = FocusNode();
   bool _isTappingItem = false;
   bool _effectiveBottomSheet = false;
+  bool _isBottomSheetOpen = false;
 
   @override
   void initState() {
@@ -235,6 +236,8 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   }
 
   void _showBottomSheet() {
+    if (_isBottomSheetOpen) return;
+    _isBottomSheetOpen = true;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -249,7 +252,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
           });
         },
       ),
-    );
+    ).whenComplete(() => _isBottomSheetOpen = false);
   }
 
   void _removeOverlay() {
