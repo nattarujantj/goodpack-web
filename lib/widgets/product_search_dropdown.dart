@@ -43,6 +43,7 @@ class ProductSearchDropdown extends StatelessWidget {
             return null;
           },
       prefixIcon: const Icon(Icons.inventory),
+      autoBottomSheetOnMobile: false,
     );
   }
 }

@@ -15,6 +15,7 @@ class SearchableDropdown<T> extends StatefulWidget {
   final Widget? prefixIcon;
   final Widget? suffixIcon;
   final bool useBottomSheet;
+  final bool autoBottomSheetOnMobile;
 
   const SearchableDropdown({
     Key? key,
@@ -31,6 +32,7 @@ class SearchableDropdown<T> extends StatefulWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.useBottomSheet = false,
+    this.autoBottomSheetOnMobile = true,
   }) : super(key: key);
 
   @override
@@ -44,6 +46,8 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   final LayerLink _layerLink = LayerLink();
   final FocusNode _focusNode = FocusNode();
   bool _isTappingItem = false;
+  bool _effectiveBottomSheet = false;
+  bool _isBottomSheetOpen = false;
 
   @override
   void initState() {
@@ -99,7 +103,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
 
   void _onFocusChange() {
     if (_focusNode.hasFocus) {
-      if (!widget.useBottomSheet) {
+      if (!_effectiveBottomSheet) {
         _showOverlay();
       }
     } else if (!_isTappingItem) {
@@ -234,6 +238,8 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   }
 
   void _showBottomSheet() {
+    if (_isBottomSheetOpen) return;
+    _isBottomSheetOpen = true;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -248,7 +254,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
           });
         },
       ),
-    );
+    ).whenComplete(() => _isBottomSheetOpen = false);
   }
 
   void _removeOverlay() {
@@ -269,6 +275,9 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
 
   @override
   Widget build(BuildContext context) {
+    _effectiveBottomSheet = widget.useBottomSheet ||
+        (widget.autoBottomSheetOnMobile &&
+            MediaQuery.of(context).size.width < 600);
     return CompositedTransformTarget(
       link: _layerLink,
       child: Column(
@@ -288,7 +297,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
             controller: _searchController,
             focusNode: _focusNode,
             enabled: widget.enabled,
-            readOnly: widget.useBottomSheet,
+            readOnly: _effectiveBottomSheet,
             decoration: InputDecoration(
               hintText: widget.hint,
               prefixIcon: widget.prefixIcon,
@@ -314,7 +323,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                 vertical: 12,
               ),
             ),
-            onChanged: widget.useBottomSheet
+            onChanged: _effectiveBottomSheet
                 ? null
                 : (value) {
                     _filterItems(value);
@@ -324,7 +333,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                     setState(() {});
                   },
             onTap: () {
-              if (widget.useBottomSheet) {
+              if (_effectiveBottomSheet) {
                 _showBottomSheet();
               } else if (_overlayEntry == null) {
                 _showOverlay();
