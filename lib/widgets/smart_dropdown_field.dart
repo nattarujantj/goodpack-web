@@ -228,6 +228,7 @@ class _DropdownContentState extends State<_DropdownContent> {
                                 selected: isSelected,
                                 selectedTileColor: Colors.blue[50],
                                 onTap: () {
+                                  FocusManager.instance.primaryFocus?.unfocus();
                                   widget.controller.text = option;
                                   Navigator.pop(context);
                                   widget.onSelectionChanged();
