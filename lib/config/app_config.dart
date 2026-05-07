@@ -19,7 +19,7 @@ class AppConfig {
   
   // App settings
   static const String appName = 'GoodPack Inventory';
-  static const String appVersion = '1.0.0';
+  static const String appVersion = '1.1.0';
   
   // Responsive breakpoints
   static const double mobileBreakpoint = 600;
