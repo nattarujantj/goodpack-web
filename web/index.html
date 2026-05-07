@@ -20,7 +20,11 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
 
-  <!-- Viewport: interactive-widget=resizes-content fixes Android keyboard white gap on Flutter Web -->
+  <!--
+    interactive-widget=resizes-content (Chrome 108+):
+    Forces Android to shrink the layout viewport when the virtual keyboard
+    appears, so Flutter fills the screen correctly after keyboard dismissal.
+  -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
 
   <!-- Prevent browser caching of index.html -->
@@ -39,21 +43,39 @@
 
   <title>flutter_app</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /*
+      100dvh = dynamic viewport height that shrinks/grows with browser UI.
+      Prevents Flutter canvas from being taller than the visible area,
+      which causes the white gap at the bottom on Android.
+    */
+    html {
+      height: 100%;
+    }
+    body {
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+  </style>
 </head>
 <body>
   <script>
-    // Fallback for Android Chrome < 108 that doesn't support interactive-widget.
-    // Forces Flutter canvas to resize when the virtual keyboard opens or closes,
-    // preventing the white gap that appears at the bottom after keyboard dismissal.
+    /*
+     * Fallback for Android Chrome < 108 (no interactive-widget support).
+     *
+     * Flutter Web listens to window "resize" to re-measure its canvas.
+     * When the virtual keyboard opens or closes, only visualViewport fires
+     * — NOT window resize — so we bridge the two here.
+     * This makes Flutter recalculate canvas height and removes the white gap.
+     */
     (function () {
       if (!window.visualViewport) return;
-      function syncHeight() {
-        var h = window.visualViewport.height + 'px';
-        document.documentElement.style.height = h;
-        document.body.style.height = h;
-      }
-      window.visualViewport.addEventListener('resize', syncHeight);
-      syncHeight();
+      window.visualViewport.addEventListener('resize', function () {
+        window.dispatchEvent(new Event('resize'));
+      });
     })();
   </script>
   <script src="flutter_bootstrap.js" async></script>
