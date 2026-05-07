@@ -409,7 +409,10 @@ class _BottomSheetContentState<T> extends State<_BottomSheetContent<T>> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   IconButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      Navigator.pop(context);
+                    },
                     icon: const Icon(Icons.close),
                   ),
                 ],
@@ -442,6 +445,7 @@ class _BottomSheetContentState<T> extends State<_BottomSheetContent<T>> {
                             selected: isSelected,
                             selectedTileColor: Colors.blue[50],
                             onTap: () {
+                              FocusManager.instance.primaryFocus?.unfocus();
                               widget.onSelected(item);
                               Navigator.pop(context);
                             },
