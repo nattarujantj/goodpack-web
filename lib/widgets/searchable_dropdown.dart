@@ -15,6 +15,7 @@ class SearchableDropdown<T> extends StatefulWidget {
   final Widget? prefixIcon;
   final Widget? suffixIcon;
   final bool useBottomSheet;
+  final bool autoBottomSheetOnMobile;
 
   const SearchableDropdown({
     Key? key,
@@ -31,6 +32,7 @@ class SearchableDropdown<T> extends StatefulWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.useBottomSheet = false,
+    this.autoBottomSheetOnMobile = true,
   }) : super(key: key);
 
   @override
@@ -273,8 +275,9 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
 
   @override
   Widget build(BuildContext context) {
-    _effectiveBottomSheet =
-        widget.useBottomSheet || MediaQuery.of(context).size.width < 600;
+    _effectiveBottomSheet = widget.useBottomSheet ||
+        (widget.autoBottomSheetOnMobile &&
+            MediaQuery.of(context).size.width < 600);
     return CompositedTransformTarget(
       link: _layerLink,
       child: Column(
