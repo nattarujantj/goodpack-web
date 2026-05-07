@@ -27,7 +27,7 @@ class SearchableDropdown<T> extends StatefulWidget {
     this.label,
     this.validator,
     this.enabled = true,
-    this.allowClear = false,
+    this.allowClear = true,
     this.prefixIcon,
     this.suffixIcon,
     this.useBottomSheet = false,
@@ -293,7 +293,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
               hintText: widget.hint,
               prefixIcon: widget.prefixIcon,
               suffixIcon: widget.suffixIcon ??
-                  (widget.allowClear && widget.value != null
+                  (widget.allowClear && _searchController.text.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear, size: 18),
                           onPressed: () {
@@ -302,6 +302,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                             _filterItems('');
                             _focusNode.unfocus();
                             _removeOverlay();
+                            setState(() {});
                           },
                         )
                       : const Icon(Icons.arrow_drop_down)),
@@ -320,6 +321,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                     if (value.isEmpty && widget.value != null) {
                       widget.onChanged?.call(null);
                     }
+                    setState(() {});
                   },
             onTap: () {
               if (widget.useBottomSheet) {
