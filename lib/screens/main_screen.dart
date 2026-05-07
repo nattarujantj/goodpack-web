@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/responsive_layout.dart';
+import '../config/app_config.dart';
 import 'product_list_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -348,7 +349,7 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 const SizedBox(height: 4),
                 ResponsiveText(
-                  'เวอร์ชัน 1.0.0',
+                  'เวอร์ชัน ${AppConfig.appVersion}',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[500],
@@ -462,8 +463,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onTabTapped(int index) {
-    // สำหรับเมนูที่มีเมนูย่อย (ซื้อ, ขาย, เสนอราคา) แสดง Bottom Sheet บนมือถือ/tablet
-    // index 4 = ซื้อ, index 5 = ขาย, index 6 = เสนอราคา
     if (MediaQuery.of(context).size.width < 1200 && (index == 4 || index == 5 || index == 6)) {
       _showVatFilterSheet(index);
       return;
@@ -473,7 +472,6 @@ class _MainScreenState extends State<MainScreen> {
       _currentIndex = index;
     });
     
-    // If using router (child is not null), navigate using GoRouter
     if (widget.child != null) {
       switch (index) {
         case 0:
@@ -511,7 +509,6 @@ class _MainScreenState extends State<MainScreen> {
           break;
       }
     } else {
-      // Only animate if PageView is being used (when child is null)
       if (_pageController.hasClients) {
         _pageController.animateToPage(
           index,
@@ -557,7 +554,6 @@ class _MainScreenState extends State<MainScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
               Container(
                 padding: const EdgeInsets.all(16),
                 child: Row(
@@ -575,8 +571,6 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ),
               const Divider(height: 1),
-              
-              // Options
               ListTile(
                 leading: const Icon(Icons.list),
                 title: const Text('ทั้งหมด'),
@@ -607,7 +601,6 @@ class _MainScreenState extends State<MainScreen> {
                   context.go('$basePath?vat=false');
                 },
               ),
-              
               const SizedBox(height: 8),
             ],
           ),
