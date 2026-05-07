@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 
 class SearchableDropdown<T> extends StatefulWidget {
@@ -13,6 +14,7 @@ class SearchableDropdown<T> extends StatefulWidget {
   final bool allowClear;
   final Widget? prefixIcon;
   final Widget? suffixIcon;
+  final bool useBottomSheet;
 
   const SearchableDropdown({
     Key? key,
@@ -28,6 +30,7 @@ class SearchableDropdown<T> extends StatefulWidget {
     this.allowClear = false,
     this.prefixIcon,
     this.suffixIcon,
+    this.useBottomSheet = false,
   }) : super(key: key);
 
   @override
@@ -37,10 +40,10 @@ class SearchableDropdown<T> extends StatefulWidget {
 class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   late TextEditingController _searchController;
   List<T> _filteredItems = [];
-  bool _isOpen = false;
   OverlayEntry? _overlayEntry;
   final LayerLink _layerLink = LayerLink();
   final FocusNode _focusNode = FocusNode();
+  bool _isTappingItem = false;
 
   @override
   void initState() {
@@ -48,8 +51,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
     _searchController = TextEditingController();
     _filteredItems = widget.items;
     _focusNode.addListener(_onFocusChange);
-    
-    // Set initial value if provided
+
     if (widget.value != null) {
       _searchController.text = widget.itemAsString(widget.value!);
     }
@@ -58,8 +60,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   @override
   void didUpdateWidget(SearchableDropdown<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
-    // Update text when value changes
+
     if (widget.value != oldWidget.value) {
       if (widget.value != null) {
         _searchController.text = widget.itemAsString(widget.value!);
@@ -70,27 +71,21 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
         _searchController.clear();
       }
     } else if (widget.value == null && _searchController.text.isNotEmpty) {
-      // value is still null but text field has stale text — force clear
       _searchController.clear();
       setState(() {
         _filteredItems = widget.items;
       });
     }
-    
-    // Update filtered items when items list changes (e.g., data loaded asynchronously)
+
     if (widget.items != oldWidget.items) {
       setState(() {
         if (_searchController.text.isNotEmpty) {
-          _filterItems(_searchController.text); // Re-filter with current query
+          _filterItems(_searchController.text);
         } else {
-          _filteredItems = widget.items; // Show all new items
+          _filteredItems = widget.items;
         }
       });
-      
-      // Update overlay if it's open
-      if (_overlayEntry != null) {
-        _overlayEntry!.markNeedsBuild();
-      }
+      _overlayEntry?.markNeedsBuild();
     }
   }
 
@@ -104,116 +99,78 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
 
   void _onFocusChange() {
     if (_focusNode.hasFocus) {
-      _showOverlay();
-    } else {
-      // Delay removal to allow tap on overlay items
-      Future.delayed(const Duration(milliseconds: 150), () {
-        if (!_focusNode.hasFocus) {
-          _removeOverlay();
-        }
-      });
+      if (!widget.useBottomSheet) {
+        _showOverlay();
+      }
+    } else if (!_isTappingItem) {
+      _removeOverlay();
     }
   }
 
   void _showOverlay() {
     if (_overlayEntry != null) return;
 
-    _overlayEntry = OverlayEntry(
-      builder: (context) => GestureDetector(
-        onTap: () {
-          _focusNode.unfocus();
-          _removeOverlay();
-        },
-        child: Material(
-          color: Colors.transparent,
-          child: Stack(
-            children: [
-              // Invisible full screen tap area
-              Positioned.fill(
-                child: Container(
-                  color: Colors.transparent,
-                ),
-              ),
-              // Dropdown content
-              Positioned(
-                width: _getDropdownWidth(),
-                child: CompositedTransformFollower(
-                  link: _layerLink,
-                  showWhenUnlinked: false,
-                  offset: const Offset(0, 70),
-                  child: GestureDetector(
-                    onTap: () {}, // Prevent tap from closing
-                    child: Material(
-                      elevation: 8,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        constraints: const BoxConstraints(maxHeight: 200),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey[300]!),
-                        ),
-                        child: _filteredItems.isEmpty
-                            ? Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: widget.items.isEmpty
-                                    ? const Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          SizedBox(
-                                            width: 16,
-                                            height: 16,
-                                            child: CircularProgressIndicator(strokeWidth: 2),
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text('กำลังโหลด...'),
-                                        ],
-                                      )
-                                    : const Text('ไม่พบข้อมูล'),
-                              )
-                            : ListView.builder(
-                                shrinkWrap: true,
-                                itemCount: _filteredItems.length,
-                                itemBuilder: (context, index) {
-                                  final item = _filteredItems[index];
-                                  final isSelected = item == widget.value;
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+    final widgetSize = renderBox.size;
+    final widgetOffset = renderBox.localToGlobal(Offset.zero);
+    final screenHeight = MediaQuery.of(context).size.height;
+    final viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
 
-                                  return _HoverableListItem(
-                                    isSelected: isSelected,
-                                    onTap: () {
-                                      widget.onChanged?.call(item);
-                                      _searchController.text = widget.itemAsString(item);
-                                      _focusNode.unfocus();
-                                      _removeOverlay();
-                                    },
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            widget.itemAsString(item),
-                                            style: TextStyle(
-                                              color: isSelected ? Colors.blue[700] : null,
-                                              fontWeight: isSelected ? FontWeight.w500 : null,
-                                            ),
-                                          ),
-                                        ),
-                                        if (isSelected)
-                                          Icon(
-                                            Icons.check,
-                                            color: Colors.blue[700],
-                                            size: 16,
-                                          ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
+    final spaceBelow = screenHeight - viewInsetsBottom - (widgetOffset.dy + widgetSize.height);
+    final spaceAbove = widgetOffset.dy;
+    const minDropdownHeight = 120.0;
+    const maxDropdownHeight = 250.0;
+
+    final showBelow = spaceBelow >= minDropdownHeight || spaceBelow >= spaceAbove;
+    final availableSpace = showBelow ? spaceBelow : spaceAbove;
+    final effectiveMaxHeight = min(availableSpace - 8, maxDropdownHeight);
+    final dropdownOffset = showBelow
+        ? Offset(0, widgetSize.height)
+        : Offset(0, -(effectiveMaxHeight + 8));
+    final dropdownWidth = widgetSize.width;
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Listener(
+        onPointerDown: (_) => _isTappingItem = true,
+        onPointerUp: (_) => _isTappingItem = false,
+        child: GestureDetector(
+          onTap: () {
+            _focusNode.unfocus();
+            _removeOverlay();
+          },
+          child: Material(
+            color: Colors.transparent,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Container(color: Colors.transparent),
+                ),
+                Positioned(
+                  width: dropdownWidth,
+                  child: CompositedTransformFollower(
+                    link: _layerLink,
+                    showWhenUnlinked: false,
+                    offset: dropdownOffset,
+                    child: GestureDetector(
+                      onTap: () {},
+                      child: Material(
+                        elevation: 8,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          constraints: BoxConstraints(maxHeight: effectiveMaxHeight),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: _buildDropdownItems(),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -222,32 +179,92 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
     Overlay.of(context).insert(_overlayEntry!);
   }
 
+  Widget _buildDropdownItems() {
+    if (_filteredItems.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: widget.items.isEmpty
+            ? const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 8),
+                  Text('กำลังโหลด...'),
+                ],
+              )
+            : const Text('ไม่พบข้อมูล'),
+      );
+    }
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: _filteredItems.length,
+      itemBuilder: (context, index) {
+        final item = _filteredItems[index];
+        final isSelected = item == widget.value;
+        return _HoverableListItem(
+          isSelected: isSelected,
+          onTap: () {
+            widget.onChanged?.call(item);
+            _searchController.text = widget.itemAsString(item);
+            _focusNode.unfocus();
+            _removeOverlay();
+          },
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  widget.itemAsString(item),
+                  style: TextStyle(
+                    color: isSelected ? Colors.blue[700] : null,
+                    fontWeight: isSelected ? FontWeight.w500 : null,
+                  ),
+                ),
+              ),
+              if (isSelected)
+                Icon(Icons.check, color: Colors.blue[700], size: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => _BottomSheetContent<T>(
+        items: widget.items,
+        itemAsString: widget.itemAsString,
+        selectedValue: widget.value,
+        onSelected: (item) {
+          widget.onChanged?.call(item);
+          setState(() {
+            _searchController.text = item != null ? widget.itemAsString(item) : '';
+          });
+        },
+      ),
+    );
+  }
+
   void _removeOverlay() {
     _overlayEntry?.remove();
     _overlayEntry = null;
   }
 
-  double _getDropdownWidth() {
-    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
-    return renderBox?.size.width ?? 200;
-  }
-
   void _filterItems(String query) {
     setState(() {
-      if (query.isEmpty) {
-        _filteredItems = widget.items;
-      } else {
-        _filteredItems = widget.items.where((item) {
-          final itemText = widget.itemAsString(item).toLowerCase();
-          return itemText.contains(query.toLowerCase());
-        }).toList();
-      }
+      _filteredItems = query.isEmpty
+          ? widget.items
+          : widget.items.where((item) {
+              return widget.itemAsString(item).toLowerCase().contains(query.toLowerCase());
+            }).toList();
     });
-    
-    // Update overlay if it's open
-    if (_overlayEntry != null) {
-      _overlayEntry!.markNeedsBuild();
-    }
+    _overlayEntry?.markNeedsBuild();
   }
 
   @override
@@ -271,6 +288,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
             controller: _searchController,
             focusNode: _focusNode,
             enabled: widget.enabled,
+            readOnly: widget.useBottomSheet,
             decoration: InputDecoration(
               hintText: widget.hint,
               prefixIcon: widget.prefixIcon,
@@ -295,23 +313,134 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                 vertical: 12,
               ),
             ),
-            onChanged: (value) {
-              _filterItems(value);
-              // When user manually clears the text, reset the selected value
-              if (value.isEmpty && widget.value != null) {
-                widget.onChanged?.call(null);
-              }
-            },
+            onChanged: widget.useBottomSheet
+                ? null
+                : (value) {
+                    _filterItems(value);
+                    if (value.isEmpty && widget.value != null) {
+                      widget.onChanged?.call(null);
+                    }
+                  },
             onTap: () {
-              if (!_isOpen) {
+              if (widget.useBottomSheet) {
+                _showBottomSheet();
+              } else if (_overlayEntry == null) {
                 _showOverlay();
-                _isOpen = true;
               }
             },
             validator: (value) => widget.validator?.call(widget.value),
-            readOnly: false,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _BottomSheetContent<T> extends StatefulWidget {
+  final List<T> items;
+  final String Function(T) itemAsString;
+  final T? selectedValue;
+  final void Function(T?) onSelected;
+
+  const _BottomSheetContent({
+    required this.items,
+    required this.itemAsString,
+    required this.selectedValue,
+    required this.onSelected,
+  });
+
+  @override
+  State<_BottomSheetContent<T>> createState() => _BottomSheetContentState<T>();
+}
+
+class _BottomSheetContentState<T> extends State<_BottomSheetContent<T>> {
+  List<T> _filteredItems = [];
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredItems = widget.items;
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterOptions(String query) {
+    setState(() {
+      _filteredItems = query.isEmpty
+          ? widget.items
+          : widget.items.where((item) {
+              return widget.itemAsString(item).toLowerCase().contains(query.toLowerCase());
+            }).toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: viewInsets),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.6,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'เลือก',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'ค้นหา...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onChanged: _filterOptions,
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: _filteredItems.isEmpty
+                    ? const Center(child: Text('ไม่พบข้อมูล'))
+                    : ListView.builder(
+                        itemCount: _filteredItems.length,
+                        itemBuilder: (context, index) {
+                          final item = _filteredItems[index];
+                          final isSelected = item == widget.selectedValue;
+                          return ListTile(
+                            title: Text(widget.itemAsString(item)),
+                            trailing: isSelected
+                                ? const Icon(Icons.check, color: Colors.blue)
+                                : null,
+                            selected: isSelected,
+                            selectedTileColor: Colors.blue[50],
+                            onTap: () {
+                              widget.onSelected(item);
+                              Navigator.pop(context);
+                            },
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -349,10 +478,10 @@ class _HoverableListItemState extends State<_HoverableListItem> {
             vertical: 12,
           ),
           decoration: BoxDecoration(
-            color: widget.isSelected 
-                ? Colors.blue[50] 
-                : _isHovered 
-                    ? Colors.grey[100] 
+            color: widget.isSelected
+                ? Colors.blue[50]
+                : _isHovered
+                    ? Colors.grey[100]
                     : null,
           ),
           child: widget.child,

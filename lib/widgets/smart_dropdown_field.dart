@@ -5,7 +5,7 @@ class SmartDropdownField extends StatefulWidget {
   final TextEditingController controller;
   final String label;
   final String? hint;
-  final String configType; // 'categories' or 'colors'
+  final String configType;
   final String? Function(String?)? validator;
   final bool enabled;
 
@@ -31,7 +31,6 @@ class _SmartDropdownFieldState extends State<SmartDropdownField> {
   void initState() {
     super.initState();
     _loadOptions();
-    // Listen to controller changes
     widget.controller.addListener(_onControllerChanged);
   }
 
@@ -42,19 +41,13 @@ class _SmartDropdownFieldState extends State<SmartDropdownField> {
   }
 
   void _onControllerChanged() {
-    if (mounted) {
-      setState(() {});
-    }
+    if (mounted) setState(() {});
   }
 
   @override
   void didUpdateWidget(SmartDropdownField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Reload options if config type changed
-    if (oldWidget.configType != widget.configType) {
-      _loadOptions();
-    }
-    // Update listener if controller changed
+    if (oldWidget.configType != widget.configType) _loadOptions();
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.removeListener(_onControllerChanged);
       widget.controller.addListener(_onControllerChanged);
@@ -62,16 +55,10 @@ class _SmartDropdownFieldState extends State<SmartDropdownField> {
   }
 
   Future<void> _loadOptions() async {
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() { _isLoading = true; });
     try {
       final configService = ConfigService();
-      if (!configService.isLoaded) {
-        await configService.loadConfig();
-      }
-
+      if (!configService.isLoaded) await configService.loadConfig();
       setState(() {
         if (widget.configType == 'categories') {
           _options = configService.getCategoryNames();
@@ -81,10 +68,7 @@ class _SmartDropdownFieldState extends State<SmartDropdownField> {
         _isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      print('Error loading options: $e');
+      setState(() { _isLoading = false; });
     }
   }
 
@@ -93,13 +77,7 @@ class _SmartDropdownFieldState extends State<SmartDropdownField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          widget.label,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-          ),
-        ),
+        Text(widget.label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
         const SizedBox(height: 8),
         InkWell(
           onTap: widget.enabled ? _showDropdown : null,
@@ -114,22 +92,12 @@ class _SmartDropdownFieldState extends State<SmartDropdownField> {
               children: [
                 Expanded(
                   child: Text(
-                    widget.controller.text.isEmpty 
-                        ? (widget.hint ?? '') 
-                        : widget.controller.text,
-                    style: TextStyle(
-                      color: widget.controller.text.isEmpty 
-                          ? Colors.grey[600] 
-                          : Colors.black,
-                    ),
+                    widget.controller.text.isEmpty ? (widget.hint ?? '') : widget.controller.text,
+                    style: TextStyle(color: widget.controller.text.isEmpty ? Colors.grey[600] : Colors.black),
                   ),
                 ),
                 if (_isLoading)
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
+                  const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                 else
                   const Icon(Icons.arrow_drop_down),
               ],
@@ -137,24 +105,16 @@ class _SmartDropdownFieldState extends State<SmartDropdownField> {
           ),
         ),
         if (widget.validator != null)
-          Builder(
-            builder: (context) {
-              final error = widget.validator!(widget.controller.text);
-              if (error != null) {
-                return Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    error,
-                    style: TextStyle(
-                      color: Colors.red[700],
-                      fontSize: 12,
-                    ),
-                  ),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
+          Builder(builder: (context) {
+            final error = widget.validator!(widget.controller.text);
+            if (error != null) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(error, style: TextStyle(color: Colors.red[700], fontSize: 12)),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
       ],
     );
   }
@@ -169,9 +129,7 @@ class _SmartDropdownFieldState extends State<SmartDropdownField> {
           isLoading: _isLoading,
           label: widget.label,
           controller: widget.controller,
-          onSelectionChanged: () {
-            setState(() {}); // Refresh the field
-          },
+          onSelectionChanged: () { setState(() {}); },
         );
       },
     );
@@ -216,87 +174,71 @@ class _DropdownContentState extends State<_DropdownContent> {
 
   void _filterOptions(String query) {
     setState(() {
-      if (query.isEmpty) {
-        _filteredOptions = widget.options;
-      } else {
-        _filteredOptions = widget.options.where((option) {
-          return option.toLowerCase().contains(query.toLowerCase());
-        }).toList();
-      }
+      _filteredOptions = query.isEmpty
+          ? widget.options
+          : widget.options.where((o) => o.toLowerCase().contains(query.toLowerCase())).toList();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.6,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final availableHeight = (screenHeight - viewInsets - 16).clamp(200.0, screenHeight * 0.6);
+    return Padding(
+      padding: EdgeInsets.only(bottom: viewInsets),
+      child: SizedBox(
+        height: availableHeight,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
             children: [
-              Text(
-                'เลือก${widget.label.replaceAll('*', '').trim()}',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('เลือก${widget.label.replaceAll('*', '').trim()}',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+                ],
               ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'ค้นหา...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onChanged: _filterOptions,
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: widget.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _filteredOptions.isEmpty
+                        ? const Center(child: Text('ไม่พบข้อมูล'))
+                        : ListView.builder(
+                            itemCount: _filteredOptions.length,
+                            itemBuilder: (context, index) {
+                              final option = _filteredOptions[index];
+                              final isSelected = widget.controller.text == option;
+                              return ListTile(
+                                title: Text(option),
+                                trailing: isSelected ? const Icon(Icons.check, color: Colors.blue) : null,
+                                selected: isSelected,
+                                selectedTileColor: Colors.blue[50],
+                                onTap: () {
+                                  widget.controller.text = option;
+                                  Navigator.pop(context);
+                                  widget.onSelectionChanged();
+                                },
+                              );
+                            },
+                          ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          
-          // Search field
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'ค้นหา...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onChanged: _filterOptions,
-          ),
-          const SizedBox(height: 16),
-          
-          // Options list
-          Expanded(
-            child: widget.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredOptions.isEmpty
-                    ? const Center(
-                        child: Text('ไม่พบข้อมูล'),
-                      )
-                    : ListView.builder(
-                        itemCount: _filteredOptions.length,
-                        itemBuilder: (context, index) {
-                          final option = _filteredOptions[index];
-                          final isSelected = widget.controller.text == option;
-                          
-                          return ListTile(
-                            title: Text(option),
-                            trailing: isSelected 
-                                ? const Icon(Icons.check, color: Colors.blue)
-                                : null,
-                            selected: isSelected,
-                            selectedTileColor: Colors.blue[50],
-                            onTap: () {
-                              widget.controller.text = option;
-                              Navigator.pop(context);
-                              widget.onSelectionChanged();
-                            },
-                          );
-                        },
-                      ),
-          ),
-        ],
+        ),
       ),
     );
   }
