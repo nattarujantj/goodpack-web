@@ -392,6 +392,10 @@ class _BottomSheetContentState<T> extends State<_BottomSheetContent<T>> {
 
   @override
   Widget build(BuildContext context) {
+    // Use viewInsets to push content above the keyboard while it's open.
+    // When the user selects an item we pop first; the keyboard closes
+    // naturally as focus is lost, and interactive-widget=resizes-content in
+    // index.html ensures the parent layout fills the space without a white gap.
     final viewInsets = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: viewInsets),
@@ -445,9 +449,11 @@ class _BottomSheetContentState<T> extends State<_BottomSheetContent<T>> {
                             selected: isSelected,
                             selectedTileColor: Colors.blue[50],
                             onTap: () {
-                              FocusManager.instance.primaryFocus?.unfocus();
-                              widget.onSelected(item);
+                              // Pop the sheet first so the parent layout is
+                              // restored before the keyboard finishes closing.
+                              // This eliminates the white gap on Android.
                               Navigator.pop(context);
+                              widget.onSelected(item);
                             },
                           );
                         },

@@ -20,6 +20,9 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
 
+  <!-- Viewport: interactive-widget=resizes-content fixes Android keyboard white gap on Flutter Web -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+
   <!-- Prevent browser caching of index.html -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -38,6 +41,21 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <script>
+    // Fallback for Android Chrome < 108 that doesn't support interactive-widget.
+    // Forces Flutter canvas to resize when the virtual keyboard opens or closes,
+    // preventing the white gap that appears at the bottom after keyboard dismissal.
+    (function () {
+      if (!window.visualViewport) return;
+      function syncHeight() {
+        var h = window.visualViewport.height + 'px';
+        document.documentElement.style.height = h;
+        document.body.style.height = h;
+      }
+      window.visualViewport.addEventListener('resize', syncHeight);
+      syncHeight();
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
