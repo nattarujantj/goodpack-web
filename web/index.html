@@ -51,18 +51,31 @@
 <body>
   <script>
     /*
-     * Bridge visualViewport resize → window resize so Flutter recalculates
-     * viewInsets.bottom (keyboard height) correctly.
+     * On Android Chrome the soft keyboard does not reliably update
+     * window.innerHeight, which Flutter uses to size its canvas.  After
+     * the keyboard dismisses the canvas stays at the reduced height and
+     * a white gap appears below the app content.
      *
-     * Using requestAnimationFrame defers the event until after the browser
-     * has committed the new viewport dimensions, preventing Flutter from
-     * reading a stale window.innerHeight.
+     * Fix: override window.innerHeight to always return
+     * visualViewport.height (the truly visible area), then dispatch a
+     * synthetic resize event whenever the visual viewport changes so
+     * Flutter repaints at the correct size.
      *
-     * The focusout fallback catches cases where visualViewport.resize does
-     * not fire reliably on some Android Chrome versions.
+     * interactive-widget=resizes-content in the <meta viewport> tag
+     * also requests that Chrome shrink the layout viewport when the
+     * keyboard is shown, giving belt-and-suspenders coverage for
+     * Chrome 108+ devices.
      */
     (function () {
       if (!window.visualViewport) return;
+
+      // Make Flutter always read the visual-viewport height so its canvas
+      // matches the area that is actually visible on screen.
+      Object.defineProperty(window, 'innerHeight', {
+        get: function () { return Math.round(window.visualViewport.height); },
+        configurable: true,
+      });
+
       function scheduleResize() {
         requestAnimationFrame(function () {
           window.dispatchEvent(new Event('resize'));
