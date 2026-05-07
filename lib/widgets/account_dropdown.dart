@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/config_service.dart';
-import 'responsive_layout.dart';
+import 'searchable_dropdown.dart';
 
-class AccountDropdown extends StatelessWidget {
+class AccountDropdown extends StatefulWidget {
   final String? selectedAccountId;
   final ValueChanged<String?> onChanged;
   final String label;
@@ -17,98 +17,71 @@ class AccountDropdown extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final configService = ConfigService();
+  State<AccountDropdown> createState() => _AccountDropdownState();
+}
 
-    return FutureBuilder<void>(
-      future: configService.isLoaded ? Future.value() : configService.loadConfig(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildLayout(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Row(
-                children: [
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  SizedBox(width: 8),
-                  Text('กำลังโหลดบัญชี...'),
-                ],
-              ),
-            ),
-          );
-        }
+class _AccountDropdownState extends State<AccountDropdown> {
+  List<AccountItem> _accounts = [];
+  AccountItem? _selectedAccount;
 
-        if (snapshot.hasError) {
-          return _buildLayout(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.red),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text('Error: ${snapshot.error}'),
-            ),
-          );
-        }
-
-        final accounts = configService.accounts;
-
-        return _buildLayout(
-          child: DropdownButtonFormField<String>(
-            value: selectedAccountId,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
-              ),
-            ),
-            hint: const Text('เลือกบัญชี'),
-            items: accounts.map((account) {
-              return DropdownMenuItem<String>(
-                value: account.id,
-                child: Text(account.displayName),
-              );
-            }).toList(),
-            onChanged: onChanged,
-            validator: isRequired
-                ? (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'กรุณาเลือกบัญชี';
-                    }
-                    return null;
-                  }
-                : null,
-          ),
-        );
-      },
-    );
+  @override
+  void initState() {
+    super.initState();
+    _loadAccounts();
   }
 
-  Widget _buildLayout({required Widget child}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ResponsiveText(
-          label,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-          ),
-        ),
-        const SizedBox(height: 8),
-        child,
-      ],
+  @override
+  void didUpdateWidget(AccountDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedAccountId != widget.selectedAccountId) {
+      setState(() {
+        _syncSelectedAccount();
+      });
+    }
+  }
+
+  Future<void> _loadAccounts() async {
+    final configService = ConfigService();
+    if (!configService.isLoaded) {
+      await configService.loadConfig();
+    }
+    if (mounted) {
+      setState(() {
+        _accounts = configService.accounts;
+        _syncSelectedAccount();
+      });
+    }
+  }
+
+  void _syncSelectedAccount() {
+    if (widget.selectedAccountId == null) {
+      _selectedAccount = null;
+      return;
+    }
+    try {
+      _selectedAccount = _accounts.firstWhere((a) => a.id == widget.selectedAccountId);
+    } catch (_) {
+      _selectedAccount = null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SearchableDropdown<AccountItem>(
+      label: widget.label,
+      value: _selectedAccount,
+      items: _accounts,
+      itemAsString: (account) => account.displayName,
+      hint: 'เลือกบัญชี',
+      onChanged: (account) {
+        setState(() {
+          _selectedAccount = account;
+        });
+        widget.onChanged(account?.id);
+      },
+      validator: widget.isRequired
+          ? (account) => account == null ? 'กรุณาเลือกบัญชี' : null
+          : null,
     );
   }
 }
