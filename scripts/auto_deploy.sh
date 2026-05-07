@@ -61,8 +61,13 @@ deploy_web() {
     log "   Deploying to nginx..."
     sudo rm -rf "$NGINX_WEB_DIR"/*
     sudo cp -r build/web/* "$NGINX_WEB_DIR"/
-    sudo systemctl restart nginx
-    
+
+    log "   Installing nginx cache config..."
+    sudo cp "$WEB_PROJECT_DIR/scripts/nginx-goodpack.conf" /etc/nginx/sites-available/goodpack
+    sudo ln -sf /etc/nginx/sites-available/goodpack /etc/nginx/sites-enabled/goodpack
+    sudo rm -f /etc/nginx/sites-enabled/default
+    sudo nginx -t && sudo systemctl reload nginx
+
     log "   ✅ Flutter Web deployed successfully"
 }
 

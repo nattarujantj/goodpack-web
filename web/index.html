@@ -73,5 +73,47 @@
     })();
   </script>
   <script src="flutter_bootstrap.js" async></script>
+
+  <script>
+    // Detect new service worker versions and reload automatically.
+    // Flutter's SW supports the 'skip-waiting' message to force activation.
+    if ('serviceWorker' in navigator) {
+      var _swRefreshing = false;
+
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (!_swRefreshing) {
+          _swRefreshing = true;
+          window.location.reload();
+        }
+      });
+
+      function _handleNewSW(worker) {
+        worker.addEventListener('statechange', function () {
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            // A new version is ready — tell it to skip waiting and take control.
+            worker.postMessage('skip-waiting');
+          }
+        });
+      }
+
+      navigator.serviceWorker.ready.then(function (registration) {
+        if (registration.waiting) {
+          _handleNewSW(registration.waiting);
+        }
+        registration.addEventListener('updatefound', function () {
+          _handleNewSW(registration.installing);
+        });
+      });
+
+      // Re-check for SW updates every time the page comes back to foreground.
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) {
+          navigator.serviceWorker.getRegistrations().then(function (registrations) {
+            registrations.forEach(function (r) { r.update(); });
+          });
+        }
+      });
+    }
+  </script>
 </body>
 </html>
