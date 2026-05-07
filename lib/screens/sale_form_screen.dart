@@ -1565,6 +1565,7 @@ class _AddItemFormState extends State<_AddItemForm> {
   Product? _selectedProduct;
   final _quantityController = TextEditingController();
   final _unitPriceController = TextEditingController();
+  final _priceFocusNode = FocusNode();
 
   bool get _isEditMode => widget.initialItem != null;
 
@@ -1586,6 +1587,7 @@ class _AddItemFormState extends State<_AddItemForm> {
   void dispose() {
     _quantityController.dispose();
     _unitPriceController.dispose();
+    _priceFocusNode.dispose();
     super.dispose();
   }
 
@@ -1617,6 +1619,8 @@ class _AddItemFormState extends State<_AddItemForm> {
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) => _priceFocusNode.requestFocus(),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'กรุณากรอกจำนวน';
@@ -1627,16 +1631,18 @@ class _AddItemFormState extends State<_AddItemForm> {
               return null;
             },
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           TextFormField(
             controller: _unitPriceController,
+            focusNode: _priceFocusNode,
             decoration: const InputDecoration(
               labelText: 'ราคาต่อชิ้น *',
               border: OutlineInputBorder(),
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.done,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'กรุณากรอกราคา';

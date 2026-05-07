@@ -1714,6 +1714,7 @@ class _AddItemFormState extends State<_AddItemForm> {
   Product? _selectedPreform;
   final _quantityController = TextEditingController();
   final _unitPriceController = TextEditingController();
+  final _priceFocusNode = FocusNode();
 
   bool get _isEditMode => widget.initialItem != null;
 
@@ -1745,6 +1746,7 @@ class _AddItemFormState extends State<_AddItemForm> {
   void dispose() {
     _quantityController.dispose();
     _unitPriceController.dispose();
+    _priceFocusNode.dispose();
     super.dispose();
   }
 
@@ -1777,6 +1779,8 @@ class _AddItemFormState extends State<_AddItemForm> {
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) => _priceFocusNode.requestFocus(),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'กรุณากรอกจำนวน';
@@ -1787,17 +1791,19 @@ class _AddItemFormState extends State<_AddItemForm> {
               return null;
             },
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Unit Price
           TextFormField(
             controller: _unitPriceController,
+            focusNode: _priceFocusNode,
             decoration: const InputDecoration(
               labelText: 'ราคาต่อชิ้น *',
               border: OutlineInputBorder(),
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.done,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'กรุณากรอกราคา';
@@ -1912,12 +1918,14 @@ class _AddWarehouseItemFormState extends State<_AddWarehouseItemForm> {
   final _quantityController = TextEditingController();
   final _boxesController = TextEditingController();
   final _notesController = TextEditingController();
+  final _boxesFocusNode = FocusNode();
 
   @override
   void dispose() {
     _quantityController.dispose();
     _boxesController.dispose();
     _notesController.dispose();
+    _boxesFocusNode.dispose();
     super.dispose();
   }
 
@@ -1950,6 +1958,8 @@ class _AddWarehouseItemFormState extends State<_AddWarehouseItemForm> {
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) => _boxesFocusNode.requestFocus(),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'กรุณากรอกจำนวน';
@@ -1960,17 +1970,19 @@ class _AddWarehouseItemFormState extends State<_AddWarehouseItemForm> {
               return null;
             },
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Boxes
           TextFormField(
             controller: _boxesController,
+            focusNode: _boxesFocusNode,
             decoration: const InputDecoration(
               labelText: 'จำนวนลัง',
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.done,
             validator: (value) {
               if (value != null && value.trim().isNotEmpty) {
                 if (int.tryParse(value) == null || int.parse(value) < 0) {
