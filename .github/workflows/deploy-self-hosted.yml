@@ -63,27 +63,30 @@ jobs:
         if: steps.target.outputs.target == 'web' || steps.target.outputs.target == 'all'
         run: |
           echo "🌐 Deploying Flutter Web..."
-          
+
           cd /opt/goodpack-web
-          
+
           echo "📥 Pulling latest code..."
           git fetch origin
           git reset --hard origin/master
-          
+
           echo "🔨 Building..."
           flutter pub get
           flutter build web --dart-define=API_BASE_URL="https://admin.goodpackagingsupply.com/api"
-          
+
           echo "📦 Deploying to nginx (LAN access)..."
           sudo rm -rf /var/www/html/*
           sudo cp -r build/web/* /var/www/html/
-          sudo systemctl restart nginx
-          
+          sudo cp /opt/goodpack-web/scripts/nginx-goodpack.conf /etc/nginx/sites-available/goodpack
+          sudo ln -sf /etc/nginx/sites-available/goodpack /etc/nginx/sites-enabled/goodpack
+          sudo rm -f /etc/nginx/sites-enabled/default
+          sudo nginx -t && sudo systemctl reload nginx
+
           echo "📦 Deploying to Go server web/ (Cloudflare Tunnel)..."
           sudo mkdir -p /opt/goodpack-server/web
           sudo rm -rf /opt/goodpack-server/web/*
           sudo cp -r build/web/* /opt/goodpack-server/web/
-          
+
           echo "✅ Flutter Web deployed!"
 
       - name: Deployment Summary
