@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/responsive_layout.dart';
+import '../config/app_config.dart';
 import 'product_list_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -82,7 +83,6 @@ class _MainScreenState extends State<MainScreen> {
     super.dispose();
   }
 
-  /// คืนค่า index ของเมนูที่ควรไฮไลท์ตาม route ปัจจุบัน (เมื่อใช้ GoRouter)
   int _getSelectedIndex() {
     if (widget.child == null) return _currentIndex;
     final path = GoRouterState.of(context).uri.path;
@@ -112,11 +112,8 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       body: Row(
         children: [
-          // Desktop sidebar navigation
           if (MediaQuery.of(context).size.width >= 1200)
             _buildDesktopNavigation(),
-          
-          // Main content area
           Expanded(
             child: widget.child ?? PageView(
               controller: _pageController,
@@ -168,7 +165,6 @@ class _MainScreenState extends State<MainScreen> {
           final index = entry.key;
           final item = entry.value;
           final isSelected = _getSelectedIndex() == index;
-          
           return Expanded(
             child: InkWell(
               onTap: () => _onTabTapped(index),
@@ -182,8 +178,8 @@ class _MainScreenState extends State<MainScreen> {
                     Text(
                       item.label!,
                       style: TextStyle(
-                        color: isSelected 
-                            ? Theme.of(context).primaryColor 
+                        color: isSelected
+                            ? Theme.of(context).primaryColor
                             : Colors.grey[600],
                         fontSize: 12,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -215,60 +211,37 @@ class _MainScreenState extends State<MainScreen> {
       ),
       child: Column(
         children: [
-          // App Header
           Container(
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                Icon(
-                  Icons.inventory_2,
-                  size: 48,
-                  color: Theme.of(context).primaryColor,
-                ),
+                Icon(Icons.inventory_2, size: 48, color: Theme.of(context).primaryColor),
                 const SizedBox(height: 8),
                 ResponsiveText(
                   'GoodPack',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
                 ),
                 ResponsiveText(
                   'Inventory Management',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
             ),
           ),
-          
           const Divider(),
-          
-          // Navigation Items
           Expanded(
             child: ListView(
               children: [
-                // สรุป Dashboard
                 _buildNavItem(0, Icons.dashboard, 'สรุปภาพรวม'),
-                
                 const Divider(height: 8, indent: 16, endIndent: 16),
-                
-                // สินค้า
                 _buildNavItem(1, Icons.inventory_2, 'สินค้า'),
-                // ลูกค้า
                 _buildNavItem(2, Icons.business, 'ลูกค้า'),
-                // ซัพพลายเออร์
                 _buildNavItem(3, Icons.local_shipping, 'ซัพพลายเออร์'),
-                
-                // ซื้อ - มีเมนูย่อย
                 _buildExpandableNavItem(
                   icon: Icons.shopping_cart,
                   title: 'ซื้อ',
                   isExpanded: _isPurchaseExpanded,
-                  onExpand: (expanded) => setState(() => _isPurchaseExpanded = expanded),
+                  onExpand: (v) => setState(() => _isPurchaseExpanded = v),
                   isSelected: _getSelectedIndex() == 4,
                   children: [
                     _buildSubNavItem('ทั้งหมด', '/purchases'),
@@ -276,27 +249,23 @@ class _MainScreenState extends State<MainScreen> {
                     _buildSubNavItem('Non-VAT', '/purchases?vat=false'),
                   ],
                 ),
-                
-                // ขาย - มีเมนูย่อย
                 _buildExpandableNavItem(
                   icon: Icons.point_of_sale,
                   title: 'ขาย',
                   isExpanded: _isSaleExpanded,
-                  onExpand: (expanded) => setState(() => _isSaleExpanded = expanded),
+                  onExpand: (v) => setState(() => _isSaleExpanded = v),
                   isSelected: _getSelectedIndex() == 5,
                   children: [
                     _buildSubNavItem('ทั้งหมด', '/sales'),
                     _buildSubNavItem('VAT', '/sales?vat=true'),
                     _buildSubNavItem('Non-VAT', '/sales?vat=false'),
                   ],
-                    ),
-                
-                // เสนอราคา - มีเมนูย่อย
+                ),
                 _buildExpandableNavItem(
                   icon: Icons.description,
                   title: 'เสนอราคา',
                   isExpanded: _isQuotationExpanded,
-                  onExpand: (expanded) => setState(() => _isQuotationExpanded = expanded),
+                  onExpand: (v) => setState(() => _isQuotationExpanded = v),
                   isSelected: _getSelectedIndex() == 6,
                   children: [
                     _buildSubNavItem('ทั้งหมด', '/quotations'),
@@ -304,17 +273,10 @@ class _MainScreenState extends State<MainScreen> {
                     _buildSubNavItem('Non-VAT', '/quotations?vat=false'),
                   ],
                 ),
-                
-                // ค่าใช้จ่าย
                 _buildNavItem(7, Icons.receipt_long, 'ค่าใช้จ่าย'),
-                
                 const Divider(height: 24, indent: 16, endIndent: 16),
-                
-                // Export
                 _buildNavItem(8, Icons.file_download, 'Export'),
-                // International
                 _buildNavItem(9, Icons.public, 'International'),
-
                 if (context.read<AuthProvider>().isSuperAdmin) ...[
                   const Divider(height: 24, indent: 16, endIndent: 16),
                   _buildNavItem(10, Icons.people, 'จัดการ Users'),
@@ -322,8 +284,6 @@ class _MainScreenState extends State<MainScreen> {
               ],
             ),
           ),
-          
-          // Logout + Footer
           Container(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -339,20 +299,16 @@ class _MainScreenState extends State<MainScreen> {
                         'ออกจากระบบ (${auth.user?.displayName ?? ""})',
                         style: const TextStyle(fontSize: 13, color: Colors.red),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       onTap: () => auth.logout(),
                     );
                   },
                 ),
                 const SizedBox(height: 4),
+                // Version auto-updates from AppConfig.appVersion — bump that constant each PR
                 ResponsiveText(
-                  'เวอร์ชัน 1.0.0',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[500],
-                  ),
+                  'เวอร์ชัน ${AppConfig.appVersion}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                 ),
               ],
             ),
@@ -364,7 +320,6 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildNavItem(int index, IconData icon, String title) {
     final isSelected = _getSelectedIndex() == index;
-    
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: ListTile(
@@ -372,22 +327,18 @@ class _MainScreenState extends State<MainScreen> {
         title: Text(
           title,
           style: TextStyle(
-            color: isSelected 
-                ? Theme.of(context).primaryColor 
-                : Colors.grey[700],
+            color: isSelected ? Theme.of(context).primaryColor : Colors.grey[700],
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
         selected: isSelected,
         selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.1),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         onTap: () => _onTabTapped(index),
       ),
     );
   }
-  
+
   Widget _buildExpandableNavItem({
     required IconData icon,
     required String title,
@@ -405,16 +356,11 @@ class _MainScreenState extends State<MainScreen> {
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          leading: Icon(
-            icon,
-            color: isSelected ? Theme.of(context).primaryColor : Colors.grey[700],
-          ),
+          leading: Icon(icon, color: isSelected ? Theme.of(context).primaryColor : Colors.grey[700]),
           title: Text(
             title,
             style: TextStyle(
-              color: isSelected 
-                  ? Theme.of(context).primaryColor 
-                  : Colors.grey[700],
+              color: isSelected ? Theme.of(context).primaryColor : Colors.grey[700],
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -427,11 +373,10 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
   }
-  
+
   Widget _buildSubNavItem(String title, String route) {
     final currentPath = GoRouterState.of(context).uri.toString();
     final isSelected = currentPath == route || currentPath.startsWith('$route&');
-    
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: ListTile(
@@ -445,169 +390,91 @@ class _MainScreenState extends State<MainScreen> {
           title,
           style: TextStyle(
             fontSize: 14,
-            color: isSelected 
-                ? Theme.of(context).primaryColor 
-                : Colors.grey[600],
+            color: isSelected ? Theme.of(context).primaryColor : Colors.grey[600],
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
         selected: isSelected,
         selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.05),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         onTap: () => context.go(route),
       ),
     );
   }
 
   void _onTabTapped(int index) {
-    // สำหรับเมนูที่มีเมนูย่อย (ซื้อ, ขาย, เสนอราคา) แสดง Bottom Sheet บนมือถือ/tablet
-    // index 4 = ซื้อ, index 5 = ขาย, index 6 = เสนอราคา
     if (MediaQuery.of(context).size.width < 1200 && (index == 4 || index == 5 || index == 6)) {
       _showVatFilterSheet(index);
       return;
     }
-    
-    setState(() {
-      _currentIndex = index;
-    });
-    
-    // If using router (child is not null), navigate using GoRouter
+    setState(() => _currentIndex = index);
     if (widget.child != null) {
       switch (index) {
-        case 0:
-          context.go('/dashboard');
-          break;
-        case 1:
-          context.go('/');
-          break;
-        case 2:
-          context.go('/customers');
-          break;
-        case 3:
-          context.go('/suppliers');
-          break;
-        case 4:
-          context.go('/purchases');
-          break;
-        case 5:
-          context.go('/sales');
-          break;
-        case 6:
-          context.go('/quotations');
-          break;
-        case 7:
-          context.go('/expenses');
-          break;
-        case 8:
-          context.go('/export');
-          break;
-        case 9:
-          context.go('/internationals');
-          break;
-        case 10:
-          context.go('/users');
-          break;
+        case 0: context.go('/dashboard'); break;
+        case 1: context.go('/'); break;
+        case 2: context.go('/customers'); break;
+        case 3: context.go('/suppliers'); break;
+        case 4: context.go('/purchases'); break;
+        case 5: context.go('/sales'); break;
+        case 6: context.go('/quotations'); break;
+        case 7: context.go('/expenses'); break;
+        case 8: context.go('/export'); break;
+        case 9: context.go('/internationals'); break;
+        case 10: context.go('/users'); break;
       }
     } else {
-      // Only animate if PageView is being used (when child is null)
       if (_pageController.hasClients) {
-        _pageController.animateToPage(
-          index,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
+        _pageController.animateToPage(index,
+            duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       }
     }
   }
-  
+
   void _showVatFilterSheet(int menuIndex) {
     String title;
     String basePath;
     IconData icon;
-    
     switch (menuIndex) {
-      case 4:
-        title = 'รายการซื้อ';
-        basePath = '/purchases';
-        icon = Icons.shopping_cart;
-        break;
-      case 5:
-        title = 'รายการขาย';
-        basePath = '/sales';
-        icon = Icons.point_of_sale;
-        break;
-      case 6:
-        title = 'เสนอราคา';
-        basePath = '/quotations';
-        icon = Icons.description;
-        break;
-      default:
-        return;
+      case 4: title = 'รายการซื้อ'; basePath = '/purchases'; icon = Icons.shopping_cart; break;
+      case 5: title = 'รายการขาย'; basePath = '/sales'; icon = Icons.point_of_sale; break;
+      case 6: title = 'เสนอราคา'; basePath = '/quotations'; icon = Icons.description; break;
+      default: return;
     }
-    
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (context) {
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
               Container(
                 padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Icon(icon, color: Theme.of(context).primaryColor),
-                    const SizedBox(width: 12),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
+                child: Row(children: [
+                  Icon(icon, color: Theme.of(context).primaryColor),
+                  const SizedBox(width: 12),
+                  Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ]),
               ),
               const Divider(height: 1),
-              
-              // Options
               ListTile(
                 leading: const Icon(Icons.list),
                 title: const Text('ทั้งหมด'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.pop(context);
-                  setState(() => _currentIndex = menuIndex);
-                  context.go(basePath);
-                },
+                onTap: () { Navigator.pop(context); setState(() => _currentIndex = menuIndex); context.go(basePath); },
               ),
               ListTile(
                 leading: const Icon(Icons.check_circle, color: Colors.green),
                 title: const Text('VAT'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.pop(context);
-                  setState(() => _currentIndex = menuIndex);
-                  context.go('$basePath?vat=true');
-                },
+                onTap: () { Navigator.pop(context); setState(() => _currentIndex = menuIndex); context.go('$basePath?vat=true'); },
               ),
               ListTile(
                 leading: const Icon(Icons.cancel, color: Colors.red),
                 title: const Text('Non-VAT'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.pop(context);
-                  setState(() => _currentIndex = menuIndex);
-                  context.go('$basePath?vat=false');
-                },
+                onTap: () { Navigator.pop(context); setState(() => _currentIndex = menuIndex); context.go('$basePath?vat=false'); },
               ),
-              
               const SizedBox(height: 8),
             ],
           ),
