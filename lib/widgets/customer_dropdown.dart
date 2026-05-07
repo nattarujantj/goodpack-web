@@ -20,7 +20,7 @@ class CustomerDropdown extends StatelessWidget {
     required this.onChanged,
     this.label = 'ลูกค้า *',
     this.hint,
-    this.allowClear = false,
+    this.allowClear = true,
     this.isRequired = true,
     this.prefixIcon,
     this.dropdownKey,
