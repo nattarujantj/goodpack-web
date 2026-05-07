@@ -9,6 +9,7 @@ import '../models/purchase.dart';
 import '../models/product.dart';
 import '../models/expense.dart';
 import '../widgets/responsive_layout.dart';
+import '../config/app_config.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -226,6 +227,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 // Low Stock Alert
                 _buildLowStockAlert(products, sales),
+                const SizedBox(height: 32),
+
+                // Version footer — bump AppConfig.appVersion with every PR
+                // to confirm the latest build is deployed (cache check)
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Text(
+                      'v${AppConfig.appVersion}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[500],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           );
