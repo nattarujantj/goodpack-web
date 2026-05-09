@@ -20,7 +20,7 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Prevent browser caching of index.html -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -53,17 +53,9 @@
     (function () {
       if (!window.visualViewport) return;
 
-      /* Override window.innerHeight so Flutter always reads the
-         visual-viewport height (visible area, keyboard excluded).
-         This ensures the Flutter canvas is sized to what the user
-         can actually see, not the full layout viewport. */
-      Object.defineProperty(window, 'innerHeight', {
-        get: function () { return Math.round(window.visualViewport.height); },
-        configurable: true,
-      });
-
-      /* Dispatch a synthetic window resize so Flutter re-reads
-         window.innerHeight and repaints at the correct size.
+      /* Dispatch a synthetic window resize so Flutter re-reads the
+         viewport size and repaints at the correct dimensions after the
+         keyboard opens or closes.
          We fire twice: immediately (via rAF) and again after the
          keyboard slide animation finishes (~300 ms on Android). */
       var _resizeTimer = null;
