@@ -109,37 +109,46 @@ class _MainScreenState extends State<MainScreen> {
       );
     }
 
-    return Scaffold(
-      // Prevent Scaffold from moving bottomNavigationBar up when the
-      // keyboard opens. Without this, Flutter positions the nav bar at
-      // (screenHeight - viewInsets.bottom - navBarHeight), which leaves
-      // a white gap below the nav bar when a modal bottom sheet is
-      // dismissed while the keyboard is still closing. Child screens
-      // have their own Scaffold with resizeToAvoidBottomInset: true so
-      // they still handle keyboard avoidance correctly.
-      resizeToAvoidBottomInset: false,
-      body: Row(
-        children: [
-          if (MediaQuery.of(context).size.width >= 1200)
-            _buildDesktopNavigation(),
-          Expanded(
-            child: widget.child ?? PageView(
-              controller: _pageController,
-              onPageChanged: (index) {
-                setState(() {
-                  _currentIndex = index;
-                });
-              },
-              children: _screens,
+    // Capture the real MediaQuery before stripping viewInsets.
+    // The Scaffold below sees viewInsets.bottom = 0 so it always places
+    // bottomNavigationBar at the actual screen bottom, regardless of
+    // whether the keyboard is open. Without this, Flutter positions the
+    // nav bar at (screenHeight - viewInsets.bottom - navBarHeight) when
+    // the keyboard is open, leaving a white gap when a bottom sheet is
+    // dismissed while the keyboard is still closing.
+    // widget.child gets the original MediaQuery so form screens still
+    // push content above the keyboard via their own Scaffold.
+    final mq = MediaQuery.of(context);
+
+    return MediaQuery(
+      data: mq.copyWith(viewInsets: EdgeInsets.zero),
+      child: Scaffold(
+        body: Row(
+          children: [
+            if (mq.size.width >= 1200)
+              _buildDesktopNavigation(),
+            Expanded(
+              child: MediaQuery(
+                data: mq,
+                child: widget.child ?? PageView(
+                  controller: _pageController,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentIndex = index;
+                    });
+                  },
+                  children: _screens,
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
+        bottomNavigationBar: mq.size.width < 1200
+            ? mq.size.width < 768
+                ? _buildBottomNavigationBar()
+                : _buildTabletNavigation()
+            : null,
       ),
-      bottomNavigationBar: MediaQuery.of(context).size.width < 1200
-          ? MediaQuery.of(context).size.width < 768
-              ? _buildBottomNavigationBar()
-              : _buildTabletNavigation()
-          : null,
     );
   }
 
