@@ -390,6 +390,17 @@ class _BottomSheetContentState<T> extends State<_BottomSheetContent<T>> {
     });
   }
 
+  void _dismiss(BuildContext ctx) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    // Wait for the Android keyboard close animation (~300ms) before popping.
+    // If we pop immediately while the keyboard is still visible, the main
+    // screen renders with viewInsets.bottom > 0 and the Scaffold places the
+    // bottom nav bar above the keyboard area, leaving a white gap.
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (ctx.mounted) Navigator.pop(ctx);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewInsets = MediaQuery.of(context).viewInsets.bottom;
@@ -409,10 +420,7 @@ class _BottomSheetContentState<T> extends State<_BottomSheetContent<T>> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   IconButton(
-                    onPressed: () {
-                      FocusManager.instance.primaryFocus?.unfocus();
-                      Navigator.pop(context);
-                    },
+                    onPressed: () => _dismiss(context),
                     icon: const Icon(Icons.close),
                   ),
                 ],
@@ -445,9 +453,11 @@ class _BottomSheetContentState<T> extends State<_BottomSheetContent<T>> {
                             selected: isSelected,
                             selectedTileColor: Colors.blue[50],
                             onTap: () {
-                              FocusManager.instance.primaryFocus?.unfocus();
-                              Navigator.pop(context);
+                              // Update parent immediately so the field reflects
+                              // the selection, then wait for keyboard to close
+                              // before dismissing the sheet.
                               widget.onSelected(item);
+                              _dismiss(context);
                             },
                           );
                         },

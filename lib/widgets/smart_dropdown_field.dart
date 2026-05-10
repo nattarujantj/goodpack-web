@@ -228,10 +228,15 @@ class _DropdownContentState extends State<_DropdownContent> {
                                 selected: isSelected,
                                 selectedTileColor: Colors.blue[50],
                                 onTap: () {
-                                  FocusManager.instance.primaryFocus?.unfocus();
+                                  // Update controller immediately so the field
+                                  // shows the selection, then wait for keyboard
+                                  // to close before dismissing the sheet.
                                   widget.controller.text = option;
-                                  Navigator.pop(context);
                                   widget.onSelectionChanged();
+                                  FocusManager.instance.primaryFocus?.unfocus();
+                                  Future.delayed(const Duration(milliseconds: 300), () {
+                                    if (context.mounted) Navigator.pop(context);
+                                  });
                                 },
                               );
                             },
