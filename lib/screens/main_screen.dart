@@ -110,6 +110,14 @@ class _MainScreenState extends State<MainScreen> {
     }
 
     return Scaffold(
+      // Prevent Scaffold from moving bottomNavigationBar up when the
+      // keyboard opens. Without this, Flutter positions the nav bar at
+      // (screenHeight - viewInsets.bottom - navBarHeight), which leaves
+      // a white gap below the nav bar when a modal bottom sheet is
+      // dismissed while the keyboard is still closing. Child screens
+      // have their own Scaffold with resizeToAvoidBottomInset: true so
+      // they still handle keyboard avoidance correctly.
+      resizeToAvoidBottomInset: false,
       body: Row(
         children: [
           if (MediaQuery.of(context).size.width >= 1200)
