@@ -24,7 +24,12 @@ class _ExportScreenState extends State<ExportScreen> {
   // Month/Year selection
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
-  
+
+  // Inventory snapshot option
+  bool _includeInventory = false;
+  int _inventoryMonth = DateTime.now().month;
+  int _inventoryYear = DateTime.now().year;
+
   bool _isLoading = false;
   String? _statusMessage;
   bool? _isSuccess;
@@ -79,7 +84,7 @@ class _ExportScreenState extends State<ExportScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'ระบบจะสร้างไฟล์ Excel ที่มี 2 Sheet (รายการซื้อ และ รายการขาย) แล้วส่งไปยัง Email ที่เลือก',
+                        'ระบบจะสร้างไฟล์ Excel ที่มีรายการซื้อ-ขาย-ค่าใช้จ่าย (และสินค้าคงคลังถ้าเลือก) แล้วส่งไปยัง Email ที่เลือก',
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 14,
@@ -146,15 +151,77 @@ class _ExportScreenState extends State<ExportScreen> {
                         ],
                       ),
                       
+                      const Divider(height: 32),
+
+                      // Inventory Snapshot Section
+                      const Text(
+                        'สินค้าคงคลัง',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      CheckboxListTile(
+                        title: const Text('แนบสินค้าคงคลัง ณ สิ้นเดือน'),
+                        subtitle: const Text(
+                          'เพิ่ม Sheet สินค้าคงคลังใน Excel ที่ส่ง',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        value: _includeInventory,
+                        onChanged: (v) => setState(() {
+                          _includeInventory = v ?? false;
+                          if (_includeInventory) {
+                            _inventoryMonth = _selectedMonth;
+                            _inventoryYear = _selectedYear;
+                          }
+                        }),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      if (_includeInventory)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 16, top: 8, bottom: 4),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<int>(
+                                  value: _inventoryMonth,
+                                  decoration: const InputDecoration(
+                                    labelText: 'เดือน Snapshot',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                  items: List.generate(12, (i) => DropdownMenuItem(
+                                    value: i + 1,
+                                    child: Text(_getThaiMonthName(i + 1)),
+                                  )),
+                                  onChanged: (v) { if (v != null) setState(() => _inventoryMonth = v); },
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: DropdownButtonFormField<int>(
+                                  value: _inventoryYear,
+                                  decoration: const InputDecoration(
+                                    labelText: 'ปี Snapshot',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                  items: List.generate(5, (i) {
+                                    final y = DateTime.now().year - 2 + i;
+                                    return DropdownMenuItem(value: y, child: Text('${y + 543}'));
+                                  }),
+                                  onChanged: (v) { if (v != null) setState(() => _inventoryYear = v); },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
                       const SizedBox(height: 24),
-                      
+
                       // Email Selection
                       const Text(
                         'ส่งไปยัง Email',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 12),
                       
@@ -371,6 +438,9 @@ class _ExportScreenState extends State<ExportScreen> {
         month: _selectedMonth,
         year: _selectedYear,
         emails: _selectedEmails,
+        includeInventory: _includeInventory,
+        inventoryMonth: _includeInventory ? _inventoryMonth : null,
+        inventoryYear: _includeInventory ? _inventoryYear : null,
       );
       
       setState(() {

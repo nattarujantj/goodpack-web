@@ -88,6 +88,7 @@ class _MainScreenState extends State<MainScreen> {
     final path = GoRouterState.of(context).uri.path;
     if (path == '/dashboard') return 0;
     if (path == '/' || path.startsWith('/product')) return 1;
+    if (path == '/inventory-snapshots') return 11;
     if (path.startsWith('/customer')) return 2;
     if (path.startsWith('/supplier')) return 3;
     if (path.startsWith('/purchase')) return 4;
@@ -235,6 +236,7 @@ class _MainScreenState extends State<MainScreen> {
                 _buildNavItem(0, Icons.dashboard, 'สรุปภาพรวม'),
                 const Divider(height: 8, indent: 16, endIndent: 16),
                 _buildNavItem(1, Icons.inventory_2, 'สินค้า'),
+                _buildNavItem(11, Icons.history, 'คลังสินค้ารายเดือน'),
                 _buildNavItem(2, Icons.business, 'ลูกค้า'),
                 _buildNavItem(3, Icons.local_shipping, 'ซัพพลายเออร์'),
                 _buildExpandableNavItem(
@@ -421,6 +423,7 @@ class _MainScreenState extends State<MainScreen> {
         case 8: context.go('/export'); break;
         case 9: context.go('/internationals'); break;
         case 10: context.go('/users'); break;
+        case 11: context.go('/inventory-snapshots'); break;
       }
     } else {
       if (_pageController.hasClients) {
