@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/sale_provider.dart';
 import '../providers/purchase_provider.dart';
@@ -568,6 +569,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 final quantity = item.value['quantity'] as int;
                 
                 return ListTile(
+                  onTap: () => context.go('/product/${item.key}'),
                   leading: CircleAvatar(
                     backgroundColor: _getMedalColor(index),
                     child: Text(
@@ -639,7 +641,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (monthlyTop.isEmpty)
               const Text('ไม่มีข้อมูล', style: TextStyle(color: Colors.grey))
             else
-              ...monthlyTop.take(3).map((item) => _buildProductRankItem(item)),
+              ...monthlyTop.take(3).map((item) => _buildProductRankItem(item, onTap: () => context.go('/product/${item.key}'))),
 
             const SizedBox(height: 16),
 
@@ -656,32 +658,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (yearlyTop.isEmpty)
               const Text('ไม่มีข้อมูล', style: TextStyle(color: Colors.grey))
             else
-              ...yearlyTop.take(5).map((item) => _buildProductRankItem(item)),
+              ...yearlyTop.take(5).map((item) => _buildProductRankItem(item, onTap: () => context.go('/product/${item.key}'))),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProductRankItem(MapEntry<String, Map<String, dynamic>> item) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              item.value['name'] as String,
-              overflow: TextOverflow.ellipsis,
+  Widget _buildProductRankItem(MapEntry<String, Map<String, dynamic>> item, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                item.value['name'] as String,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-          Text(
-            '${item.value['quantity']} ชิ้น',
-            style: TextStyle(
-              color: Colors.blue[700],
-              fontWeight: FontWeight.w500,
+            Text(
+              '${item.value['quantity']} ชิ้น',
+              style: TextStyle(
+                color: Colors.blue[700],
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -878,7 +884,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ...topSpenders.asMap().entries.map((entry) {
                           final rank = entry.key;
                           final spender = entry.value;
-                          return Container(
+                          return InkWell(
+                            onTap: () => context.go('/customer/${spender['id']}'),
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
                             margin: const EdgeInsets.only(bottom: 8),
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             decoration: BoxDecoration(
@@ -934,6 +943,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ],
                             ),
+                          ),
                           );
                         }),
                     ],
@@ -956,6 +966,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final id = sale.customerId;
         if (!spenderMap.containsKey(id)) {
           spenderMap[id] = {
+            'id': id,
             'name': sale.customerName,
             'total': 0.0,
             'count': 0,
