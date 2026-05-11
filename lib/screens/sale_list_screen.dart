@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../widgets/nav_menu_button.dart';
+
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../models/sale.dart';
@@ -94,6 +96,7 @@ class _SaleListScreenState extends State<SaleListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: ResponsiveAppBar(
+        leading: const NavMenuButton(),
         title: 'รายการขาย',
         actions: [
           IconButton(

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart' hide SearchBar;
+import '../widgets/nav_menu_button.dart';
+
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -92,6 +94,7 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: ResponsiveAppBar(
+        leading: const NavMenuButton(),
         title: 'International',
         actions: [
           IconButton(

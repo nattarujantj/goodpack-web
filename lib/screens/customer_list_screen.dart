@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart' hide SearchBar;
+import '../widgets/nav_menu_button.dart';
+
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/customer_provider.dart';
@@ -42,6 +44,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: ResponsiveAppBar(
+        leading: const NavMenuButton(),
         title: 'รายการลูกค้า',
         actions: [
           IconButton(

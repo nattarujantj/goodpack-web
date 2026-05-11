@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../widgets/nav_menu_button.dart';
+
 import 'package:provider/provider.dart';
 import '../models/auth_user.dart';
 import '../providers/auth_provider.dart';
@@ -160,6 +162,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const NavMenuButton(),
         title: const Text('จัดการ Users'),
         actions: [
           IconButton(

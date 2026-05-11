@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart' hide SearchBar;
+import '../widgets/nav_menu_button.dart';
+
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/product_provider.dart';
@@ -53,6 +55,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: ResponsiveAppBar(
+        leading: const NavMenuButton(),
         title: 'รายการสินค้า',
         actions: [
           IconButton(

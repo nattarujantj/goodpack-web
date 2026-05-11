@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../widgets/nav_menu_button.dart';
 import '../models/inventory_snapshot.dart';
 import '../providers/inventory_snapshot_provider.dart';
 
@@ -114,6 +115,7 @@ class _InventorySnapshotScreenState extends State<InventorySnapshotScreen> {
 
         return Scaffold(
           appBar: AppBar(
+            leading: const NavMenuButton(),
             title: const Text('สินค้าคงคลังรายเดือน'),
             actions: [
               if (snapshot != null && !_isEditing)
