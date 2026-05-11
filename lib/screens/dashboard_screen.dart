@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/sale_provider.dart';
 import '../providers/purchase_provider.dart';
@@ -22,11 +23,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   static const _thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
       'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
-  /// เดือนที่เลือกสำหรับดูสรุป (ใช้เฉพาะ year, month)
+  /// เดือนที่เลือกสำหรับดูสรุป (ใช้เฉพาะ year, month) — ใช้ร่วมกันทั้งหน้าและตาราง Revenue vs Expense
   late DateTime _selectedMonth;
-
-  /// เดือนที่เลือกในตาราง Revenue vs Expense เพื่อดู Top Spenders
-  int _revenueChartSelectedMonth = DateTime.now().month;
 
   @override
   void initState() {
@@ -571,6 +569,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 final quantity = item.value['quantity'] as int;
                 
                 return ListTile(
+                  onTap: () => context.go('/product/${item.key}'),
                   leading: CircleAvatar(
                     backgroundColor: _getMedalColor(index),
                     child: Text(
@@ -642,7 +641,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (monthlyTop.isEmpty)
               const Text('ไม่มีข้อมูล', style: TextStyle(color: Colors.grey))
             else
-              ...monthlyTop.take(3).map((item) => _buildProductRankItem(item)),
+              ...monthlyTop.take(3).map((item) => _buildProductRankItem(item, onTap: () => context.go('/product/${item.key}'))),
 
             const SizedBox(height: 16),
 
@@ -659,32 +658,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (yearlyTop.isEmpty)
               const Text('ไม่มีข้อมูล', style: TextStyle(color: Colors.grey))
             else
-              ...yearlyTop.take(5).map((item) => _buildProductRankItem(item)),
+              ...yearlyTop.take(5).map((item) => _buildProductRankItem(item, onTap: () => context.go('/product/${item.key}'))),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProductRankItem(MapEntry<String, Map<String, dynamic>> item) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              item.value['name'] as String,
-              overflow: TextOverflow.ellipsis,
+  Widget _buildProductRankItem(MapEntry<String, Map<String, dynamic>> item, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                item.value['name'] as String,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-          Text(
-            '${item.value['quantity']} ชิ้น',
-            style: TextStyle(
-              color: Colors.blue[700],
-              fontWeight: FontWeight.w500,
+            Text(
+              '${item.value['quantity']} ชิ้น',
+              style: TextStyle(
+                color: Colors.blue[700],
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -740,7 +743,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     }
 
-    final topSpenders = _getTopSpenders(sales, chartYear, _revenueChartSelectedMonth, 5);
+    final topSpenders = _getTopSpenders(sales, chartYear, _selectedMonth.month, 5);
 
     return Card(
       child: Padding(
@@ -800,22 +803,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             final expense = monthlyData[month]!['expense']!;
                             final otherExpense = monthlyData[month]!['otherExpense']!;
                             final profit = revenue - expense - otherExpense;
-                            final isSelectedMonth = month == selectedMonth.month;
-                            final isChartSelected = month == _revenueChartSelectedMonth;
+                            final isSelected = month == _selectedMonth.month;
 
                             return DataRow(
-                              selected: isChartSelected,
+                              selected: isSelected,
                               color: WidgetStateProperty.resolveWith((states) {
-                                if (isChartSelected) return Colors.purple.withOpacity(0.08);
+                                if (isSelected) return Colors.purple.withOpacity(0.08);
                                 return null;
                               }),
                               onSelectChanged: (_) {
-                                setState(() => _revenueChartSelectedMonth = month);
+                                setState(() => _selectedMonth = DateTime(_selectedMonth.year, month, 1));
                               },
                               cells: [
                                 DataCell(Text(
                                   _thaiMonths[index],
-                                  style: isSelectedMonth
+                                  style: isSelected
                                       ? const TextStyle(fontWeight: FontWeight.bold)
                                       : null,
                                 )),
@@ -855,7 +857,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const Icon(Icons.people_alt, color: Colors.deepOrange, size: 18),
                           const SizedBox(width: 6),
                           Text(
-                            'Top 5 ลูกค้า • ${_thaiMonths[_revenueChartSelectedMonth - 1]} ${chartYear + 543}',
+                            'Top 5 ลูกค้า • ${_thaiMonths[_selectedMonth.month - 1]} ${chartYear + 543}',
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
@@ -866,7 +868,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(height: 4),
                       const Text(
-                        'แตะแถวเดือนด้านซ้ายเพื่อเปลี่ยนเดือน',
+                        'เปลี่ยนเดือนได้จากตารางซ้าย หรือปุ่มลูกศรบนขวา',
                         style: TextStyle(fontSize: 11, color: Colors.grey),
                       ),
                       const SizedBox(height: 8),
@@ -882,7 +884,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ...topSpenders.asMap().entries.map((entry) {
                           final rank = entry.key;
                           final spender = entry.value;
-                          return Container(
+                          return InkWell(
+                            onTap: () => context.go('/customer/${spender['id']}'),
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
                             margin: const EdgeInsets.only(bottom: 8),
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             decoration: BoxDecoration(
@@ -938,6 +943,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ],
                             ),
+                          ),
                           );
                         }),
                     ],
@@ -960,6 +966,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final id = sale.customerId;
         if (!spenderMap.containsKey(id)) {
           spenderMap[id] = {
+            'id': id,
             'name': sale.customerName,
             'total': 0.0,
             'count': 0,
