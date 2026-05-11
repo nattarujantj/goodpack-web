@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../widgets/nav_menu_button.dart';
 import 'package:provider/provider.dart';
 import '../providers/sale_provider.dart';
 import '../providers/purchase_provider.dart';
@@ -122,6 +123,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       appBar: ResponsiveAppBar(
+        leading: const NavMenuButton(),
         title: 'สรุปภาพรวม',
         actions: [
           Row(

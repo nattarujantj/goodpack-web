@@ -3,12 +3,13 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/responsive_layout.dart';
+import '../widgets/main_scaffold_scope.dart';
 import '../config/app_config.dart';
 import 'product_list_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final Widget? child;
-  
+
   const MainScreen({Key? key, this.child}) : super(key: key);
 
   @override
@@ -18,6 +19,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   late PageController _pageController;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
 
   // สำหรับ ExpansionTile
   bool _isPurchaseExpanded = false;
@@ -26,49 +28,6 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = [
     const ProductListScreen(),
-  ];
-
-  final List<BottomNavigationBarItem> _bottomNavItems = [
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.dashboard),
-      label: 'สรุป',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.inventory_2),
-      label: 'สินค้า',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.business),
-      label: 'ลูกค้า',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.local_shipping),
-      label: 'ซัพพลายเออร์',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.shopping_cart),
-      label: 'ซื้อ',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.point_of_sale),
-      label: 'ขาย',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.description),
-      label: 'เสนอราคา',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.receipt_long),
-      label: 'ค่าใช้จ่าย',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.file_download),
-      label: 'Export',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.public),
-      label: 'International',
-    ),
   ];
 
   @override
@@ -110,89 +69,141 @@ class _MainScreenState extends State<MainScreen> {
       );
     }
 
+    final width = MediaQuery.of(context).size.width;
+
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: width < 1200 ? _buildDrawer() : null,
       body: Row(
         children: [
-          if (MediaQuery.of(context).size.width >= 1200)
+          if (width >= 1200)
             _buildDesktopNavigation(),
           Expanded(
-            child: widget.child ?? PageView(
-              controller: _pageController,
-              onPageChanged: (index) {
-                setState(() {
-                  _currentIndex = index;
-                });
-              },
-              children: _screens,
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: MediaQuery.of(context).size.width < 1200
-          ? MediaQuery.of(context).size.width < 768
-              ? _buildBottomNavigationBar()
-              : _buildTabletNavigation()
-          : null,
-    );
-  }
-
-  Widget _buildBottomNavigationBar() {
-    return BottomNavigationBar(
-      currentIndex: _getSelectedIndex(),
-      onTap: _onTabTapped,
-      type: BottomNavigationBarType.fixed,
-      items: _bottomNavItems,
-      selectedItemColor: Theme.of(context).primaryColor,
-      unselectedItemColor: Colors.grey[600],
-    );
-  }
-
-  Widget _buildTabletNavigation() {
-    return Container(
-      height: 80,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: _bottomNavItems.asMap().entries.map((entry) {
-          final index = entry.key;
-          final item = entry.value;
-          final isSelected = _getSelectedIndex() == index;
-          return Expanded(
-            child: InkWell(
-              onTap: () => _onTabTapped(index),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    item.icon,
-                    const SizedBox(height: 4),
-                    Text(
-                      item.label!,
-                      style: TextStyle(
-                        color: isSelected
-                            ? Theme.of(context).primaryColor
-                            : Colors.grey[600],
-                        fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                  ],
-                ),
+            child: MainScaffoldScope(
+              scaffoldKey: _scaffoldKey,
+              child: widget.child ?? PageView(
+                controller: _pageController,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                },
+                children: _screens,
               ),
             ),
-          );
-        }).toList(),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildNavigationContent() {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Icon(Icons.inventory_2, size: 48, color: Theme.of(context).primaryColor),
+              const SizedBox(height: 8),
+              ResponsiveText(
+                'GoodPack',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+              ),
+              ResponsiveText(
+                'Inventory Management',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ),
+        const Divider(),
+        Expanded(
+          child: ListView(
+            children: [
+              _buildNavItem(0, Icons.dashboard, 'สรุปภาพรวม'),
+              const Divider(height: 8, indent: 16, endIndent: 16),
+              _buildNavItem(1, Icons.inventory_2, 'สินค้า'),
+              _buildNavItem(11, Icons.history, 'คลังสินค้ารายเดือน'),
+              _buildNavItem(2, Icons.business, 'ลูกค้า'),
+              _buildNavItem(3, Icons.local_shipping, 'ซัพพลายเออร์'),
+              _buildExpandableNavItem(
+                icon: Icons.shopping_cart,
+                title: 'ซื้อ',
+                isExpanded: _isPurchaseExpanded,
+                onExpand: (v) => setState(() => _isPurchaseExpanded = v),
+                isSelected: _getSelectedIndex() == 4,
+                children: [
+                  _buildSubNavItem('ทั้งหมด', '/purchases'),
+                  _buildSubNavItem('VAT', '/purchases?vat=true'),
+                  _buildSubNavItem('Non-VAT', '/purchases?vat=false'),
+                ],
+              ),
+              _buildExpandableNavItem(
+                icon: Icons.point_of_sale,
+                title: 'ขาย',
+                isExpanded: _isSaleExpanded,
+                onExpand: (v) => setState(() => _isSaleExpanded = v),
+                isSelected: _getSelectedIndex() == 5,
+                children: [
+                  _buildSubNavItem('ทั้งหมด', '/sales'),
+                  _buildSubNavItem('VAT', '/sales?vat=true'),
+                  _buildSubNavItem('Non-VAT', '/sales?vat=false'),
+                ],
+              ),
+              _buildExpandableNavItem(
+                icon: Icons.description,
+                title: 'เสนอราคา',
+                isExpanded: _isQuotationExpanded,
+                onExpand: (v) => setState(() => _isQuotationExpanded = v),
+                isSelected: _getSelectedIndex() == 6,
+                children: [
+                  _buildSubNavItem('ทั้งหมด', '/quotations'),
+                  _buildSubNavItem('VAT', '/quotations?vat=true'),
+                  _buildSubNavItem('Non-VAT', '/quotations?vat=false'),
+                ],
+              ),
+              _buildNavItem(7, Icons.receipt_long, 'ค่าใช้จ่าย'),
+              const Divider(height: 24, indent: 16, endIndent: 16),
+              _buildNavItem(8, Icons.file_download, 'Export'),
+              _buildNavItem(9, Icons.public, 'International'),
+              if (context.read<AuthProvider>().isSuperAdmin) ...[
+                const Divider(height: 24, indent: 16, endIndent: 16),
+                _buildNavItem(10, Icons.people, 'จัดการ Users'),
+              ],
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              const Divider(),
+              const SizedBox(height: 4),
+              Consumer<AuthProvider>(
+                builder: (context, auth, _) {
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.logout, size: 20, color: Colors.red),
+                    title: Text(
+                      'ออกจากระบบ (${auth.user?.displayName ?? ""})',
+                      style: const TextStyle(fontSize: 13, color: Colors.red),
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    onTap: () => auth.logout(),
+                  );
+                },
+              ),
+              const SizedBox(height: 4),
+              // Version auto-updates from AppConfig.appVersion — bump that constant each PR
+              ResponsiveText(
+                'เวอร์ชัน ${AppConfig.appVersion}',
+                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -210,114 +221,12 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                Icon(Icons.inventory_2, size: 48, color: Theme.of(context).primaryColor),
-                const SizedBox(height: 8),
-                ResponsiveText(
-                  'GoodPack',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
-                ),
-                ResponsiveText(
-                  'Inventory Management',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
-              ],
-            ),
-          ),
-          const Divider(),
-          Expanded(
-            child: ListView(
-              children: [
-                _buildNavItem(0, Icons.dashboard, 'สรุปภาพรวม'),
-                const Divider(height: 8, indent: 16, endIndent: 16),
-                _buildNavItem(1, Icons.inventory_2, 'สินค้า'),
-                _buildNavItem(11, Icons.history, 'คลังสินค้ารายเดือน'),
-                _buildNavItem(2, Icons.business, 'ลูกค้า'),
-                _buildNavItem(3, Icons.local_shipping, 'ซัพพลายเออร์'),
-                _buildExpandableNavItem(
-                  icon: Icons.shopping_cart,
-                  title: 'ซื้อ',
-                  isExpanded: _isPurchaseExpanded,
-                  onExpand: (v) => setState(() => _isPurchaseExpanded = v),
-                  isSelected: _getSelectedIndex() == 4,
-                  children: [
-                    _buildSubNavItem('ทั้งหมด', '/purchases'),
-                    _buildSubNavItem('VAT', '/purchases?vat=true'),
-                    _buildSubNavItem('Non-VAT', '/purchases?vat=false'),
-                  ],
-                ),
-                _buildExpandableNavItem(
-                  icon: Icons.point_of_sale,
-                  title: 'ขาย',
-                  isExpanded: _isSaleExpanded,
-                  onExpand: (v) => setState(() => _isSaleExpanded = v),
-                  isSelected: _getSelectedIndex() == 5,
-                  children: [
-                    _buildSubNavItem('ทั้งหมด', '/sales'),
-                    _buildSubNavItem('VAT', '/sales?vat=true'),
-                    _buildSubNavItem('Non-VAT', '/sales?vat=false'),
-                  ],
-                ),
-                _buildExpandableNavItem(
-                  icon: Icons.description,
-                  title: 'เสนอราคา',
-                  isExpanded: _isQuotationExpanded,
-                  onExpand: (v) => setState(() => _isQuotationExpanded = v),
-                  isSelected: _getSelectedIndex() == 6,
-                  children: [
-                    _buildSubNavItem('ทั้งหมด', '/quotations'),
-                    _buildSubNavItem('VAT', '/quotations?vat=true'),
-                    _buildSubNavItem('Non-VAT', '/quotations?vat=false'),
-                  ],
-                ),
-                _buildNavItem(7, Icons.receipt_long, 'ค่าใช้จ่าย'),
-                const Divider(height: 24, indent: 16, endIndent: 16),
-                _buildNavItem(8, Icons.file_download, 'Export'),
-                _buildNavItem(9, Icons.public, 'International'),
-                if (context.read<AuthProvider>().isSuperAdmin) ...[
-                  const Divider(height: 24, indent: 16, endIndent: 16),
-                  _buildNavItem(10, Icons.people, 'จัดการ Users'),
-                ],
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                const Divider(),
-                const SizedBox(height: 4),
-                Consumer<AuthProvider>(
-                  builder: (context, auth, _) {
-                    return ListTile(
-                      dense: true,
-                      leading: const Icon(Icons.logout, size: 20, color: Colors.red),
-                      title: Text(
-                        'ออกจากระบบ (${auth.user?.displayName ?? ""})',
-                        style: const TextStyle(fontSize: 13, color: Colors.red),
-                      ),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      onTap: () => auth.logout(),
-                    );
-                  },
-                ),
-                const SizedBox(height: 4),
-                // Version auto-updates from AppConfig.appVersion — bump that constant each PR
-                ResponsiveText(
-                  'เวอร์ชัน ${AppConfig.appVersion}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      child: _buildNavigationContent(),
     );
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(child: _buildNavigationContent());
   }
 
   Widget _buildNavItem(int index, IconData icon, String title) {
@@ -336,7 +245,12 @@ class _MainScreenState extends State<MainScreen> {
         selected: isSelected,
         selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        onTap: () => _onTabTapped(index),
+        onTap: () {
+          if (MediaQuery.of(context).size.width < 1200) {
+            Navigator.of(context).pop(); // close drawer
+          }
+          _onTabTapped(index);
+        },
       ),
     );
   }
@@ -399,16 +313,17 @@ class _MainScreenState extends State<MainScreen> {
         selected: isSelected,
         selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.05),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        onTap: () => context.go(route),
+        onTap: () {
+          if (MediaQuery.of(context).size.width < 1200) {
+            Navigator.of(context).pop(); // close drawer
+          }
+          context.go(route);
+        },
       ),
     );
   }
 
   void _onTabTapped(int index) {
-    if (MediaQuery.of(context).size.width < 1200 && (index == 4 || index == 5 || index == 6)) {
-      _showVatFilterSheet(index);
-      return;
-    }
     setState(() => _currentIndex = index);
     if (widget.child != null) {
       switch (index) {
@@ -431,58 +346,5 @@ class _MainScreenState extends State<MainScreen> {
             duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       }
     }
-  }
-
-  void _showVatFilterSheet(int menuIndex) {
-    String title;
-    String basePath;
-    IconData icon;
-    switch (menuIndex) {
-      case 4: title = 'รายการซื้อ'; basePath = '/purchases'; icon = Icons.shopping_cart; break;
-      case 5: title = 'รายการขาย'; basePath = '/sales'; icon = Icons.point_of_sale; break;
-      case 6: title = 'เสนอราคา'; basePath = '/quotations'; icon = Icons.description; break;
-      default: return;
-    }
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: Row(children: [
-                  Icon(icon, color: Theme.of(context).primaryColor),
-                  const SizedBox(width: 12),
-                  Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                ]),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.list),
-                title: const Text('ทั้งหมด'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () { Navigator.pop(context); setState(() => _currentIndex = menuIndex); context.go(basePath); },
-              ),
-              ListTile(
-                leading: const Icon(Icons.check_circle, color: Colors.green),
-                title: const Text('VAT'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () { Navigator.pop(context); setState(() => _currentIndex = menuIndex); context.go('$basePath?vat=true'); },
-              ),
-              ListTile(
-                leading: const Icon(Icons.cancel, color: Colors.red),
-                title: const Text('Non-VAT'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () { Navigator.pop(context); setState(() => _currentIndex = menuIndex); context.go('$basePath?vat=false'); },
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
-    );
   }
 }

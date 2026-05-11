@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../widgets/nav_menu_button.dart';
+
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../models/quotation.dart';
@@ -98,6 +100,7 @@ class _QuotationListScreenState extends State<QuotationListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: ResponsiveAppBar(
+        leading: const NavMenuButton(),
         title: 'รายการเสนอราคา',
         actions: [
           IconButton(

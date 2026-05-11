@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../widgets/nav_menu_button.dart';
+
 import '../services/export_service.dart';
 
 class ExportScreen extends StatefulWidget {
@@ -50,6 +52,7 @@ class _ExportScreenState extends State<ExportScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const NavMenuButton(),
         title: const Text('Export รายการซื้อ/ขาย'),
       ),
       body: SingleChildScrollView(
