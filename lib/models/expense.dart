@@ -26,7 +26,7 @@ class Expense {
       description: json['description'] ?? '',
       amount: (json['amount'] ?? 0).toDouble(),
       expenseDate: json['expenseDate'] != null
-          ? DateTime.parse(json['expenseDate'])
+          ? DateTime.parse(json['expenseDate']).toLocal()
           : DateTime.now(),
       notes: json['notes'] ?? '',
       createdAt: json['createdAt'] != null

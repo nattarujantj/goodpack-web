@@ -56,7 +56,7 @@ class Purchase {
       invoiceNumber: json['invoiceNumber'],
       createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updatedAt'] ?? '') ?? DateTime.now(),
-      purchaseDate: DateTime.tryParse(json['purchaseDate'] ?? '') ?? DateTime.now(),
+      purchaseDate: (DateTime.tryParse(json['purchaseDate'] ?? '') ?? DateTime.now()).toLocal(),
       supplierId: json['supplierId'] ?? '',
       supplierName: json['supplierName'] ?? '',
       contactName: json['contactName'],
