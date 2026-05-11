@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../models/product.dart';
+import '../models/product_transaction.dart';
 import '../models/stock_adjustment.dart';
 import 'auth_token.dart';
 
@@ -246,6 +247,56 @@ class ApiService {
       }
     } catch (e) {
       throw ApiException('Error deleting stock adjustment: $e');
+    }
+  }
+
+  // GET product purchases (paginated, filtered by VAT)
+  Future<ProductTransactionPage> getProductPurchases(
+    String productId, {
+    bool isVAT = true,
+    int page = 1,
+    int limit = 10,
+  }) async {
+    try {
+      final response = await _client
+          .get(
+            Uri.parse(AppConfig.getProductPurchasesUrl(productId, isVAT: isVAT, page: page, limit: limit)),
+            headers: _headers,
+          )
+          .timeout(Duration(milliseconds: AppConfig.connectTimeout));
+
+      if (response.statusCode == 200) {
+        return ProductTransactionPage.fromJson(json.decode(response.body));
+      } else {
+        throw ApiException('Failed to load purchases: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw ApiException('Error loading purchases: $e');
+    }
+  }
+
+  // GET product sales (paginated, filtered by VAT)
+  Future<ProductTransactionPage> getProductSales(
+    String productId, {
+    bool isVAT = true,
+    int page = 1,
+    int limit = 10,
+  }) async {
+    try {
+      final response = await _client
+          .get(
+            Uri.parse(AppConfig.getProductSalesUrl(productId, isVAT: isVAT, page: page, limit: limit)),
+            headers: _headers,
+          )
+          .timeout(Duration(milliseconds: AppConfig.connectTimeout));
+
+      if (response.statusCode == 200) {
+        return ProductTransactionPage.fromJson(json.decode(response.body));
+      } else {
+        throw ApiException('Failed to load sales: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw ApiException('Error loading sales: $e');
     }
   }
 
