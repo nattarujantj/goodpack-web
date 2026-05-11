@@ -11,16 +11,25 @@ class ExportService {
     required int month,
     required int year,
     required List<String> emails,
+    bool includeInventory = false,
+    int? inventoryMonth,
+    int? inventoryYear,
   }) async {
     try {
+      final body = <String, dynamic>{
+        'month': month,
+        'year': year,
+        'emails': emails,
+        'includeInventory': includeInventory,
+      };
+      if (includeInventory) {
+        body['inventoryMonth'] = inventoryMonth ?? month;
+        body['inventoryYear'] = inventoryYear ?? year;
+      }
       final response = await http.post(
         Uri.parse('$_baseUrl/export/email'),
         headers: AuthToken.headers,
-        body: json.encode({
-          'month': month,
-          'year': year,
-          'emails': emails,
-        }),
+        body: json.encode(body),
       );
 
       if (response.statusCode == 200) {

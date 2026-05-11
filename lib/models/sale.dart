@@ -59,7 +59,7 @@ class Sale {
       id: json['id'],
       saleCode: json['saleCode'],
       quotationCode: json['quotationCode'],
-      saleDate: DateTime.parse(json['saleDate']),
+      saleDate: DateTime.parse(json['saleDate']).toLocal(),
       customerId: json['customerId'],
       customerName: json['customerName'],
       contactName: json['contactName'],

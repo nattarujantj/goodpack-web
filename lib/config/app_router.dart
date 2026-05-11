@@ -29,6 +29,7 @@ import '../screens/international_import_list_screen.dart';
 import '../screens/international_import_detail_screen.dart';
 import '../screens/international_import_form_screen.dart';
 import '../screens/user_management_screen.dart';
+import '../screens/inventory_snapshot_screen.dart';
 
 class AppRouter {
   static Page<void> _noAnimationPage(Widget child, GoRouterState state) {
@@ -432,6 +433,13 @@ class AppRouter {
               path: '/users',
               pageBuilder: (context, state) => _noAnimationPage(
                 const UserManagementScreen(),
+                state,
+              ),
+            ),
+            GoRoute(
+              path: '/inventory-snapshots',
+              pageBuilder: (context, state) => _noAnimationPage(
+                const InventorySnapshotScreen(),
                 state,
               ),
             ),
