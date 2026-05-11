@@ -98,7 +98,7 @@ class Quotation {
     return Quotation(
       id: json['_id']?['\$oid'] as String? ?? json['id'] as String? ?? '',
       quotationCode: json['quotationCode'] as String? ?? '',
-      quotationDate: DateTime.parse(json['quotationDate'] as String? ?? DateTime.now().toIso8601String()),
+      quotationDate: DateTime.parse(json['quotationDate'] as String? ?? DateTime.now().toIso8601String()).toLocal(),
       customerId: json['customerId'] as String? ?? '',
       customerName: json['customerName'] as String? ?? '',
       contactName: json['contactName'] as String?,
