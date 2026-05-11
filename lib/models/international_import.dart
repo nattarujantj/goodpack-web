@@ -54,7 +54,7 @@ class InternationalImport {
       id: json['id']?.toString() ?? '',
       importCode: json['importCode'] ?? '',
       importDate: json['importDate'] != null
-          ? DateTime.parse(json['importDate'])
+          ? DateTime.parse(json['importDate']).toLocal()
           : DateTime.now(),
       importType: json['importType'] ?? 'LCL',
       supplierId: json['supplierId'] ?? '',
