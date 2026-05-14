@@ -9,6 +9,7 @@ import '../widgets/responsive_layout.dart';
 import '../utils/number_formatter.dart';
 import '../utils/date_formatter.dart';
 import '../services/image_upload_service.dart';
+import '../widgets/item_transaction_table.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -94,10 +95,47 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   
                   // Stock Section
                   _buildStockSection(product),
-                  
+
                   const SizedBox(height: 24),
-                  
-                  
+
+                  // Purchase history — VAT
+                  ItemTransactionTable(
+                    productId: widget.productId,
+                    isVAT: true,
+                    isSale: false,
+                    title: 'รายการซื้อ (VAT)',
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Purchase history — Non-VAT
+                  ItemTransactionTable(
+                    productId: widget.productId,
+                    isVAT: false,
+                    isSale: false,
+                    title: 'รายการซื้อ (Non-VAT)',
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Sale history — VAT
+                  ItemTransactionTable(
+                    productId: widget.productId,
+                    isVAT: true,
+                    isSale: true,
+                    title: 'รายการขาย (VAT)',
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Sale history — Non-VAT
+                  ItemTransactionTable(
+                    productId: widget.productId,
+                    isVAT: false,
+                    isSale: true,
+                    title: 'รายการขาย (Non-VAT)',
+                  ),
+
                   const SizedBox(height: 32),
                 ],
               ),

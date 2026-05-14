@@ -19,7 +19,7 @@ class AppConfig {
   
   // App settings
   static const String appName = 'GoodPack Inventory';
-  static const String appVersion = '1.2.0';
+  static const String appVersion = '2.0.0';
   
   // Responsive breakpoints
   static const double mobileBreakpoint = 600;
@@ -34,4 +34,8 @@ class AppConfig {
   // Get product specific endpoints
   static String getProductsUrl() => getApiUrl(productsEndpoint);
   static String getProductByIdUrl(String id) => '${getProductsUrl()}/$id';
+  static String getProductPurchasesUrl(String id, {bool isVAT = true, int page = 1, int limit = 10}) =>
+      '${getProductsUrl()}/$id/purchases?isVAT=$isVAT&page=$page&limit=$limit';
+  static String getProductSalesUrl(String id, {bool isVAT = true, int page = 1, int limit = 10}) =>
+      '${getProductsUrl()}/$id/sales?isVAT=$isVAT&page=$page&limit=$limit';
 }
