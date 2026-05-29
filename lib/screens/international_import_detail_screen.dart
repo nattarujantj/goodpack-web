@@ -221,11 +221,20 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
                     DataCell(Text(item.cbm.toStringAsFixed(1))),
                     DataCell(Text(_currencyFormat.format(item.shippingCostPerUnit))),
                     DataCell(Text(_currencyFormat.format(item.commission))),
-                    DataCell(Icon(
-                      item.commissionPaid ? Icons.check_circle : Icons.cancel,
-                      color: item.commissionPaid ? Colors.green : Colors.red[300],
-                      size: 20,
-                    )),
+                    DataCell(
+                      Tooltip(
+                        message: item.commissionPaid ? 'จ่ายแล้ว (กดเพื่อยกเลิก)' : 'ยังไม่จ่าย (กดเพื่อยืนยัน)',
+                        child: InkWell(
+                          onTap: () => _toggleCommissionPaid(imp, idx, item.commissionPaid),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Icon(
+                            item.commissionPaid ? Icons.check_circle : Icons.radio_button_unchecked,
+                            color: item.commissionPaid ? Colors.green : Colors.grey[400],
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                    ),
                     DataCell(Text(_currencyFormat.format(item.costPerUnitBeforeVAT))),
                     DataCell(Text(_currencyFormat.format(item.vatPerUnit))),
                     DataCell(Text(_currencyFormat.format(item.costPerUnitAfterVAT))),
@@ -363,6 +372,32 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
         ],
       ),
     );
+  }
+
+  Future<void> _toggleCommissionPaid(InternationalImport imp, int itemIndex, bool currentValue) async {
+    final provider = context.read<InternationalImportProvider>();
+    final newValue = !currentValue;
+    final updated = await provider.updateCommissionPaid(imp.id, itemIndex, newValue);
+    if (updated && mounted) {
+      final refreshed = provider.getById(imp.id);
+      if (refreshed != null) {
+        setState(() => _import = refreshed);
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(newValue ? 'บันทึก: จ่ายค่าคอมแล้ว' : 'บันทึก: ยังไม่จ่ายค่าคอม'),
+          backgroundColor: newValue ? Colors.green : Colors.orange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else if (!updated && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาด: ${provider.error}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _createPurchase(InternationalImport imp) {

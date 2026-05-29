@@ -112,4 +112,27 @@ class InternationalImportApiService {
       throw Exception('Error creating purchase from import: $e');
     }
   }
+
+  static Future<InternationalImport> updateCommissionPaid(
+    String id,
+    int itemIndex,
+    bool commissionPaid,
+  ) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$_baseUrl$_endpoint/$id/commission-paid'),
+        headers: AuthToken.headers,
+        body: json.encode({'itemIndex': itemIndex, 'commissionPaid': commissionPaid}),
+      );
+      if (response.statusCode == 200) {
+        return InternationalImport.fromJson(json.decode(response.body));
+      } else if (response.statusCode == 404) {
+        throw Exception('International import not found');
+      } else {
+        throw Exception('Failed to update commission paid: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error updating commission paid: $e');
+    }
+  }
 }

@@ -145,6 +145,19 @@ class InternationalImportProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> updateCommissionPaid(String id, int itemIndex, bool commissionPaid) async {
+    _error = '';
+    try {
+      final updated = await InternationalImportApiService.updateCommissionPaid(id, itemIndex, commissionPaid);
+      _putInCache(updated);
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   List<InternationalImport> search(String query) {
     if (query.isEmpty) return _imports;
     final q = query.toLowerCase();
