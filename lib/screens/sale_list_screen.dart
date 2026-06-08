@@ -1092,9 +1092,11 @@ class _SaleListScreenState extends State<SaleListScreen> {
     );
   }
 
+  double _roundToTwoDecimals(double value) => (value * 100).roundToDouble() / 100;
+
   double _calculateGrandTotal(Sale sale) {
     final totalBeforeVAT = sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);
-    final totalVAT = sale.isVAT ? totalBeforeVAT * 0.07 : 0.0;
+    final totalVAT = sale.isVAT ? _roundToTwoDecimals(totalBeforeVAT * 0.07) : 0.0;
     return totalBeforeVAT + totalVAT + sale.shippingCost;
   }
 

@@ -214,7 +214,7 @@ class Quotation {
         grandTotal = totalBeforeVAT; // ราคาที่กรอกคือราคารวม VAT แล้ว
       } else {
         // VAT นอก (exclusive): ราคา + VAT 7%
-        totalVAT = totalBeforeVAT * 0.07;
+        totalVAT = double.parse((totalBeforeVAT * 0.07).toStringAsFixed(2));
         grandTotal = totalBeforeVAT + totalVAT;
       }
     } else {

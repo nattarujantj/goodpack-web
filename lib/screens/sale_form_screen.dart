@@ -901,6 +901,8 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     );
   }
 
+  double _roundToTwoDecimals(double value) => (value * 100).roundToDouble() / 100;
+
   Widget _buildTotalSummary() {
     final itemsTotal = _saleItems.fold(0.0, (sum, item) => sum + item.totalPrice);
     final shippingCost = double.tryParse(_shippingCostController.text) ?? 0.0;
@@ -919,7 +921,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
       } else {
         // VAT นอก: ราคา + VAT 7%
         totalBeforeVAT = itemsTotal;
-        totalVAT = itemsTotal * 0.07;
+        totalVAT = _roundToTwoDecimals(itemsTotal * 0.07);
         grandTotal = itemsTotal + totalVAT + shippingCost;
       }
     }

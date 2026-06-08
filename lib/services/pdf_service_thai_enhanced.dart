@@ -664,7 +664,7 @@ class PdfServiceThaiEnhanced {
 
   static pw.Widget _buildSummarySection(Quotation quotation, pw.Font? thaiFont, double fontSizeText) {
     final subtotal = quotation.items.fold(0.0, (sum, item) => sum + item.totalPrice);
-    final vatAmount = quotation.isVAT ? subtotal * 0.07 : 0.0;
+    final vatAmount = quotation.isVAT ? _roundToTwoDecimals(subtotal * 0.07) : 0.0;
     final grandTotal = quotation.calculateGrandTotal();
 
     return pw.Column(
