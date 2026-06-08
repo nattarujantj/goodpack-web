@@ -355,7 +355,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                 ),
               )
             else
-              ...sale.items.map((item) => _buildSaleItemRow(item, sale.isVAT)),
+              ...sale.items.map((item) => _buildSaleItemRow(item, sale.isVAT, sale.vatType)),
             const SizedBox(height: 16),
             _buildTotalSummary(sale),
           ],
@@ -364,9 +364,18 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     );
   }
 
-  Widget _buildSaleItemRow(SaleItem item, bool isVAT) {
-    final vatAmount = isVAT ? roundTo2(item.totalPrice * 0.07) : 0.0;
-    final itemTotalWithVAT = item.totalPrice + vatAmount;
+  Widget _buildSaleItemRow(SaleItem item, bool isVAT, String vatType) {
+    double vatAmount = 0.0;
+    double itemTotalWithVAT = item.totalPrice;
+    if (isVAT) {
+      if (vatType == 'inclusive') {
+        final priceBeforeVAT = roundTo2(item.totalPrice / 1.07);
+        vatAmount = item.totalPrice - priceBeforeVAT;
+      } else {
+        vatAmount = roundTo2(item.totalPrice * 0.07);
+        itemTotalWithVAT = item.totalPrice + vatAmount;
+      }
+    }
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -440,8 +449,19 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
   Widget _buildTotalSummary(Sale sale) {
     final totalBeforeVAT = sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);
-    final totalVAT = sale.isVAT ? totalBeforeVAT * 0.07 : 0.0;
-    final grandTotal = totalBeforeVAT + totalVAT + sale.shippingCost;
+    double totalVAT = 0.0;
+    double grandTotal;
+    if (sale.isVAT) {
+      if (sale.vatType == 'inclusive') {
+        totalVAT = totalBeforeVAT - roundTo2(totalBeforeVAT / 1.07);
+        grandTotal = totalBeforeVAT + sale.shippingCost;
+      } else {
+        totalVAT = roundTo2(totalBeforeVAT * 0.07);
+        grandTotal = totalBeforeVAT + totalVAT + sale.shippingCost;
+      }
+    } else {
+      grandTotal = totalBeforeVAT + sale.shippingCost;
+    }
     
     return Container(
       padding: const EdgeInsets.all(16),
