@@ -763,7 +763,7 @@ class PdfServiceThaiEnhanced {
               pw.Container(
                 padding: const pw.EdgeInsets.fromLTRB(1, 1, 2, 1),
                 child: pw.Text(
-                  _formatCurrency(subtotal + vatAmount),
+                  _formatCurrency(_roundToTwoDecimals(subtotal) + _roundToTwoDecimals(vatAmount)),
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                   textAlign: pw.TextAlign.right,
                 ),
@@ -1123,6 +1123,10 @@ class PdfServiceThaiEnhanced {
     
     // For very large numbers, return simplified version
     return number.toString();
+  }
+
+  static double _roundToTwoDecimals(double value) {
+    return (value * 100).roundToDouble() / 100;
   }
 
   static String _formatCurrency(double amount) {
