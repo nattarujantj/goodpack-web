@@ -1,5 +1,7 @@
 import 'package:intl/intl.dart';
 
+double roundTo2(double v) => (v * 100).roundToDouble() / 100;
+
 class NumberFormatter {
   // Format quantity: x,xxx (มี comma คั่นหลักพัน)
   static String formatQuantity(int quantity) {

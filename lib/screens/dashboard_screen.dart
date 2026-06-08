@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/number_formatter.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/nav_menu_button.dart';
 import 'package:provider/provider.dart';
@@ -1113,7 +1114,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         // VAT included in price
         vatAmount = 0;
       } else {
-        vatAmount = itemsTotal * 0.07;
+        vatAmount = roundTo2(itemsTotal * 0.07);
       }
     }
     

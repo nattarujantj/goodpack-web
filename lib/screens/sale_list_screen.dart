@@ -10,6 +10,7 @@ import '../widgets/responsive_layout.dart';
 import '../widgets/customer_dropdown.dart';
 import '../widgets/vat_filter_dropdown.dart';
 import '../utils/date_formatter.dart';
+import '../utils/number_formatter.dart';
 
 class SaleListScreen extends StatefulWidget {
   final String? initialVatFilter;
@@ -964,8 +965,20 @@ class _SaleListScreenState extends State<SaleListScreen> {
 
     for (final sale in sales) {
       final beforeVAT = sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);
-      final vat = sale.isVAT ? beforeVAT * 0.07 : 0.0;
-      final grand = beforeVAT + vat + sale.shippingCost;
+      double vat = 0.0;
+      double grand;
+      if (sale.isVAT) {
+        if (sale.vatType == 'inclusive') {
+          final beforeVATExtracted = roundTo2(beforeVAT / 1.07);
+          vat = beforeVAT - beforeVATExtracted;
+          grand = beforeVAT + sale.shippingCost;
+        } else {
+          vat = roundTo2(beforeVAT * 0.07);
+          grand = beforeVAT + vat + sale.shippingCost;
+        }
+      } else {
+        grand = beforeVAT + sale.shippingCost;
+      }
 
       totalBeforeVAT += beforeVAT;
       totalVAT += vat;
@@ -1092,9 +1105,13 @@ class _SaleListScreenState extends State<SaleListScreen> {
     );
   }
 
+  double _roundToTwoDecimals(double value) => (value * 100).roundToDouble() / 100;
+
   double _calculateGrandTotal(Sale sale) {
     final totalBeforeVAT = sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);
-    final totalVAT = sale.isVAT ? totalBeforeVAT * 0.07 : 0.0;
+    if (!sale.isVAT) return totalBeforeVAT + sale.shippingCost;
+    if (sale.vatType == 'inclusive') return totalBeforeVAT + sale.shippingCost;
+    final totalVAT = _roundToTwoDecimals(totalBeforeVAT * 0.07);
     return totalBeforeVAT + totalVAT + sale.shippingCost;
   }
 

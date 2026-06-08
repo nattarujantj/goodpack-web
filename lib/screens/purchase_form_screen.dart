@@ -15,6 +15,7 @@ import '../widgets/product_search_dropdown.dart';
 import '../widgets/account_dropdown.dart';
 import '../utils/error_dialog.dart';
 import '../utils/date_formatter.dart';
+import '../utils/number_formatter.dart';
 
 class PurchaseFormScreen extends StatefulWidget {
   final Purchase? purchase;
@@ -982,12 +983,12 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       if (_vatType == 'inclusive') {
         // VAT ใน: ราคารวม VAT แล้ว, ต้องถอด VAT ออก
         // ราคาก่อน VAT = ราคารวม / 1.07
-        priceBeforeVAT = item.totalPrice / 1.07;
+        priceBeforeVAT = roundTo2(item.totalPrice / 1.07);
         vatAmount = item.totalPrice - priceBeforeVAT;
         itemTotalWithVAT = item.totalPrice; // ราคาที่กรอกคือราคารวม VAT แล้ว
       } else {
         // VAT นอก: ราคา + VAT 7%
-        vatAmount = item.totalPrice * 0.07;
+        vatAmount = roundTo2(item.totalPrice * 0.07);
         itemTotalWithVAT = item.totalPrice + vatAmount;
       }
     }
@@ -1084,11 +1085,11 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
         // VAT ใน: ราคารวม VAT แล้ว, ต้องถอด VAT ออก
         // ราคาก่อน VAT = ราคารวม / 1.07
         // VAT = ราคารวม - ราคาก่อน VAT
-        totalVAT = totalBeforeVAT - (totalBeforeVAT / 1.07);
+        totalVAT = roundTo2(totalBeforeVAT - (totalBeforeVAT / 1.07));
         grandTotal = totalBeforeVAT; // ราคาที่กรอกคือราคารวม VAT แล้ว
       } else {
         // VAT นอก: ราคา + VAT 7%
-        totalVAT = totalBeforeVAT * 0.07;
+        totalVAT = roundTo2(totalBeforeVAT * 0.07);
         grandTotal = totalBeforeVAT + totalVAT;
       }
     } else {

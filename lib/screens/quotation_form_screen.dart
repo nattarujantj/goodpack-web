@@ -14,6 +14,7 @@ import '../widgets/bank_account_selector.dart';
 import '../models/bank_account.dart';
 import '../utils/error_dialog.dart';
 import '../utils/date_formatter.dart';
+import '../utils/number_formatter.dart';
 
 class QuotationFormScreen extends StatefulWidget {
   final Quotation? quotation;
@@ -705,12 +706,12 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
       if (_vatType == 'inclusive') {
         // VAT ใน: ราคารวม VAT แล้ว, ต้องถอด VAT ออก
         // ราคาก่อน VAT = ราคารวม / 1.07
-        priceBeforeVAT = subtotal / 1.07;
+        priceBeforeVAT = roundTo2(subtotal / 1.07);
         vatAmount = subtotal - priceBeforeVAT;
         grandTotal = subtotal; // ราคาที่กรอกคือราคารวม VAT แล้ว
       } else {
         // VAT นอก: ราคา + VAT 7%
-        vatAmount = subtotal * 0.07;
+        vatAmount = roundTo2(subtotal * 0.07);
         grandTotal = subtotal + vatAmount;
       }
     } else {

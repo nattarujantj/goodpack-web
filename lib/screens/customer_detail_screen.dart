@@ -7,6 +7,7 @@ import '../models/sale.dart';
 import '../services/sale_api_service.dart';
 import '../widgets/responsive_layout.dart';
 import '../utils/date_formatter.dart';
+import '../utils/number_formatter.dart';
 
 class CustomerDetailScreen extends StatefulWidget {
   final String customerId;
@@ -100,12 +101,12 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
           total = item.totalPrice;
         } else if (sale.vatType == 'exclusive') {
           net = item.totalPrice;
-          vat = item.totalPrice * 0.07;
-          total = item.totalPrice * 1.07;
+          vat = roundTo2(item.totalPrice * 0.07);
+          total = item.totalPrice + vat;
         } else {
           // inclusive
           total = item.totalPrice;
-          net = item.totalPrice / 1.07;
+          net = roundTo2(item.totalPrice / 1.07);
           vat = item.totalPrice - net;
         }
 
@@ -644,11 +645,12 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                         totalNet += item.totalPrice;
                       } else if (sale.vatType == 'exclusive') {
                         totalNet += item.totalPrice;
-                        totalVat += item.totalPrice * 0.07;
-                        grandTotal += item.totalPrice * 1.07;
+                        final itemVat = roundTo2(item.totalPrice * 0.07);
+                        totalVat += itemVat;
+                        grandTotal += item.totalPrice + itemVat;
                       } else {
                         grandTotal += item.totalPrice;
-                        final net = item.totalPrice / 1.07;
+                        final net = roundTo2(item.totalPrice / 1.07);
                         totalNet += net;
                         totalVat += item.totalPrice - net;
                       }
