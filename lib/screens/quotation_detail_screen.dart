@@ -526,7 +526,7 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
 
   Widget _buildSummarySection(Quotation quotation) {
     final subtotal = quotation.items.fold(0.0, (sum, item) => sum + item.totalPrice);
-    final vatAmount = quotation.isVAT ? subtotal * 0.07 : 0.0;
+    final vatAmount = quotation.isVAT ? roundTo2(subtotal * 0.07) : 0.0;
     final grandTotal = quotation.calculateGrandTotal();
 
     return Column(

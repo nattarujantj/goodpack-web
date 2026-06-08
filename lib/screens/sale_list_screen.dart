@@ -10,6 +10,7 @@ import '../widgets/responsive_layout.dart';
 import '../widgets/customer_dropdown.dart';
 import '../widgets/vat_filter_dropdown.dart';
 import '../utils/date_formatter.dart';
+import '../utils/number_formatter.dart';
 
 class SaleListScreen extends StatefulWidget {
   final String? initialVatFilter;
@@ -964,7 +965,7 @@ class _SaleListScreenState extends State<SaleListScreen> {
 
     for (final sale in sales) {
       final beforeVAT = sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);
-      final vat = sale.isVAT ? beforeVAT * 0.07 : 0.0;
+      final vat = sale.isVAT ? roundTo2(beforeVAT * 0.07) : 0.0;
       final grand = beforeVAT + vat + sale.shippingCost;
 
       totalBeforeVAT += beforeVAT;

@@ -810,12 +810,12 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
       if (_vatType == 'inclusive') {
         // VAT ใน: ราคารวม VAT แล้ว, ต้องถอด VAT ออก
         // ราคาก่อน VAT = ราคารวม / 1.07
-        priceBeforeVAT = item.totalPrice / 1.07;
+        priceBeforeVAT = _roundToTwoDecimals(item.totalPrice / 1.07);
         vatAmount = item.totalPrice - priceBeforeVAT;
         itemTotalWithVAT = item.totalPrice; // ราคาที่กรอกคือราคารวม VAT แล้ว
       } else {
         // VAT นอก: ราคา + VAT 7%
-        vatAmount = item.totalPrice * 0.07;
+        vatAmount = _roundToTwoDecimals(item.totalPrice * 0.07);
         itemTotalWithVAT = item.totalPrice + vatAmount;
         priceBeforeVAT = item.totalPrice;
       }
@@ -915,7 +915,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     if (_isVAT) {
       if (_vatType == 'inclusive') {
         // VAT ใน: ราคาที่กรอกรวม VAT แล้ว
-        totalBeforeVAT = itemsTotal / 1.07;
+        totalBeforeVAT = _roundToTwoDecimals(itemsTotal / 1.07);
         totalVAT = itemsTotal - totalBeforeVAT;
         grandTotal = itemsTotal + shippingCost; // ราคาที่กรอกคือราคารวม VAT แล้ว
       } else {

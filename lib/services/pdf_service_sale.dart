@@ -1136,7 +1136,7 @@ class PdfServiceSale {
         grandTotal = itemsTotal + sale.shippingCost;
       } else {
         // VAT นอก: ราคา + VAT 7%
-        vatAmount = itemsTotal * 0.07;
+        vatAmount = _roundToTwoDecimals(itemsTotal * 0.07);
         grandTotal = itemsTotal + vatAmount + sale.shippingCost;
       }
     }

@@ -365,7 +365,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   }
 
   Widget _buildSaleItemRow(SaleItem item, bool isVAT) {
-    final vatAmount = isVAT ? item.totalPrice * 0.07 : 0.0;
+    final vatAmount = isVAT ? roundTo2(item.totalPrice * 0.07) : 0.0;
     final itemTotalWithVAT = item.totalPrice + vatAmount;
     
     return Container(

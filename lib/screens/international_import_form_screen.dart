@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/number_formatter.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -479,7 +480,7 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
     double totalShipping = _items.fold(0.0, (s, i) => s + _shippingPerUnit(i) * i.quantity);
     double totalCommission = _items.fold(0.0, (s, i) => s + i.commission * i.quantity);
     double totalBeforeVAT = _items.fold(0.0, (s, i) => s + _costBeforeVAT(i) * i.quantity);
-    double totalVAT = totalBeforeVAT * 0.07;
+    double totalVAT = roundTo2(totalBeforeVAT * 0.07);
     double grandTotal = totalBeforeVAT + totalVAT;
 
     return Card(
