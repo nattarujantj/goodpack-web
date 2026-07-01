@@ -136,6 +136,29 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
+  // Update status
+  Future<bool> updateStatus(String productId, String newStatus) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final updatedProduct = await _apiService.updateStatus(productId, newStatus);
+
+      final index = _products.indexWhere((p) => p.id == productId);
+      if (index != -1) {
+        _products[index] = updatedProduct;
+        _filteredProducts = List.from(_products);
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      _setError('ไม่สามารถอัปเดตสถานะสินค้าได้: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   // Get product by ID
   Product? getProductById(String id) {
     try {
