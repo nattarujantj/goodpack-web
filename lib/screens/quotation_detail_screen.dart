@@ -644,7 +644,8 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
       text: PdfServiceThaiEnhanced.defaultSignerName,
     );
     final showImages = ValueNotifier<bool>(false);
-    
+    final includeHeader = ValueNotifier<bool>(false);
+
     final result = await showDialog<_QuotationPrintDialogResult>(
       context: context,
       builder: (context) => AlertDialog(
@@ -671,6 +672,17 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
                 contentPadding: EdgeInsets.zero,
               ),
             ),
+            if (!quotation.isVAT)
+              ValueListenableBuilder<bool>(
+                valueListenable: includeHeader,
+                builder: (context, value, _) => CheckboxListTile(
+                  title: const Text('ใส่หัวกระดาษ'),
+                  subtitle: const Text('GPS บ้านขวด / 080-992-4447'),
+                  value: value,
+                  onChanged: (v) => includeHeader.value = v ?? false,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
           ],
         ),
         actions: [
@@ -714,11 +726,12 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
       }
 
       await PdfServiceThaiEnhanced.generateAndPrintQuotation(
-        quotation, 
+        quotation,
         bankAccount: bankAccount,
         signerName: signerName,
         productImages: productImages,
         targetWindow: result.targetWindow,
+        includeHeader: includeHeader.value,
       );
 
       if (quotation.status == 'draft') {

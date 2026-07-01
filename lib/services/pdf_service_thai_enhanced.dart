@@ -18,9 +18,10 @@ class PdfServiceThaiEnhanced {
     String? signerName,
     Map<String, Uint8List>? productImages,
     html.WindowBase? targetWindow,
+    bool includeHeader = false,
   }) async {
     try {
-      final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName, productImages: productImages);
+      final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName, productImages: productImages, includeHeader: includeHeader);
       final pdfBytes = await pdf.save();
       
       // เปิด PDF ใน tab ใหม่สำหรับ Web
@@ -45,16 +46,16 @@ class PdfServiceThaiEnhanced {
     }
   }
 
-  static Future<Uint8List> generateQuotationPdfBytes(Quotation quotation, {BankAccount? bankAccount, String? signerName, Map<String, Uint8List>? productImages}) async {
+  static Future<Uint8List> generateQuotationPdfBytes(Quotation quotation, {BankAccount? bankAccount, String? signerName, Map<String, Uint8List>? productImages, bool includeHeader = false}) async {
     try {
-      final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName, productImages: productImages);
+      final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName, productImages: productImages, includeHeader: includeHeader);
       return pdf.save();
     } catch (e) {
       throw Exception('เกิดข้อผิดพลาดในการสร้าง PDF: $e');
     }
   }
 
-  static Future<pw.Document> _createQuotationPdf(Quotation quotation, {BankAccount? bankAccount, required String signerName, Map<String, Uint8List>? productImages}) async {
+  static Future<pw.Document> _createQuotationPdf(Quotation quotation, {BankAccount? bankAccount, required String signerName, Map<String, Uint8List>? productImages, bool includeHeader = false}) async {
     final pdf = pw.Document();
 
     // กำหนดขนาดฟอนต์
@@ -112,9 +113,12 @@ class PdfServiceThaiEnhanced {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // Company Header - แสดงเฉพาะเมื่อเป็น VAT
+              // Company Header - แสดงเต็มรูปแบบเมื่อเป็น VAT, หรือหัวกระดาษแบบย่อเมื่อผู้ใช้เลือกใส่สำหรับ Non-VAT
               if (quotation.isVAT) ...[
                 _buildCompanyHeader(thaiFont, logoImage),
+                pw.SizedBox(height: 5),
+              ] else if (includeHeader) ...[
+                _buildSimpleHeader(thaiFont),
                 pw.SizedBox(height: 5),
               ],
               
@@ -214,6 +218,29 @@ class PdfServiceThaiEnhanced {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _buildSimpleHeader(pw.Font? thaiFont) {
+    return pw.Container(
+      width: double.infinity,
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            'GPS บ้านขวด',
+            style: pw.TextStyle(
+              fontSize: 20,
+              fontWeight: pw.FontWeight.bold,
+              font: thaiFont,
+            ),
+          ),
+          pw.Text(
+            '080-992-4447',
+            style: pw.TextStyle(fontSize: 16, font: thaiFont),
           ),
         ],
       ),
