@@ -677,7 +677,7 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
                 valueListenable: includeHeader,
                 builder: (context, value, _) => CheckboxListTile(
                   title: const Text('ใส่หัวกระดาษ'),
-                  subtitle: const Text('GPS บ้านขวด / 080-992-4447'),
+                  subtitle: const Text('GPS บ้านขวด / 097-231-2000'),
                   value: value,
                   onChanged: (v) => includeHeader.value = v ?? false,
                   contentPadding: EdgeInsets.zero,
