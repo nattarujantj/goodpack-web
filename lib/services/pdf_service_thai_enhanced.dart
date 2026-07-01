@@ -213,7 +213,7 @@ class PdfServiceThaiEnhanced {
                   style: pw.TextStyle(fontSize: 16, font: thaiFont),
                 ),
                 pw.Text(
-                  'TEL: 097-231-2000 Email: goodpackagingsupply@hotmail.com',
+                  'TEL: 0972312000 Email: goodpackagingsupply@hotmail.com',
                   style: pw.TextStyle(fontSize: 16, font: thaiFont),
                 ),
               ],
