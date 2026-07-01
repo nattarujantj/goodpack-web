@@ -158,6 +158,32 @@ class InternationalImportProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> confirmImport(String id) async {
+    _error = '';
+    try {
+      final updated = await InternationalImportApiService.confirmImport(id);
+      _putInCache(updated);
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> unconfirmImport(String id) async {
+    _error = '';
+    try {
+      final updated = await InternationalImportApiService.unconfirmImport(id);
+      _putInCache(updated);
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   List<InternationalImport> search(String query) {
     if (query.isEmpty) return _imports;
     final q = query.toLowerCase();

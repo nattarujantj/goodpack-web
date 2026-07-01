@@ -289,6 +289,30 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
   Widget _buildActionButtons(InternationalImport imp) {
     return Row(
       children: [
+        if (imp.status == 'draft') ...[
+          Expanded(
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.check_circle),
+              label: const Text('ยืนยัน'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => _confirmImport(imp),
+            ),
+          ),
+          const SizedBox(width: 16),
+        ],
+        if (imp.status == 'confirmed') ...[
+          Expanded(
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.undo),
+              label: const Text('ย้อนกลับเป็นร่าง'),
+              onPressed: () => _unconfirmImport(imp),
+            ),
+          ),
+          const SizedBox(width: 16),
+        ],
         Expanded(
           child: OutlinedButton.icon(
             icon: const Icon(Icons.edit),
@@ -315,17 +339,35 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
   }
 
   Widget _buildStatusBadge(String status) {
-    final isPurchased = status == 'purchased';
+    Color bg;
+    Color fg;
+    String label;
+    switch (status) {
+      case 'purchased':
+        bg = Colors.green[50]!;
+        fg = Colors.green[700]!;
+        label = 'สร้างรายการซื้อแล้ว';
+        break;
+      case 'confirmed':
+        bg = Colors.blue[50]!;
+        fg = Colors.blue[700]!;
+        label = 'ยืนยันแล้ว';
+        break;
+      default:
+        bg = Colors.orange[50]!;
+        fg = Colors.orange[700]!;
+        label = 'Draft';
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isPurchased ? Colors.green[50] : Colors.orange[50],
+        color: bg,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        isPurchased ? 'สร้างรายการซื้อแล้ว' : 'Draft',
+        label,
         style: TextStyle(
-          color: isPurchased ? Colors.green[700] : Colors.orange[700],
+          color: fg,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -396,6 +438,71 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
           content: Text('เกิดข้อผิดพลาด: ${provider.error}'),
           backgroundColor: Colors.red,
         ),
+      );
+    }
+  }
+
+  Future<void> _confirmImport(InternationalImport imp) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ยืนยันรายการนำเข้า'),
+        content: Text('ต้องการยืนยันรายการนำเข้า ${imp.importCode} ?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('ยืนยัน'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final provider = context.read<InternationalImportProvider>();
+    final success = await provider.confirmImport(imp.id);
+    if (!mounted) return;
+    if (success) {
+      final refreshed = provider.getById(imp.id);
+      if (refreshed != null) setState(() => _import = refreshed);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ยืนยันรายการเรียบร้อย'), backgroundColor: Colors.blue),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('เกิดข้อผิดพลาด: ${provider.error}'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<void> _unconfirmImport(InternationalImport imp) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ย้อนกลับเป็นร่าง'),
+        content: Text('ต้องการย้อนสถานะรายการนำเข้า ${imp.importCode} กลับเป็นร่าง ?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('ย้อนกลับ'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final provider = context.read<InternationalImportProvider>();
+    final success = await provider.unconfirmImport(imp.id);
+    if (!mounted) return;
+    if (success) {
+      final refreshed = provider.getById(imp.id);
+      if (refreshed != null) setState(() => _import = refreshed);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ย้อนกลับเป็นร่างเรียบร้อย'), backgroundColor: Colors.orange),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('เกิดข้อผิดพลาด: ${provider.error}'), backgroundColor: Colors.red),
       );
     }
   }

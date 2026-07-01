@@ -135,4 +135,40 @@ class InternationalImportApiService {
       throw Exception('Error updating commission paid: $e');
     }
   }
+
+  static Future<InternationalImport> confirmImport(String id) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$_baseUrl$_endpoint/$id/confirm'),
+        headers: AuthToken.headers,
+      );
+      if (response.statusCode == 200) {
+        return InternationalImport.fromJson(json.decode(response.body));
+      } else if (response.statusCode == 404) {
+        throw Exception('International import not found');
+      } else {
+        throw Exception('Failed to confirm import: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error confirming import: $e');
+    }
+  }
+
+  static Future<InternationalImport> unconfirmImport(String id) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$_baseUrl$_endpoint/$id/unconfirm'),
+        headers: AuthToken.headers,
+      );
+      if (response.statusCode == 200) {
+        return InternationalImport.fromJson(json.decode(response.body));
+      } else if (response.statusCode == 404) {
+        throw Exception('International import not found');
+      } else {
+        throw Exception('Failed to revert import: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error reverting import: $e');
+    }
+  }
 }

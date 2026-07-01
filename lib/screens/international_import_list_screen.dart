@@ -68,6 +68,7 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
       // Status filter
       if (_statusFilter != 'ทั้งหมด') {
         if (_statusFilter == 'draft' && imp.status != 'draft') continue;
+        if (_statusFilter == 'confirmed' && imp.status != 'confirmed') continue;
         if (_statusFilter == 'purchased' && imp.status != 'purchased') continue;
       }
 
@@ -152,6 +153,12 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
                             label: const Text('Draft'),
                             selected: _statusFilter == 'draft',
                             onSelected: (s) => setState(() => _statusFilter = s ? 'draft' : 'ทั้งหมด'),
+                          ),
+                          const SizedBox(width: 4),
+                          ChoiceChip(
+                            label: const Text('ยืนยันแล้ว'),
+                            selected: _statusFilter == 'confirmed',
+                            onSelected: (s) => setState(() => _statusFilter = s ? 'confirmed' : 'ทั้งหมด'),
                           ),
                           const SizedBox(width: 4),
                           ChoiceChip(
@@ -324,16 +331,34 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
   }
 
   Widget _buildStatusBadge(String status) {
-    final isPurchased = status == 'purchased';
+    Color bg;
+    Color fg;
+    String label;
+    switch (status) {
+      case 'purchased':
+        bg = Colors.green[50]!;
+        fg = Colors.green[700]!;
+        label = 'สร้างรายการซื้อแล้ว';
+        break;
+      case 'confirmed':
+        bg = Colors.blue[50]!;
+        fg = Colors.blue[700]!;
+        label = 'ยืนยันแล้ว';
+        break;
+      default:
+        bg = Colors.grey[100]!;
+        fg = Colors.grey[600]!;
+        label = 'Draft';
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: isPurchased ? Colors.green[50] : Colors.grey[100],
+        color: bg,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        isPurchased ? 'สร้างรายการซื้อแล้ว' : 'Draft',
-        style: TextStyle(color: isPurchased ? Colors.green[700] : Colors.grey[600], fontWeight: FontWeight.w500, fontSize: 12),
+        label,
+        style: TextStyle(color: fg, fontWeight: FontWeight.w500, fontSize: 12),
       ),
     );
   }
