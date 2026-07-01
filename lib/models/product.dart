@@ -250,6 +250,7 @@ class Product {
   final int quantityPerPack; // จำนวน/ลัง(แพ็ค)
   final Price price;
   final Stock stock;
+  final String status; // สถานะสินค้า: 'active' หรือ 'inactive'
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -267,6 +268,7 @@ class Product {
     this.quantityPerPack = 0,
     required this.price,
     required this.stock,
+    this.status = 'active',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -287,6 +289,7 @@ class Product {
       quantityPerPack: (json['quantityPerPack'] as num?)?.toInt() ?? 0,
       price: Price.fromJson(json['price'] as Map<String, dynamic>? ?? {}),
       stock: Stock.fromJson(json['stock'] as Map<String, dynamic>? ?? {}),
+      status: json['status'] as String? ?? 'active',
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
     );
@@ -308,6 +311,7 @@ class Product {
       'quantityPerPack': quantityPerPack,
       'price': price.toJson(),
       'stock': stock.toJson(),
+      'status': status,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -328,6 +332,7 @@ class Product {
     int? quantityPerPack,
     Price? price,
     Stock? stock,
+    String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -345,10 +350,14 @@ class Product {
       quantityPerPack: quantityPerPack ?? this.quantityPerPack,
       price: price ?? this.price,
       stock: stock ?? this.stock,
+      status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+
+  // Helper method to check if product is active
+  bool get isActive => status == 'active';
 
   // Helper method to check if product is low stock
   bool get isLowStock => stock.actualStock <= 10;

@@ -171,6 +171,29 @@ class ApiService {
     }
   }
 
+  // PATCH update status
+  Future<Product> updateStatus(String id, String status) async {
+    try {
+      final response = await _client
+          .patch(
+            Uri.parse('${AppConfig.getProductByIdUrl(id)}/status'),
+            headers: _headers,
+            body: json.encode({'status': status}),
+          )
+          .timeout(Duration(milliseconds: AppConfig.connectTimeout));
+
+      if (response.statusCode == 200) {
+        return Product.fromJson(json.decode(response.body));
+      } else if (response.statusCode == 404) {
+        throw ApiException('Product not found');
+      } else {
+        throw ApiException('Failed to update status: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw ApiException('Error updating status: $e');
+    }
+  }
+
   // POST adjust stock
   Future<Product> adjustStock(String productId, StockAdjustmentRequest request) async {
     try {

@@ -7,6 +7,7 @@ import '../providers/product_provider.dart';
 import '../models/product.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/search_bar.dart';
+import '../services/pdf_service_product_status.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({Key? key}) : super(key: key);
@@ -18,6 +19,7 @@ class ProductListScreen extends StatefulWidget {
 class _ProductListScreenState extends State<ProductListScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'ทั้งหมด';
+  String _selectedStatus = 'ทั้งหมด';
   String _sortBy = 'skuId';
   bool _sortAscending = true;
   final ScrollController _horizontalScrollController = ScrollController();
@@ -58,6 +60,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
         leading: const NavMenuButton(),
         title: 'รายการสินค้า',
         actions: [
+          IconButton(
+            icon: const Icon(Icons.print),
+            onPressed: () => _showPrintStatusDialog(),
+            tooltip: 'พิมพ์รายการสินค้า',
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () => _navigateToProductForm(),
@@ -264,6 +271,39 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 ),
               ],
             ),
+
+            const SizedBox(height: 16),
+
+            // Status Filter
+            Row(
+              children: [
+                Expanded(
+                  child: ResponsiveText(
+                    'สถานะ:',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: DropdownButton<String>(
+                    value: _selectedStatus,
+                    isExpanded: true,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedStatus = value!;
+                      });
+                    },
+                    items: const [
+                      DropdownMenuItem(value: 'ทั้งหมด', child: Text('ทั้งหมด')),
+                      DropdownMenuItem(value: 'active', child: Text('ใช้งาน')),
+                      DropdownMenuItem(value: 'inactive', child: Text('ไม่ใช้งาน')),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -350,6 +390,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     style: TextStyle(fontSize: 16),
                   ),
                 ),
+              ),
+              DataColumn(
+                label: _buildSortableHeader('สถานะ', 'status'),
               ),
               DataColumn(
                 label: Container(
@@ -486,6 +529,31 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   ),
                   DataCell(
                     Container(
+                      width: 100,
+                      alignment: Alignment.center,
+                      child: InkWell(
+                        onTap: () => _showStatusChangeDialog(product),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: product.status == 'active' ? Colors.green.shade100 : Colors.red.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            product.status == 'active' ? 'ใช้งาน' : 'ไม่ใช้งาน',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: product.status == 'active' ? Colors.green.shade800 : Colors.red.shade800,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Container(
                       width: 120, // กำหนดความกว้างของคอลัมน์จัดการ
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -586,8 +654,25 @@ class _ProductListScreenState extends State<ProductListScreen> {
       filtered = filtered.where((product) => product.category == _selectedCategory).toList();
     }
 
+    // Filter by status
+    if (_selectedStatus != 'ทั้งหมด') {
+      filtered = filtered.where((product) => product.status == _selectedStatus).toList();
+    }
+
     // Sort
     filtered.sort((a, b) {
+      // Primary ordering: inactive products always sink to the bottom,
+      // regardless of which column/direction is currently selected. This
+      // comparison is intentionally NOT affected by _sortAscending.
+      final aStatusRank = a.status == 'inactive' ? 1 : 0;
+      final bStatusRank = b.status == 'inactive' ? 1 : 0;
+      final statusComparison = aStatusRank - bStatusRank;
+      if (statusComparison != 0) {
+        return statusComparison;
+      }
+
+      // Secondary ordering: existing per-column comparison, only reached
+      // when both products share the same status.
       int comparison = 0;
       switch (_sortBy) {
         case 'skuId':
@@ -615,6 +700,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
         case 'actualStock':
           comparison = a.stock.actualStock.compareTo(b.stock.actualStock);
           break;
+        case 'status':
+          // Rows reaching this branch already share the same status
+          // (statusComparison == 0 above), so tiebreak by skuId for a
+          // stable, deterministic order within each status group.
+          comparison = a.skuId.compareTo(b.skuId);
+          break;
       }
       return _sortAscending ? comparison : -comparison;
     });
@@ -623,13 +714,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   bool _hasActiveFilters() {
-    return _searchQuery.isNotEmpty || _selectedCategory != 'ทั้งหมด';
+    return _searchQuery.isNotEmpty || _selectedCategory != 'ทั้งหมด' || _selectedStatus != 'ทั้งหมด';
   }
 
   void _clearFilters() {
     setState(() {
       _searchQuery = '';
       _selectedCategory = 'ทั้งหมด';
+      _selectedStatus = 'ทั้งหมด';
     });
   }
 
@@ -1056,6 +1148,150 @@ class _ProductListScreenState extends State<ProductListScreen> {
         content: Text('ส่งออก ${_selectedProducts.length} รายการ'),
         backgroundColor: Colors.green,
       ),
+    );
+  }
+
+  void _showPrintStatusDialog() {
+    Set<String> selectedStatuses = {'active', 'inactive'};
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('เลือกสถานะที่ต้องการพิมพ์'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CheckboxListTile(
+                    title: const Text('ใช้งาน (Active)'),
+                    value: selectedStatuses.contains('active'),
+                    onChanged: (checked) {
+                      setDialogState(() {
+                        if (checked == true) {
+                          selectedStatuses.add('active');
+                        } else {
+                          selectedStatuses.remove('active');
+                        }
+                      });
+                    },
+                  ),
+                  CheckboxListTile(
+                    title: const Text('ไม่ใช้งาน (Inactive)'),
+                    value: selectedStatuses.contains('inactive'),
+                    onChanged: (checked) {
+                      setDialogState(() {
+                        if (checked == true) {
+                          selectedStatuses.add('inactive');
+                        } else {
+                          selectedStatuses.remove('inactive');
+                        }
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('ยกเลิก'),
+                ),
+                TextButton(
+                  onPressed: selectedStatuses.isEmpty
+                      ? null
+                      : () async {
+                          Navigator.of(context).pop();
+                          await _generateAndPrintProductStatusList(selectedStatuses);
+                        },
+                  child: const Text('พิมพ์'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _generateAndPrintProductStatusList(Set<String> statuses) async {
+    // ใช้รายการสินค้าทั้งหมด (allProducts) ไม่ยึดตามตัวกรองค้นหา/หมวดหมู่/สถานะ
+    // ที่แสดงอยู่บนหน้าจอ เพราะ dialog นี้ให้เลือกสถานะที่จะพิมพ์เองโดยเฉพาะ
+    final products = context.read<ProductProvider>().allProducts;
+    try {
+      await PdfServiceProductStatus.generateAndPrintProductStatusList(products, statuses: statuses);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('เกิดข้อผิดพลาดในการพิมพ์: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _showStatusChangeDialog(Product product) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('เปลี่ยนสถานะสินค้า'),
+          content: Text('เลือกสถานะใหม่สำหรับ "${product.name}"'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('ยกเลิก'),
+            ),
+            TextButton(
+              onPressed: product.status == 'active'
+                  ? null
+                  : () async {
+                      Navigator.of(context).pop();
+                      final success = await context.read<ProductProvider>().updateStatus(product.id, 'active');
+                      if (success && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('เปลี่ยนสถานะ "${product.name}" เป็น ใช้งาน เรียบร้อยแล้ว'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } else if (!success && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('ไม่สามารถเปลี่ยนสถานะ "${product.name}" ได้'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+              child: const Text('ใช้งาน (Active)'),
+            ),
+            TextButton(
+              onPressed: product.status == 'inactive'
+                  ? null
+                  : () async {
+                      Navigator.of(context).pop();
+                      final success = await context.read<ProductProvider>().updateStatus(product.id, 'inactive');
+                      if (success && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('เปลี่ยนสถานะ "${product.name}" เป็น ไม่ใช้งาน เรียบร้อยแล้ว'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } else if (!success && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('ไม่สามารถเปลี่ยนสถานะ "${product.name}" ได้'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+              child: const Text('ไม่ใช้งาน (Inactive)'),
+            ),
+          ],
+        );
+      },
     );
   }
 
