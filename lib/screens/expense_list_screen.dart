@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../providers/expense_provider.dart';
 import '../models/expense.dart';
+import '../services/pdf_service_expense.dart';
 import '../widgets/responsive_layout.dart';
 
 class ExpenseListScreen extends StatefulWidget {
@@ -67,6 +68,11 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
         leading: const NavMenuButton(),
         title: 'ค่าใช้จ่าย',
         actions: [
+          IconButton(
+            icon: const Icon(Icons.print),
+            onPressed: _showPrintRangeDialog,
+            tooltip: 'พิมพ์รายงาน',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => context.read<ExpenseProvider>().loadExpenses(),
@@ -448,6 +454,146 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
         );
       },
     );
+  }
+
+  void _showPrintRangeDialog() {
+    final now = DateTime.now();
+    final initial = _selectedMonth ?? DateTime(now.year, now.month, 1);
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        int fromYear = initial.year;
+        int fromMonth = initial.month;
+        int toYear = initial.year;
+        int toMonth = initial.month;
+
+        Widget buildMonthPicker({
+          required String label,
+          required int year,
+          required int month,
+          required ValueChanged<int> onYear,
+          required ValueChanged<int> onMonth,
+        }) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              const Text('ปี พ.ศ.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 4),
+              DropdownButton<int>(
+                value: year,
+                isExpanded: true,
+                items: List.generate(7, (i) => DateTime.now().year - 5 + i)
+                    .map((y) => DropdownMenuItem(value: y, child: Text('${y + 543}')))
+                    .toList(),
+                onChanged: (v) => onYear(v ?? year),
+              ),
+              const SizedBox(height: 12),
+              const Text('เดือน', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: List.generate(12, (i) {
+                  final m = i + 1;
+                  final isSelected = month == m;
+                  return InkWell(
+                    onTap: () => onMonth(m),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? Theme.of(context).primaryColor.withOpacity(0.2)
+                            : null,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected
+                              ? Theme.of(context).primaryColor
+                              : Colors.grey.shade300,
+                        ),
+                      ),
+                      child: Text(_thaiMonths[i]),
+                    ),
+                  );
+                }),
+              ),
+            ],
+          );
+        }
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('พิมพ์รายงานค่าใช้จ่าย'),
+              content: SingleChildScrollView(
+                child: SizedBox(
+                  width: 320,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      buildMonthPicker(
+                        label: 'เดือนเริ่มต้น',
+                        year: fromYear,
+                        month: fromMonth,
+                        onYear: (v) => setDialogState(() => fromYear = v),
+                        onMonth: (v) => setDialogState(() => fromMonth = v),
+                      ),
+                      const Divider(height: 32),
+                      buildMonthPicker(
+                        label: 'เดือนสิ้นสุด',
+                        year: toYear,
+                        month: toMonth,
+                        onYear: (v) => setDialogState(() => toYear = v),
+                        onMonth: (v) => setDialogState(() => toMonth = v),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('ยกเลิก'),
+                ),
+                FilledButton.icon(
+                  icon: const Icon(Icons.print, size: 18),
+                  label: const Text('พิมพ์'),
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    _generateAndPrint(
+                      DateTime(fromYear, fromMonth, 1),
+                      DateTime(toYear, toMonth, 1),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _generateAndPrint(DateTime fromMonth, DateTime toMonth) async {
+    final expenses = context.read<ExpenseProvider>().expenses;
+    try {
+      await PdfServiceExpense.generateAndPrintExpenses(
+        expenses,
+        fromMonth: fromMonth,
+        toMonth: toMonth,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   IconData _getCategoryIcon(String category) {
