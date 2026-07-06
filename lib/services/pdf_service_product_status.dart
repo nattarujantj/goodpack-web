@@ -81,9 +81,9 @@ class PdfServiceProductStatus {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4.landscape,
         margin: const pw.EdgeInsets.all(20),
-        header: (pw.Context context) => _buildHeader(context, thaiFont, statusLabel),
+        header: (pw.Context context) => _buildHeader(context, thaiFont, statusLabel, fontSizeText),
         build: (pw.Context context) => [
-          ..._buildProductTableChunks(sorted, thaiFont, fontSizeText, firstPageRows: 25, nextPageRows: 32),
+          _buildProductTable(sorted, thaiFont, fontSizeText),
         ],
       ),
     );
@@ -98,7 +98,7 @@ class PdfServiceProductStatus {
     return '-';
   }
 
-  static pw.Widget _buildHeader(pw.Context context, pw.Font? thaiFont, String statusLabel) {
+  static pw.Widget _buildHeader(pw.Context context, pw.Font? thaiFont, String statusLabel, double fontSizeText) {
     final pageNum = context.pageNumber;
     final pagesCount = context.pagesCount;
     return pw.Column(
@@ -119,69 +119,52 @@ class PdfServiceProductStatus {
           ],
         ),
         pw.SizedBox(height: 8),
+        // หัวตาราง render ในส่วน header ของทุกหน้า -> อยู่บนสุดเสมอและตรงคอลัมน์กับข้อมูล
+        pw.Table(
+          border: pw.TableBorder.all(color: PdfColors.black),
+          columnWidths: _columnWidths(),
+          children: [_tableHeaderRow(thaiFont, fontSizeText)],
+        ),
       ],
     );
   }
 
-  /// แบ่งรายการสินค้าเป็น chunk ต่อหน้า; แต่ละ chunk เป็น Table ที่มีหัวตารางซ้ำทุกหน้า
-  static List<pw.Widget> _buildProductTableChunks(
+  /// ความกว้างคอลัมน์ (ใช้ร่วมกันระหว่างตารางหัวใน header และตารางข้อมูลใน body
+  /// เพื่อให้คอลัมน์ตรงกัน). คอลัมน์สุดท้ายเป็นช่องว่างสำหรับเขียนโน้ต จึงได้พื้นที่มากสุด.
+  static Map<int, pw.TableColumnWidth> _columnWidths() => {
+        0: const pw.FlexColumnWidth(2), // SKU ID
+        1: const pw.FlexColumnWidth(4), // ชื่อสินค้า
+        2: const pw.FlexColumnWidth(1.6), // VAT คงเหลือ
+        3: const pw.FlexColumnWidth(1.8), // Non-VAT คงเหลือ
+        4: const pw.FlexColumnWidth(1.6), // Actual Stock
+        5: const pw.FlexColumnWidth(2.2), // จำนวนลังคงเหลือ
+        6: const pw.FlexColumnWidth(5), // ช่องว่างสำหรับเขียนโน้ต
+      };
+
+  /// สร้างตารางข้อมูลเป็น Table เดียวต่อเนื่อง (ไม่มีแถวหัว) แล้วปล่อยให้ MultiPage
+  /// ตัดหน้าตามแถวเองอัตโนมัติ -> ไม่มีปัญหาหัวตารางโผล่กลางหน้าจากการแบ่ง chunk
+  static pw.Widget _buildProductTable(
     List<Product> products,
     pw.Font? thaiFont,
-    double fontSizeText, {
-    int firstPageRows = 25,
-    int nextPageRows = 32,
-  }) {
-    if (products.isEmpty) return [];
-
-    final chunks = <List<int>>[];
-    int remaining = products.length;
-    int start = 0;
-    while (remaining > 0) {
-      final size = chunks.isEmpty ? firstPageRows : nextPageRows;
-      final take = size.clamp(0, remaining);
-      chunks.add(List.generate(take, (i) => start + i));
-      start += take;
-      remaining -= take;
-    }
-
-    return chunks.map((indexList) {
-      return pw.Table(
-        border: pw.TableBorder.all(color: PdfColors.black),
-        columnWidths: {
-          0: const pw.FlexColumnWidth(2), // SKU
-          1: const pw.FlexColumnWidth(3), // ชื่อสินค้า
-          2: const pw.FlexColumnWidth(3), // หมวดหมู่/สี/ขนาด
-          3: const pw.FlexColumnWidth(2), // VAT คงเหลือ
-          4: const pw.FlexColumnWidth(2), // Non-VAT คงเหลือ
-          5: const pw.FlexColumnWidth(2), // Actual Stock
-          6: const pw.FlexColumnWidth(2), // จำนวนลังคงเหลือ
-          7: const pw.FlexColumnWidth(2), // สถานะ
-        },
-        children: [
-          _tableHeaderRow(thaiFont, fontSizeText),
-          ...indexList.map((i) {
-            final product = products[i];
-            return pw.TableRow(
-              children: [
-                _tableCell(product.skuId, thaiFont, fontSizeText),
-                _tableCell(product.name, thaiFont, fontSizeText),
-                _tableCell('${product.category} - ${product.color} (${product.size})', thaiFont, fontSizeText),
-                _tableCell(product.stock.vat.remaining.toString(), thaiFont, fontSizeText, right: true),
-                _tableCell(product.stock.nonVAT.remaining.toString(), thaiFont, fontSizeText, right: true),
-                _tableCell(product.stock.actualStock.toString(), thaiFont, fontSizeText, right: true),
-                _tableCell(product.packRemainingText, thaiFont, fontSizeText, right: true),
-                _tableCell(
-                  product.status == 'active' ? 'ใช้งาน' : 'ไม่ใช้งาน',
-                  thaiFont,
-                  fontSizeText,
-                  center: true,
-                ),
-              ],
-            );
-          }),
-        ],
-      );
-    }).toList();
+    double fontSizeText,
+  ) {
+    return pw.Table(
+      border: pw.TableBorder.all(color: PdfColors.black),
+      columnWidths: _columnWidths(),
+      children: products.map((product) {
+        return pw.TableRow(
+          children: [
+            _tableCell(product.skuId, thaiFont, fontSizeText),
+            _tableCell(product.name, thaiFont, fontSizeText),
+            _tableCell(product.stock.vat.remaining.toString(), thaiFont, fontSizeText, right: true),
+            _tableCell(product.stock.nonVAT.remaining.toString(), thaiFont, fontSizeText, right: true),
+            _tableCell(product.stock.actualStock.toString(), thaiFont, fontSizeText, right: true),
+            _tableCell(product.packRemainingText, thaiFont, fontSizeText, right: true),
+            _tableCell('', thaiFont, fontSizeText), // ช่องว่างไว้เขียนโน้ต
+          ],
+        );
+      }).toList(),
+    );
   }
 
   static pw.TableRow _tableHeaderRow(pw.Font? thaiFont, double fontSizeText) {
@@ -190,12 +173,11 @@ class PdfServiceProductStatus {
       children: [
         _tableCell('SKU ID', thaiFont, fontSizeText, bold: true, center: true),
         _tableCell('ชื่อสินค้า', thaiFont, fontSizeText, bold: true, center: true),
-        _tableCell('หมวดหมู่/สี/ขนาด', thaiFont, fontSizeText, bold: true, center: true),
         _tableCell('VAT คงเหลือ', thaiFont, fontSizeText, bold: true, center: true),
         _tableCell('Non-VAT คงเหลือ', thaiFont, fontSizeText, bold: true, center: true),
         _tableCell('Actual Stock', thaiFont, fontSizeText, bold: true, center: true),
         _tableCell('จำนวนลังคงเหลือ', thaiFont, fontSizeText, bold: true, center: true),
-        _tableCell('สถานะ', thaiFont, fontSizeText, bold: true, center: true),
+        _tableCell('', thaiFont, fontSizeText, bold: true, center: true), // ช่องว่างสำหรับเขียนโน้ต
       ],
     );
   }
