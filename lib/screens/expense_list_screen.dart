@@ -302,7 +302,19 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
             children: [
               if (expense.description.isNotEmpty)
                 Text(expense.description, style: const TextStyle(fontSize: 12)),
-              Text(dateStr, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+              Row(
+                children: [
+                  Text(dateStr,
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                  if (expense.attachments.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Icon(Icons.attach_file,
+                        size: 12, color: Colors.grey[500]),
+                    Text('${expense.attachments.length}',
+                        style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                  ],
+                ],
+              ),
             ],
           ),
           trailing: Row(
