@@ -99,6 +99,60 @@ class ExpenseApiService {
     }
   }
 
+  /// Uploads a bill/receipt file (PDF or image) for an expense.
+  /// Returns the created attachment on success.
+  static Future<ExpenseAttachment> uploadAttachment({
+    required String expenseId,
+    required List<int> fileBytes,
+    required String fileName,
+  }) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$_baseUrl$_endpoint/$expenseId/attachments'),
+      );
+      request.headers.addAll(AuthToken.authOnlyHeaders);
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          fileBytes,
+          filename: fileName,
+        ),
+      );
+
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return ExpenseAttachment.fromJson(json.decode(response.body));
+      } else {
+        throw Exception(
+            'Failed to upload attachment: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error uploading attachment: $e');
+    }
+  }
+
+  /// Deletes a single attachment from an expense.
+  static Future<void> deleteAttachment({
+    required String expenseId,
+    required String attachmentId,
+  }) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$_baseUrl$_endpoint/$expenseId/attachments/$attachmentId'),
+        headers: AuthToken.headers,
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to delete attachment: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error deleting attachment: $e');
+    }
+  }
+
   static Future<List<String>> getCategories() async {
     try {
       final response = await http.get(

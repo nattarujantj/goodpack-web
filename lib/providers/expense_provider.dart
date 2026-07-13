@@ -99,6 +99,56 @@ class ExpenseProvider with ChangeNotifier {
     }
   }
 
+  Future<ExpenseAttachment?> uploadAttachment(
+    String expenseId,
+    List<int> fileBytes,
+    String fileName,
+  ) async {
+    try {
+      final attachment = await ExpenseApiService.uploadAttachment(
+        expenseId: expenseId,
+        fileBytes: fileBytes,
+        fileName: fileName,
+      );
+      final index = _expenses.indexWhere((e) => e.id == expenseId);
+      if (index >= 0) {
+        _expenses[index] = _expenses[index].copyWith(
+          attachments: [..._expenses[index].attachments, attachment],
+        );
+        notifyListeners();
+      }
+      return attachment;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<bool> deleteAttachment(String expenseId, String attachmentId) async {
+    try {
+      await ExpenseApiService.deleteAttachment(
+        expenseId: expenseId,
+        attachmentId: attachmentId,
+      );
+      final index = _expenses.indexWhere((e) => e.id == expenseId);
+      if (index >= 0) {
+        _expenses[index] = _expenses[index].copyWith(
+          attachments: _expenses[index]
+              .attachments
+              .where((a) => a.id != attachmentId)
+              .toList(),
+        );
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> deleteExpense(String id) async {
     try {
       await ExpenseApiService.deleteExpense(id);
