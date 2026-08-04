@@ -1,11 +1,27 @@
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../providers/expense_provider.dart';
 import '../models/expense.dart';
 import '../services/expense_api_service.dart';
+import '../services/image_upload_service.dart';
 import '../widgets/responsive_layout.dart';
+
+/// A file selected in the form before the expense has been saved.
+class _PendingAttachment {
+  final String fileName;
+  final List<int> bytes;
+  final String fileType; // "pdf" or "image"
+
+  _PendingAttachment({
+    required this.fileName,
+    required this.bytes,
+    required this.fileType,
+  });
+}
 
 class ExpenseFormScreen extends StatefulWidget {
   final String? expenseId;
@@ -27,6 +43,13 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
   bool _isLoading = false;
   bool _isEdit = false;
   List<String> _categories = [];
+
+  // Attachment state
+  List<ExpenseAttachment> _attachments = [];
+  final List<_PendingAttachment> _pendingAttachments = [];
+  bool _isUploadingAttachment = false;
+
+  static const _allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp'];
 
   @override
   void initState() {
@@ -62,6 +85,7 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
         _amountController.text = expense.amount.toString();
         _notesController.text = expense.notes;
         _expenseDate = expense.expenseDate;
+        _attachments = List<ExpenseAttachment>.from(expense.attachments);
       });
     }
   }
@@ -96,6 +120,17 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
       result = await provider.createExpense(request);
     }
 
+    // Upload any files that were selected before the expense existed.
+    if (result != null && _pendingAttachments.isNotEmpty) {
+      for (final pending in _pendingAttachments) {
+        await provider.uploadAttachment(
+          result.id,
+          pending.bytes,
+          pending.fileName,
+        );
+      }
+    }
+
     if (mounted) {
       setState(() => _isLoading = false);
       if (result != null) {
@@ -124,6 +159,301 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
     if (picked != null) {
       setState(() => _expenseDate = picked);
     }
+  }
+
+  String _fileTypeFromName(String name) {
+    return name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image';
+  }
+
+  Future<void> _pickAndAddFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: _allowedExtensions,
+      withData: true,
+    );
+
+    if (result == null || result.files.isEmpty) return;
+    final picked = result.files.first;
+    final bytes = picked.bytes;
+    if (bytes == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ไม่สามารถอ่านไฟล์ได้'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    final fileType = _fileTypeFromName(picked.name);
+
+    // In edit mode the expense already exists, so upload immediately.
+    if (_isEdit && widget.expenseId != null) {
+      setState(() => _isUploadingAttachment = true);
+      final provider = context.read<ExpenseProvider>();
+      final attachment = await provider.uploadAttachment(
+        widget.expenseId!,
+        bytes,
+        picked.name,
+      );
+      if (mounted) {
+        setState(() {
+          _isUploadingAttachment = false;
+          if (attachment != null) {
+            _attachments.add(attachment);
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(attachment != null
+                ? 'อัพโหลดไฟล์สำเร็จ'
+                : 'อัพโหลดไฟล์ไม่สำเร็จ: ${provider.error}'),
+            backgroundColor: attachment != null ? null : Colors.red,
+          ),
+        );
+      }
+    } else {
+      // Create mode: hold the file until the expense is saved.
+      setState(() {
+        _pendingAttachments.add(_PendingAttachment(
+          fileName: picked.name,
+          bytes: bytes,
+          fileType: fileType,
+        ));
+      });
+    }
+  }
+
+  Future<void> _deleteAttachment(ExpenseAttachment attachment) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ลบไฟล์แนบ'),
+        content: Text('ต้องการลบ "${attachment.fileName}" ใช่ไหม?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('ลบ'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final provider = context.read<ExpenseProvider>();
+    final ok = await provider.deleteAttachment(widget.expenseId!, attachment.id);
+    if (mounted && ok) {
+      setState(() => _attachments.removeWhere((a) => a.id == attachment.id));
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('ลบไฟล์ไม่สำเร็จ: ${provider.error}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _viewAttachment(ExpenseAttachment attachment) {
+    final url = ImageUploadService.getImageUrl(attachment.fileUrl);
+    if (attachment.isImage) {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => Dialog(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        attachment.fileName,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.open_in_new),
+                      tooltip: 'เปิดในแท็บใหม่',
+                      onPressed: () => html.window.open(url, '_blank'),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: InteractiveViewer(
+                  child: Image.network(
+                    url,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text('ไม่สามารถแสดงรูปภาพได้'),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      // PDFs open in a new browser tab.
+      html.window.open(url, '_blank');
+    }
+  }
+
+  String _formatSize(int bytes) {
+    if (bytes <= 0) return '';
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(0)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  Widget _buildAttachmentSection() {
+    final hasAny = _attachments.isNotEmpty || _pendingAttachments.isNotEmpty;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.attach_file, size: 18),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'ไฟล์แนบ (บิล/ใบเสร็จ)',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                ),
+                if (_isUploadingAttachment)
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  TextButton.icon(
+                    onPressed: _pickAndAddFile,
+                    icon: const Icon(Icons.upload_file, size: 18),
+                    label: const Text('อัพโหลด'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'รองรับไฟล์ PDF และรูปภาพ (ขนาดไม่เกิน 10MB)',
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            if (!_isEdit)
+              const Padding(
+                padding: EdgeInsets.only(top: 4),
+                child: Text(
+                  'ไฟล์จะถูกอัพโหลดเมื่อกดบันทึกรายการ',
+                  style: TextStyle(fontSize: 11, color: Colors.orange),
+                ),
+              ),
+            const SizedBox(height: 8),
+            if (!hasAny)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'ยังไม่มีไฟล์แนบ',
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ),
+            ..._attachments.map(_buildSavedAttachmentTile),
+            ..._pendingAttachments.map(_buildPendingAttachmentTile),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSavedAttachmentTile(ExpenseAttachment attachment) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ListTile(
+        dense: true,
+        leading: Icon(
+          attachment.isPdf ? Icons.picture_as_pdf : Icons.image,
+          color: attachment.isPdf ? Colors.red.shade400 : Colors.blue.shade400,
+        ),
+        title: Text(
+          attachment.fileName,
+          style: const TextStyle(fontSize: 13),
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: attachment.size > 0
+            ? Text(_formatSize(attachment.size),
+                style: const TextStyle(fontSize: 11))
+            : null,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.visibility, size: 20),
+              tooltip: 'เปิดดูไฟล์',
+              onPressed: () => _viewAttachment(attachment),
+            ),
+            IconButton(
+              icon: Icon(Icons.delete_outline, size: 20, color: Colors.red.shade300),
+              tooltip: 'ลบ',
+              onPressed: () => _deleteAttachment(attachment),
+            ),
+          ],
+        ),
+        onTap: () => _viewAttachment(attachment),
+      ),
+    );
+  }
+
+  Widget _buildPendingAttachmentTile(_PendingAttachment pending) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.orange.shade200),
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.orange.shade50,
+      ),
+      child: ListTile(
+        dense: true,
+        leading: Icon(
+          pending.fileType == 'pdf' ? Icons.picture_as_pdf : Icons.image,
+          color: Colors.orange.shade700,
+        ),
+        title: Text(
+          pending.fileName,
+          style: const TextStyle(fontSize: 13),
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: const Text('รอการอัพโหลด', style: TextStyle(fontSize: 11)),
+        trailing: IconButton(
+          icon: Icon(Icons.delete_outline, size: 20, color: Colors.red.shade300),
+          tooltip: 'นำออก',
+          onPressed: () =>
+              setState(() => _pendingAttachments.remove(pending)),
+        ),
+      ),
+    );
   }
 
   @override
@@ -252,6 +582,8 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 12),
+                        _buildAttachmentSection(),
                         const SizedBox(height: 24),
                         Row(
                           children: [
