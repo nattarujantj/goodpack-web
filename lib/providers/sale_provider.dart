@@ -42,7 +42,7 @@ class SaleProvider with ChangeNotifier {
       notifyListeners();
       return newSale;
     } catch (e) {
-      _error = e.toString();
+      _error = _cleanError(e);
       notifyListeners();
       return null;
     }
@@ -58,10 +58,15 @@ class SaleProvider with ChangeNotifier {
       }
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = _cleanError(e);
       notifyListeners();
       return false;
     }
+  }
+
+  /// ตัด prefix "Exception: " ออกจากข้อความ error ให้แสดงผลอ่านง่าย
+  String _cleanError(Object e) {
+    return e.toString().replaceFirst('Exception: ', '');
   }
 
   Future<bool> deleteSale(String id) async {
