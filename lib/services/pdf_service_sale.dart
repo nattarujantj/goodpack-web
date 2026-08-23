@@ -1192,11 +1192,11 @@ class PdfServiceSale {
                 pw.SizedBox(height: 15),
                 pw.Container(width: 150, height: 1),
                 pw.SizedBox(height: 10),
-                pw.Text(nameCustomer.isEmpty ? ' ' : nameCustomer, style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
+                _signatureLine(thaiFont, fontSizeText, nameCustomer.isEmpty ? ' ' : nameCustomer),
                 pw.SizedBox(height: 5),
-                pw.Text('ผู้มีอำนาจอนุมัติ', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
+                _signatureLine(thaiFont, fontSizeText, 'ผู้มีอำนาจอนุมัติ'),
                 pw.SizedBox(height: 5),
-                pw.Text(' ', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
+                _signatureLine(thaiFont, fontSizeText, ' '),
               ],
             ),
           ),
@@ -1209,14 +1209,11 @@ class PdfServiceSale {
                 pw.SizedBox(height: 15),
                 pw.Container(width: 150, height: 1),
                 pw.SizedBox(height: 10),
-                pw.Text(nameProposer, style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
+                _signatureLine(thaiFont, fontSizeText, nameProposer),
                 pw.SizedBox(height: 5),
-                pw.Text('ผู้เสนอราคา', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
+                _signatureLine(thaiFont, fontSizeText, 'ผู้เสนอราคา'),
                 pw.SizedBox(height: 5),
-                pw.Text(
-                  dateProposer != null ? _formatDateThai(dateProposer) : ' ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, color: dateProposer == null ? PdfColors.white : null),
-                ),
+                _signatureLine(thaiFont, fontSizeText, dateProposer != null ? _formatDateThai(dateProposer) : ' ', hidden: dateProposer == null),
               ],
             ),
           ),
@@ -1246,14 +1243,11 @@ class PdfServiceSale {
                 pw.SizedBox(height: 15),
                 pw.Container(width: 150, height: 1),
                 pw.SizedBox(height: 10),
-                pw.Text(nameReceiver, style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
+                _signatureLine(thaiFont, fontSizeText, nameReceiver),
                 pw.SizedBox(height: 5),
-                pw.Text('ผู้รับเงิน', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
+                _signatureLine(thaiFont, fontSizeText, 'ผู้รับเงิน'),
                 pw.SizedBox(height: 5),
-                pw.Text(
-                  dateReceiver != null ? _formatDateThai(dateReceiver) : ' ',
-                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, color: dateReceiver == null ? PdfColors.white : null),
-                ),
+                _signatureLine(thaiFont, fontSizeText, dateReceiver != null ? _formatDateThai(dateReceiver) : ' ', hidden: dateReceiver == null),
               ],
             ),
           ),
@@ -1314,18 +1308,26 @@ class PdfServiceSale {
           pw.SizedBox(height: 15),
           pw.Container(width: 150, height: 1),
           pw.SizedBox(height: 10),
-          pw.Text(
-            hideValue ? '-' : nameDisplay,
-            style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, color: hideValue ? PdfColors.white : null),
-          ),
+          _signatureLine(thaiFont, fontSizeText, hideValue ? '-' : nameDisplay, hidden: hideValue),
           pw.SizedBox(height: 5),
-          pw.Text(roleLabel, style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
+          _signatureLine(thaiFont, fontSizeText, roleLabel),
           pw.SizedBox(height: 5),
-          pw.Text(
-            date != null ? _formatDateThai(date) : ' ',
-            style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, color: date == null ? PdfColors.white : null),
-          ),
+          _signatureLine(thaiFont, fontSizeText, date != null ? _formatDateThai(date) : ' ', hidden: date == null),
         ],
+      ),
+    );
+  }
+
+  /// บรรทัดข้อความในช่องลงชื่อ (ชื่อ/ตำแหน่ง/วันที่) — บังคับความสูงคงที่
+  /// เพื่อให้ทุกคอลัมน์บรรทัดตรงกัน แม้บางช่องจะเว้นว่างหรือข้อความสูงต่างกัน
+  static pw.Widget _signatureLine(pw.Font? thaiFont, double fontSizeText, String text, {bool hidden = false}) {
+    return pw.Container(
+      height: fontSizeText * 1.7,
+      alignment: pw.Alignment.center,
+      child: pw.Text(
+        text,
+        textAlign: pw.TextAlign.center,
+        style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, color: hidden ? PdfColors.white : null),
       ),
     );
   }
