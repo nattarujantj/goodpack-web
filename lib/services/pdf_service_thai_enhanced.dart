@@ -948,6 +948,8 @@ class PdfServiceThaiEnhanced {
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
+        // จัดให้ทุกคอลัมน์เริ่มจากด้านบน บรรทัด "ลงชื่อ" และเส้นลงชื่อจะได้ตรงกันทุกช่อง
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           // คอลัมน์ที่ 1 - ว่าง
           pw.Expanded(
@@ -1017,6 +1019,8 @@ class PdfServiceThaiEnhanced {
                 pw.SizedBox(height: 10), // เว้นหลังบรรทัดลงชื่อ
                 pw.Text(
                   signerName,
+                  maxLines: 1,
+                  softWrap: false,
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
                 pw.SizedBox(height: 5),

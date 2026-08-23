@@ -1180,6 +1180,8 @@ class PdfServiceSale {
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
+        // จัดให้ทุกคอลัมน์เริ่มจากด้านบน บรรทัด "ลงชื่อ" และเส้นลงชื่อจะได้ตรงกันทุกช่อง
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Expanded(flex: 1, child: pw.Container()),
           pw.Expanded(flex: 1, child: pw.Container()),
@@ -1192,7 +1194,7 @@ class PdfServiceSale {
                 pw.SizedBox(height: 15),
                 pw.Container(width: 150, height: 1),
                 pw.SizedBox(height: 10),
-                pw.Text(nameCustomer.isEmpty ? ' ' : nameCustomer, style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
+                pw.Text(nameCustomer.isEmpty ? ' ' : nameCustomer, maxLines: 1, softWrap: false, style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 5),
                 pw.Text('ผู้มีอำนาจอนุมัติ', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 5),
@@ -1209,7 +1211,7 @@ class PdfServiceSale {
                 pw.SizedBox(height: 15),
                 pw.Container(width: 150, height: 1),
                 pw.SizedBox(height: 10),
-                pw.Text(nameProposer, style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
+                pw.Text(nameProposer, maxLines: 1, softWrap: false, style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 5),
                 pw.Text('ผู้เสนอราคา', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 5),
@@ -1233,6 +1235,8 @@ class PdfServiceSale {
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
+        // จัดให้ทุกคอลัมน์เริ่มจากด้านบน บรรทัด "ลงชื่อ" และเส้นลงชื่อจะได้ตรงกันทุกช่อง
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Expanded(flex: 1, child: pw.Container()),
           pw.Expanded(flex: 1, child: pw.Container()),
@@ -1246,7 +1250,7 @@ class PdfServiceSale {
                 pw.SizedBox(height: 15),
                 pw.Container(width: 150, height: 1),
                 pw.SizedBox(height: 10),
-                pw.Text(nameReceiver, style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
+                pw.Text(nameReceiver, maxLines: 1, softWrap: false, style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 5),
                 pw.Text('ผู้รับเงิน', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 5),
@@ -1274,6 +1278,8 @@ class PdfServiceSale {
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
+        // จัดให้ทุกคอลัมน์เริ่มจากด้านบน บรรทัด "ลงชื่อ" และเส้นลงชื่อจะได้ตรงกันทุกช่อง
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           _signatureColumn(thaiFont, fontSizeText, nameGoods.isEmpty ? '-' : nameGoods, 'ผู้รับสินค้า', opts?.dateGoodsReceiver, hideValue: nameGoods.isEmpty),
           _signatureColumn(thaiFont, fontSizeText, nameShipper, 'ผู้ส่งสินค้า', opts?.dateShipper, hideValue: false),
@@ -1294,6 +1300,8 @@ class PdfServiceSale {
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
+        // จัดให้ทุกคอลัมน์เริ่มจากด้านบน บรรทัด "ลงชื่อ" และเส้นลงชื่อจะได้ตรงกันทุกช่อง
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Expanded(flex: 1, child: pw.Container()),
           _signatureColumn(thaiFont, fontSizeText, nameGoods.isEmpty ? '-' : nameGoods, 'ผู้รับสินค้า', opts?.dateGoodsReceiver, hideValue: nameGoods.isEmpty),
@@ -1316,6 +1324,8 @@ class PdfServiceSale {
           pw.SizedBox(height: 10),
           pw.Text(
             hideValue ? '-' : nameDisplay,
+            maxLines: 1,
+            softWrap: false,
             style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, color: hideValue ? PdfColors.white : null),
           ),
           pw.SizedBox(height: 5),
