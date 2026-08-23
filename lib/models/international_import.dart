@@ -146,6 +146,7 @@ class ImportItem {
   final double boxLength;
   final double boxHeight;
   final double cbm;
+  final bool cbmManual;
   final double shippingCostPerUnit;
   final double commission;
   final bool commissionPaid;
@@ -165,6 +166,7 @@ class ImportItem {
     required this.boxLength,
     required this.boxHeight,
     required this.cbm,
+    this.cbmManual = false,
     required this.shippingCostPerUnit,
     required this.commission,
     this.commissionPaid = false,
@@ -186,6 +188,7 @@ class ImportItem {
       boxLength: (json['boxLength'] ?? 0).toDouble(),
       boxHeight: (json['boxHeight'] ?? 0).toDouble(),
       cbm: (json['cbm'] ?? 0).toDouble(),
+      cbmManual: json['cbmManual'] ?? false,
       shippingCostPerUnit: (json['shippingCostPerUnit'] ?? 0).toDouble(),
       commission: (json['commission'] ?? 0).toDouble(),
       commissionPaid: json['commissionPaid'] ?? false,
@@ -208,6 +211,7 @@ class ImportItem {
       'boxLength': boxLength,
       'boxHeight': boxHeight,
       'cbm': cbm,
+      'cbmManual': cbmManual,
       'shippingCostPerUnit': shippingCostPerUnit,
       'commission': commission,
       'commissionPaid': commissionPaid,
@@ -229,6 +233,7 @@ class ImportItem {
     double? boxLength,
     double? boxHeight,
     double? cbm,
+    bool? cbmManual,
     double? shippingCostPerUnit,
     double? commission,
     bool? commissionPaid,
@@ -248,6 +253,7 @@ class ImportItem {
       boxLength: boxLength ?? this.boxLength,
       boxHeight: boxHeight ?? this.boxHeight,
       cbm: cbm ?? this.cbm,
+      cbmManual: cbmManual ?? this.cbmManual,
       shippingCostPerUnit: shippingCostPerUnit ?? this.shippingCostPerUnit,
       commission: commission ?? this.commission,
       commissionPaid: commissionPaid ?? this.commissionPaid,
