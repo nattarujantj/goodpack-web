@@ -1055,28 +1055,45 @@ class _SignatureOptionsDialogState extends State<_SignatureOptionsDialog> {
                 ),
                 if (fields[i].hasDate) ...[
                   const SizedBox(height: 8),
-                  InkWell(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: _dates[i] ?? widget.sale.saleDate,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (picked != null) setState(() => _dates[i] = picked);
-                    },
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'วันที่',
-                        border: OutlineInputBorder(),
-                        isDense: true,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _dates[i] ?? widget.sale.saleDate,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (picked != null) setState(() => _dates[i] = picked);
+                          },
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              labelText: 'วันที่',
+                              helperText: 'เว้นว่างไว้เพื่อไม่แสดงวันที่บนเอกสาร',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            child: Text(
+                              _dates[i] != null
+                                  ? DateFormat('dd/MM/yyyy').format(_dates[i]!)
+                                  : 'ไม่แสดงวันที่',
+                              style: TextStyle(
+                                color: _dates[i] == null ? Colors.grey : null,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                      child: Text(
-                        _dates[i] != null
-                            ? DateFormat('dd/MM/yyyy').format(_dates[i]!)
-                            : '-',
+                      IconButton(
+                        icon: const Icon(Icons.clear),
+                        tooltip: 'ลบวันที่ (ไม่แสดงบนเอกสาร)',
+                        onPressed: _dates[i] == null
+                            ? null
+                            : () => setState(() => _dates[i] = null),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ],
