@@ -1175,7 +1175,8 @@ class PdfServiceSale {
   static pw.Widget _buildQuotationSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, String signerName, [SaleSignatureOptions? opts]) {
     final nameCustomer = opts?.nameCustomerApprover?.trim() ?? '';
     final nameProposer = (opts?.nameProposer?.trim().isNotEmpty == true) ? opts!.nameProposer! : signerName;
-    final dateProposer = opts?.dateProposer ?? sale.saleDate;
+    // ถ้ามี opts (มาจาก dialog) ให้ใช้ค่าตามที่ผู้ใช้เลือก รวมถึง null (ไม่แสดงวันที่)
+    final dateProposer = opts != null ? opts.dateProposer : sale.saleDate;
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
@@ -1212,7 +1213,10 @@ class PdfServiceSale {
                 pw.SizedBox(height: 5),
                 pw.Text('ผู้เสนอราคา', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 5),
-                pw.Text(_formatDateThai(dateProposer), style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
+                pw.Text(
+                  dateProposer != null ? _formatDateThai(dateProposer) : ' ',
+                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, color: dateProposer == null ? PdfColors.white : null),
+                ),
               ],
             ),
           ),
@@ -1224,7 +1228,8 @@ class PdfServiceSale {
   // 2. ใบเสร็จรับเงิน - เหลือ column 4 อันเดียว
   static pw.Widget _buildReceiptSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, String signerName, [SaleSignatureOptions? opts]) {
     final nameReceiver = (opts?.namePaymentReceiver?.trim().isNotEmpty == true) ? opts!.namePaymentReceiver! : signerName;
-    final dateReceiver = opts?.datePaymentReceiver ?? sale.payment.paymentDate ?? sale.saleDate;
+    // ถ้ามี opts (มาจาก dialog) ให้ใช้ค่าตามที่ผู้ใช้เลือก รวมถึง null (ไม่แสดงวันที่)
+    final dateReceiver = opts != null ? opts.datePaymentReceiver : (sale.payment.paymentDate ?? sale.saleDate);
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
@@ -1245,7 +1250,10 @@ class PdfServiceSale {
                 pw.SizedBox(height: 5),
                 pw.Text('ผู้รับเงิน', style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
                 pw.SizedBox(height: 5),
-                pw.Text(_formatDateThai(dateReceiver), style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
+                pw.Text(
+                  dateReceiver != null ? _formatDateThai(dateReceiver) : ' ',
+                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, color: dateReceiver == null ? PdfColors.white : null),
+                ),
               ],
             ),
           ),
@@ -1259,9 +1267,10 @@ class PdfServiceSale {
     final nameGoods = opts?.nameGoodsReceiver?.trim() ?? '';
     final nameShipper = (opts?.nameShipper?.trim().isNotEmpty == true) ? opts!.nameShipper! : signerName;
     final nameApprover = (opts?.nameApprover?.trim().isNotEmpty == true) ? opts!.nameApprover! : signerName;
-    final dateApprover = opts?.dateApprover ?? sale.saleDate;
+    // ถ้ามี opts (มาจาก dialog) ให้ใช้ค่าตามที่ผู้ใช้เลือก รวมถึง null (ไม่แสดงวันที่)
+    final dateApprover = opts != null ? opts.dateApprover : sale.saleDate;
     final namePayment = (opts?.namePaymentReceiver?.trim().isNotEmpty == true) ? opts!.namePaymentReceiver! : signerName;
-    final datePayment = opts?.datePaymentReceiver ?? sale.payment.paymentDate ?? sale.saleDate;
+    final datePayment = opts != null ? opts.datePaymentReceiver : (sale.payment.paymentDate ?? sale.saleDate);
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
@@ -1280,7 +1289,8 @@ class PdfServiceSale {
     final nameGoods = opts?.nameGoodsReceiver?.trim() ?? '';
     final nameShipper = (opts?.nameShipper?.trim().isNotEmpty == true) ? opts!.nameShipper! : signerName;
     final nameApprover = (opts?.nameApprover?.trim().isNotEmpty == true) ? opts!.nameApprover! : signerName;
-    final dateApprover = opts?.dateApprover ?? sale.saleDate;
+    // ถ้ามี opts (มาจาก dialog) ให้ใช้ค่าตามที่ผู้ใช้เลือก รวมถึง null (ไม่แสดงวันที่)
+    final dateApprover = opts != null ? opts.dateApprover : sale.saleDate;
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
