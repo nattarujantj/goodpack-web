@@ -6,7 +6,9 @@ import 'package:intl/intl.dart';
 import '../models/international_import.dart';
 import '../models/product.dart';
 import '../models/shipping_company.dart';
+import '../models/fcl_shipment.dart';
 import '../providers/international_import_provider.dart';
+import '../providers/fcl_shipment_provider.dart';
 import '../providers/supplier_provider.dart';
 import '../providers/product_provider.dart';
 import '../providers/shipping_company_provider.dart';
@@ -19,8 +21,14 @@ import '../utils/error_dialog.dart';
 class InternationalImportFormScreen extends StatefulWidget {
   final InternationalImport? import_;
   final String? importId;
+  final String? initialFclShipmentId;
 
-  const InternationalImportFormScreen({Key? key, this.import_, this.importId}) : super(key: key);
+  const InternationalImportFormScreen({
+    Key? key,
+    this.import_,
+    this.importId,
+    this.initialFclShipmentId,
+  }) : super(key: key);
 
   @override
   State<InternationalImportFormScreen> createState() => _InternationalImportFormScreenState();
@@ -37,7 +45,9 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
   String? _selectedSupplierId;
   String? _selectedShippingCompanyId;
   List<ImportItem> _items = [];
-  List<FCLCostDetail> _fclCostDetails = [];
+  String? _selectedFclShipmentId;
+  String? _originalFclShipmentId;
+  double _originalCBM = 0;
   bool _isLoading = false;
   bool get _isEdit => widget.import_ != null || widget.importId != null;
 
@@ -66,6 +76,12 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
       _populateFields(widget.import_!);
     } else if (widget.importId != null) {
       _loadFromId();
+    } else if (widget.initialFclShipmentId != null) {
+      // Coming from a container ("เพิ่มโรงงาน"): preselect FCL + that container.
+      setState(() {
+        _importType = 'FCL';
+        _selectedFclShipmentId = widget.initialFclShipmentId;
+      });
     }
   }
 
@@ -75,6 +91,7 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
       context.read<SupplierProvider>().loadSuppliersIfNeeded(),
       context.read<ProductProvider>().loadProducts(),
       context.read<ShippingCompanyProvider>().loadIfNeeded(),
+      context.read<FclShipmentProvider>().loadIfNeeded(),
     ]);
   }
 
@@ -97,7 +114,9 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
       _selectedShippingCompanyId = imp.shippingCompanyId;
       _usdToThbRateController.text = imp.usdToThbRate.toString();
       _pricePerCBMController.text = imp.pricePerCBM.toString();
-      _fclCostDetails = List.from(imp.fclCostDetails);
+      _selectedFclShipmentId = imp.fclShipmentId;
+      _originalFclShipmentId = imp.fclShipmentId;
+      _originalCBM = imp.totalCBM;
       _items = List.from(imp.items);
       _notesController.text = imp.notes ?? '';
     });
@@ -125,17 +144,38 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
 
   double get _totalCBM => _items.fold(0.0, (s, i) => s + _calcItemCBM(i));
 
-  double get _totalFCLCost => _fclCostDetails.fold(0.0, (s, d) => s + d.amount);
+  FclShipment? _selectedShipment() {
+    if (_selectedFclShipmentId == null) return null;
+    return context.read<FclShipmentProvider>().getById(_selectedFclShipmentId!);
+  }
+
+  /// Estimated container-wide total CBM for the FCL preview: the container's CBM from
+  /// the server (minus this import's stored contribution when editing the same container)
+  /// plus the CBM currently entered in this form. The server does the authoritative
+  /// allocation on save.
+  double _fclContainerCBM() {
+    final s = _selectedShipment();
+    if (s == null) return _totalCBM;
+    double base = s.totalCBM;
+    if (_originalFclShipmentId != null && _originalFclShipmentId == _selectedFclShipmentId) {
+      base -= _originalCBM;
+    }
+    if (base < 0) base = 0;
+    return base + _totalCBM;
+  }
+
+  double _fclContainerCost() => _selectedShipment()?.totalCostThb ?? 0;
 
   double _shippingPerUnit(ImportItem item) {
     double cbm = _calcItemCBM(item);
-    double pricePerCBM = double.tryParse(_pricePerCBMController.text) ?? 0;
     if (_importType == 'LCL') {
+      double pricePerCBM = double.tryParse(_pricePerCBMController.text) ?? 0;
       return item.quantity > 0 ? (cbm * pricePerCBM) / item.quantity : 0;
     } else {
-      double total = _totalCBM;
+      double total = _fclContainerCBM();
+      double cost = _fclContainerCost();
       return (total > 0 && item.quantity > 0)
-          ? (cbm / total) * _totalFCLCost / item.quantity
+          ? (cbm / total) * cost / item.quantity
           : 0;
     }
   }
@@ -328,57 +368,128 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
                 },
               ),
             ] else ...[
-              // FCL cost details
-              ..._fclCostDetails.asMap().entries.map((entry) {
-                final idx = entry.key;
-                final detail = entry.value;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Text(detail.name, style: const TextStyle(fontSize: 14)),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          '${_currencyFormat.format(detail.amount)} บาท',
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.edit, size: 18),
-                        onPressed: () => _editFCLCostDetail(idx),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, size: 18, color: Colors.red),
-                        onPressed: () => setState(() => _fclCostDetails.removeAt(idx)),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-              const Divider(),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'รวมค่าตู้: ${_currencyFormat.format(_totalFCLCost)} บาท',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  TextButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: const Text('เพิ่มรายการ'),
-                    onPressed: _addFCLCostDetail,
-                  ),
-                ],
-              ),
+              // FCL: pick a container. Cost is entered on the container, not here.
+              _buildFclContainerPicker(),
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFclContainerPicker() {
+    return Consumer<FclShipmentProvider>(
+      builder: (context, provider, _) {
+        final open = provider.openShipments;
+        // Always include the currently-linked container, even if it's now closed.
+        final items = [...open];
+        if (_selectedFclShipmentId != null &&
+            !items.any((s) => s.id == _selectedFclShipmentId)) {
+          final linked = provider.getById(_selectedFclShipmentId!);
+          if (linked != null) items.add(linked);
+        }
+        final selected = _selectedShipment();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedFclShipmentId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'เลือกตู้ FCL *',
+                      prefixIcon: Icon(Icons.inventory_2),
+                    ),
+                    hint: const Text('เลือกตู้ที่จะผูก'),
+                    items: items.map((s) {
+                      return DropdownMenuItem(
+                        value: s.id,
+                        child: Text(
+                          '${s.fclCode} · ${s.shippingCompanyName}'
+                          '${s.isOpen ? "" : " (ปิดตู้)"}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (v) => setState(() => _selectedFclShipmentId = v),
+                    validator: (v) =>
+                        (_importType == 'FCL' && (v == null || v.isEmpty)) ? 'กรุณาเลือกตู้' : null,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: IconButton.filled(
+                    icon: const Icon(Icons.add),
+                    tooltip: 'สร้างตู้ใหม่',
+                    onPressed: () => context.push('/fcl-shipment-form'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (selected != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 18, color: Colors.blue[700]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'ค่าขนส่ง/ชิ้นคำนวณอัตโนมัติจากตู้ — ไม่ต้องกรอกค่าตู้ในหน้านี้ '
+                            'แค่กรอกสินค้า + CBM ของโรงงานนี้',
+                            style: TextStyle(fontSize: 13, color: Colors.blue[900]),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 16),
+                    _fclInfoRow('ค่าตู้รวม', '${_currencyFormat.format(selected.totalCostThb)} บาท'),
+                    _fclInfoRow('CBM รวมของตู้ (ปัจจุบัน)', '${selected.totalCBM.toStringAsFixed(1)} คิว'),
+                    _fclInfoRow('โรงงานในตู้', '${selected.linkedImportCount} ใบ'),
+                    if (!selected.isOpen)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          'ตู้นี้ปิดแล้ว — ต้องเปิดตู้ก่อนจึงจะแก้ไข/ผูกใบนี้ได้',
+                          style: TextStyle(fontSize: 12, color: Colors.orange[800], fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                  ],
+                ),
+              )
+            else
+              Text(
+                'ยังไม่มีตู้ที่เปิดอยู่ — กด + เพื่อสร้างตู้ใหม่ก่อน',
+                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _fclInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: Colors.blue[900], fontSize: 13)),
+          Text(value, style: TextStyle(color: Colors.blue[900], fontWeight: FontWeight.w600, fontSize: 13)),
+        ],
       ),
     );
   }
@@ -598,81 +709,6 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
     );
   }
 
-  void _addFCLCostDetail() {
-    final nameCtrl = TextEditingController();
-    final amountCtrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('เพิ่มรายการค่าใช้จ่าย'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'รายการ (เช่น ค่าเคลียแลนซ์)')),
-            const SizedBox(height: 12),
-            TextField(
-              controller: amountCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'จำนวนเงิน (บาท)'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
-          ElevatedButton(
-            onPressed: () {
-              final name = nameCtrl.text.trim();
-              final amount = double.tryParse(amountCtrl.text) ?? 0;
-              if (name.isEmpty) return;
-              setState(() => _fclCostDetails.add(FCLCostDetail(name: name, amount: amount)));
-              Navigator.pop(ctx);
-            },
-            child: const Text('เพิ่ม'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _editFCLCostDetail(int index) {
-    final detail = _fclCostDetails[index];
-    final nameCtrl = TextEditingController(text: detail.name);
-    final amountCtrl = TextEditingController(text: detail.amount.toString());
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('แก้ไขรายการค่าใช้จ่าย'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'รายการ')),
-            const SizedBox(height: 12),
-            TextField(
-              controller: amountCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'จำนวนเงิน (บาท)'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _fclCostDetails[index] = FCLCostDetail(
-                  name: nameCtrl.text.trim(),
-                  amount: double.tryParse(amountCtrl.text) ?? 0,
-                );
-              });
-              Navigator.pop(ctx);
-            },
-            child: const Text('บันทึก'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _addItem() {
     _showItemDialog(null, null);
   }
@@ -711,6 +747,10 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
       ErrorDialog.showValidationError(context, 'กรุณาเลือก Shipping Company');
       return;
     }
+    if (_importType == 'FCL' && (_selectedFclShipmentId == null || _selectedFclShipmentId!.isEmpty)) {
+      ErrorDialog.showValidationError(context, 'กรุณาเลือกตู้ FCL');
+      return;
+    }
     if (_items.isEmpty) {
       ErrorDialog.showValidationError(context, 'กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ');
       return;
@@ -726,7 +766,8 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
         shippingCompanyId: _selectedShippingCompanyId!,
         usdToThbRate: double.tryParse(_usdToThbRateController.text) ?? 0,
         pricePerCBM: double.tryParse(_pricePerCBMController.text) ?? 0,
-        fclCostDetails: _importType == 'FCL' ? _fclCostDetails : [],
+        fclCostDetails: const [],
+        fclShipmentId: _importType == 'FCL' ? _selectedFclShipmentId : null,
         items: _items,
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
       );

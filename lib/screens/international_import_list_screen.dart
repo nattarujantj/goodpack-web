@@ -6,11 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../models/international_import.dart';
 import '../providers/international_import_provider.dart';
+import '../providers/fcl_shipment_provider.dart';
 import '../providers/supplier_provider.dart';
 import '../providers/shipping_company_provider.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/search_bar.dart';
 import '../utils/date_formatter.dart';
+import 'fcl_shipment_list_screen.dart';
 
 class InternationalImportListScreen extends StatefulWidget {
   const InternationalImportListScreen({Key? key}) : super(key: key);
@@ -39,6 +41,7 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
     _initDefaultDateRange();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<InternationalImportProvider>().loadIfNeeded();
+      context.read<FclShipmentProvider>().loadIfNeeded();
       context.read<SupplierProvider>().loadSuppliersIfNeeded();
       context.read<ShippingCompanyProvider>().loadIfNeeded();
     });
@@ -93,19 +96,80 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: ResponsiveAppBar(
-        leading: const NavMenuButton(),
-        title: 'International',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => context.push('/international-form'),
-            tooltip: 'สร้างรายการนำเข้า',
-          ),
-        ],
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: ResponsiveAppBar(
+          leading: const NavMenuButton(),
+          title: 'International',
+          actions: [
+            Builder(
+              builder: (context) {
+                final tab = DefaultTabController.of(context);
+                return AnimatedBuilder(
+                  animation: tab,
+                  builder: (context, _) {
+                    final isFcl = tab.index == 1;
+                    return IconButton(
+                      icon: const Icon(Icons.add),
+                      tooltip: isFcl ? 'สร้างตู้ใหม่' : 'สร้างรายการนำเข้า',
+                      onPressed: () => context.push(isFcl ? '/fcl-shipment-form' : '/international-form'),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            Material(
+              color: Theme.of(context).colorScheme.surface,
+              elevation: 1,
+              child: const TabBar(
+                tabs: [
+                  Tab(text: 'ใบนำเข้า'),
+                  Tab(text: 'ตู้ FCL'),
+                ],
+              ),
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _buildImportsTab(),
+                  _buildFclTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-      body: Consumer<InternationalImportProvider>(
+    );
+  }
+
+  Widget _buildFclTab() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              const Spacer(),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add),
+                label: const Text('สร้างตู้ใหม่'),
+                onPressed: () => context.push('/fcl-shipment-form'),
+              ),
+            ],
+          ),
+        ),
+        const Expanded(child: FclShipmentListView()),
+      ],
+    );
+  }
+
+  Widget _buildImportsTab() {
+    return Consumer<InternationalImportProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading && !provider.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -246,7 +310,7 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
                                     cells: [
                                       DataCell(Text(row.import_.importCode, style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.blue))),
                                       DataCell(Text(DateFormatter.formatDate(row.import_.importDate))),
-                                      DataCell(_buildTypeBadge(row.import_.importType)),
+                                      DataCell(_buildTypeCell(row.import_)),
                                       DataCell(Text(row.import_.supplierName, overflow: TextOverflow.ellipsis)),
                                       DataCell(Text(row.import_.shippingCompanyName, overflow: TextOverflow.ellipsis)),
                                       DataCell(
@@ -280,11 +344,6 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
             ],
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/international-form'),
-        child: const Icon(Icons.add),
-      ),
     );
   }
 
@@ -301,6 +360,41 @@ class _InternationalImportListScreenState extends State<InternationalImportListS
       label: Text(label),
       selected: current == label,
       onSelected: (s) => onSelect(label),
+    );
+  }
+
+  Widget _buildTypeCell(InternationalImport imp) {
+    final chip = _buildTypeBadge(imp.importType);
+    final shipmentId = imp.fclShipmentId;
+    if (shipmentId == null || shipmentId.isEmpty) return chip;
+
+    final shipment = context.read<FclShipmentProvider>().getById(shipmentId);
+    final label = shipment?.fclCode ?? 'FCL';
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        chip,
+        const SizedBox(height: 4),
+        InkWell(
+          onTap: () => context.push('/fcl-shipment/$shipmentId'),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.inventory_2, size: 11, color: Colors.blue),
+                const SizedBox(width: 3),
+                Text(label, style: const TextStyle(fontSize: 11, color: Colors.blue)),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

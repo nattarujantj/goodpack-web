@@ -10,6 +10,7 @@ import 'providers/quotation_provider.dart';
 import 'providers/bank_account_provider.dart';
 import 'providers/shipping_company_provider.dart';
 import 'providers/international_import_provider.dart';
+import 'providers/fcl_shipment_provider.dart';
 import 'providers/expense_provider.dart';
 import 'providers/inventory_snapshot_provider.dart';
 import 'services/config_service.dart';
@@ -52,6 +53,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => BankAccountProvider()),
         ChangeNotifierProvider(create: (_) => ShippingCompanyProvider()),
         ChangeNotifierProvider(create: (_) => InternationalImportProvider()),
+        ChangeNotifierProvider(create: (_) => FclShipmentProvider()),
         ChangeNotifierProvider(create: (_) => ExpenseProvider()),
         ChangeNotifierProvider(create: (_) => InventorySnapshotProvider()),
       ],
