@@ -11,6 +11,7 @@ class InternationalImport {
   final double pricePerCBM;
   final List<FCLCostDetail> fclCostDetails;
   final double totalFCLCost;
+  final String? fclShipmentId;
   final List<ImportItem> items;
   final double totalCBM;
   final double totalShippingCost;
@@ -36,6 +37,7 @@ class InternationalImport {
     required this.pricePerCBM,
     required this.fclCostDetails,
     required this.totalFCLCost,
+    this.fclShipmentId,
     required this.items,
     required this.totalCBM,
     required this.totalShippingCost,
@@ -68,6 +70,7 @@ class InternationalImport {
               .toList() ??
           [],
       totalFCLCost: (json['totalFCLCost'] ?? 0).toDouble(),
+      fclShipmentId: json['fclShipmentId'],
       items: (json['items'] as List<dynamic>?)
               ?.map((e) => ImportItem.fromJson(e))
               .toList() ??
@@ -103,6 +106,7 @@ class InternationalImport {
       'pricePerCBM': pricePerCBM,
       'fclCostDetails': fclCostDetails.map((e) => e.toJson()).toList(),
       'totalFCLCost': totalFCLCost,
+      'fclShipmentId': fclShipmentId,
       'items': items.map((e) => e.toJson()).toList(),
       'totalCBM': totalCBM,
       'totalShippingCost': totalShippingCost,
@@ -267,6 +271,7 @@ class InternationalImportRequest {
   final double usdToThbRate;
   final double pricePerCBM;
   final List<FCLCostDetail> fclCostDetails;
+  final String? fclShipmentId;
   final List<ImportItem> items;
   final String? notes;
 
@@ -278,6 +283,7 @@ class InternationalImportRequest {
     required this.usdToThbRate,
     required this.pricePerCBM,
     required this.fclCostDetails,
+    this.fclShipmentId,
     required this.items,
     this.notes,
   });
@@ -291,6 +297,7 @@ class InternationalImportRequest {
       'usdToThbRate': usdToThbRate,
       'pricePerCBM': pricePerCBM,
       'fclCostDetails': fclCostDetails.map((e) => e.toJson()).toList(),
+      if (fclShipmentId != null) 'fclShipmentId': fclShipmentId,
       'items': items.map((e) => e.toJson()).toList(),
       if (notes != null) 'notes': notes,
     };

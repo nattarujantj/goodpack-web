@@ -168,6 +168,27 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
             const SizedBox(height: 12),
             if (imp.importType == 'LCL') ...[
               _infoRow('ราคาต่อคิว', '${_currencyFormat.format(imp.pricePerCBM)} บาท/CBM'),
+            ] else if (imp.fclShipmentId != null && imp.fclShipmentId!.isNotEmpty) ...[
+              Text(
+                'ค่าขนส่งเฉลี่ยอัตโนมัติจากตู้ FCL (ตาม CBM ของทั้งตู้)',
+                style: TextStyle(color: Colors.grey[700], fontSize: 13),
+              ),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () => context.push('/fcl-shipment/${imp.fclShipmentId}'),
+                child: Row(
+                  children: [
+                    Icon(Icons.inventory_2, size: 16, color: Colors.blue[700]),
+                    const SizedBox(width: 6),
+                    Text('ดูตู้ FCL',
+                        style: TextStyle(color: Colors.blue[700], decoration: TextDecoration.underline)),
+                    const SizedBox(width: 4),
+                    Icon(Icons.open_in_new, size: 16, color: Colors.blue[700]),
+                  ],
+                ),
+              ),
+              const Divider(),
+              _infoRow('รวมค่าส่ง (ใบนี้)', '${_currencyFormat.format(imp.totalShippingCost)} บาท', isBold: true),
             ] else ...[
               ...imp.fclCostDetails.map((d) => _infoRow(d.name, '${_currencyFormat.format(d.amount)} บาท')),
               const Divider(),

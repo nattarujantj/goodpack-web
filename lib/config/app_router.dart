@@ -28,6 +28,8 @@ import '../screens/expense_form_screen.dart';
 import '../screens/international_import_list_screen.dart';
 import '../screens/international_import_detail_screen.dart';
 import '../screens/international_import_form_screen.dart';
+import '../screens/fcl_shipment_detail_screen.dart';
+import '../screens/fcl_shipment_form_screen.dart';
 import '../screens/user_management_screen.dart';
 import '../screens/inventory_snapshot_screen.dart';
 
@@ -423,8 +425,32 @@ class AppRouter {
               path: '/international-form',
               pageBuilder: (context, state) {
                 final importId = state.uri.queryParameters['id'];
+                final fclShipmentId = state.uri.queryParameters['fclShipmentId'];
                 return _noAnimationPage(
-                  InternationalImportFormScreen(importId: importId),
+                  InternationalImportFormScreen(
+                    importId: importId,
+                    initialFclShipmentId: fclShipmentId,
+                  ),
+                  state,
+                );
+              },
+            ),
+            GoRoute(
+              path: '/fcl-shipment/:id',
+              pageBuilder: (context, state) {
+                final shipmentId = state.pathParameters['id']!;
+                return _noAnimationPage(
+                  FclShipmentDetailScreen(shipmentId: shipmentId),
+                  state,
+                );
+              },
+            ),
+            GoRoute(
+              path: '/fcl-shipment-form',
+              pageBuilder: (context, state) {
+                final shipmentId = state.uri.queryParameters['id'];
+                return _noAnimationPage(
+                  FclShipmentFormScreen(shipmentId: shipmentId),
                   state,
                 );
               },
