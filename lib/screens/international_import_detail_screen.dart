@@ -217,7 +217,9 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
                     DataCell(Text(item.usdPricePerUnit.toString())),
                     DataCell(Text('${item.quantity}')),
                     DataCell(Text('${item.piecesPerBox}')),
-                    DataCell(Text('${item.boxWidth}x${item.boxLength}x${item.boxHeight}')),
+                    DataCell(Text(item.cbmManual
+                        ? '-'
+                        : '${item.boxWidth}x${item.boxLength}x${item.boxHeight}')),
                     DataCell(Text(item.cbm.toStringAsFixed(1))),
                     DataCell(Text(_currencyFormat.format(item.shippingCostPerUnit))),
                     DataCell(Text(_currencyFormat.format(item.commission))),

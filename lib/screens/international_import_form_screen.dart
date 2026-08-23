@@ -114,6 +114,9 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
   // --- CBM & cost calculations (client-side preview) ---
 
   double _calcItemCBM(ImportItem item) {
+    // If the CBM was entered manually, use it directly instead of
+    // recomputing from box dimensions.
+    if (item.cbmManual) return item.cbm;
     int ppb = item.piecesPerBox > 0 ? item.piecesPerBox : 1;
     double numBoxes = (item.quantity / ppb).ceilToDouble();
     double raw = numBoxes * item.boxWidth * item.boxLength * item.boxHeight / 1000000;
@@ -439,7 +442,9 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
                       DataCell(Text(_currencyFormat.format(item.usdPricePerUnit))),
                       DataCell(Text('${item.quantity}')),
                       DataCell(Text('${item.piecesPerBox}')),
-                      DataCell(Text('${item.boxWidth}x${item.boxLength}x${item.boxHeight}')),
+                      DataCell(Text(item.cbmManual
+                          ? '-'
+                          : '${item.boxWidth}x${item.boxLength}x${item.boxHeight}')),
                       DataCell(Text(cbm.toStringAsFixed(1))),
                       DataCell(Text(_currencyFormat.format(shipPU))),
                       DataCell(Text(_currencyFormat.format(item.commission))),
@@ -794,7 +799,11 @@ class _AddItemDialogState extends State<_AddItemDialog> {
       _widthController.text = e.boxWidth.toString();
       _lengthController.text = e.boxLength.toString();
       _heightController.text = e.boxHeight.toString();
-      _cbmController.text = e.cbm.toString();
+      // Only pre-fill the manual CBM field when the value was entered
+      // manually; auto-computed values leave it empty so it recalculates.
+      if (e.cbmManual) {
+        _cbmController.text = e.cbm.toString();
+      }
       _commissionController.text = e.commission.toString();
       _commissionPaid = e.commissionPaid;
     }
@@ -819,6 +828,9 @@ class _AddItemDialogState extends State<_AddItemDialog> {
     _commissionFocusNode.dispose();
     super.dispose();
   }
+
+  // Whether the user has typed a manual CBM value.
+  bool get _isManualCbm => _cbmController.text.trim().isNotEmpty;
 
   double get _cbmPreview {
     double w = double.tryParse(_widthController.text) ?? 0;
@@ -897,7 +909,13 @@ class _AddItemDialogState extends State<_AddItemDialog> {
                       : null,
                 ),
                 const SizedBox(height: 12),
-                const Align(alignment: Alignment.centerLeft, child: Text('ขนาดกล่อง (cm)', style: TextStyle(fontWeight: FontWeight.w500))),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _isManualCbm ? 'ขนาดกล่อง (cm) (ไม่บังคับ)' : 'ขนาดกล่อง (cm)',
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -910,7 +928,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
                         decoration: const InputDecoration(labelText: 'กว้าง'),
                         onChanged: (_) => setState(() {}),
                         onFieldSubmitted: (_) => _lengthFocusNode.requestFocus(),
-                        validator: (v) => (v == null || v.isEmpty) ? 'กรอก' : null,
+                        validator: (v) => (!_isManualCbm && (v == null || v.isEmpty)) ? 'กรอก' : null,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -923,7 +941,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
                         decoration: const InputDecoration(labelText: 'ยาว'),
                         onChanged: (_) => setState(() {}),
                         onFieldSubmitted: (_) => _heightFocusNode.requestFocus(),
-                        validator: (v) => (v == null || v.isEmpty) ? 'กรอก' : null,
+                        validator: (v) => (!_isManualCbm && (v == null || v.isEmpty)) ? 'กรอก' : null,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -936,7 +954,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
                         decoration: const InputDecoration(labelText: 'สูง'),
                         onChanged: (_) => setState(() {}),
                         onFieldSubmitted: (_) => _cbmFocusNode.requestFocus(),
-                        validator: (v) => (v == null || v.isEmpty) ? 'กรอก' : null,
+                        validator: (v) => (!_isManualCbm && (v == null || v.isEmpty)) ? 'กรอก' : null,
                       ),
                     ),
                   ],
@@ -1005,7 +1023,10 @@ class _AddItemDialogState extends State<_AddItemDialog> {
               boxWidth: double.tryParse(_widthController.text) ?? 0,
               boxLength: double.tryParse(_lengthController.text) ?? 0,
               boxHeight: double.tryParse(_heightController.text) ?? 0,
-              cbm: double.tryParse(_cbmController.text) ?? _cbmPreview,
+              cbm: _isManualCbm
+                  ? (double.tryParse(_cbmController.text) ?? _cbmPreview)
+                  : _cbmPreview,
+              cbmManual: _isManualCbm,
               shippingCostPerUnit: 0,
               commission: double.tryParse(_commissionController.text) ?? 0,
               commissionPaid: _commissionPaid,
