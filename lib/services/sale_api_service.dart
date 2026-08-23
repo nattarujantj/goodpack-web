@@ -8,6 +8,26 @@ class SaleApiService {
   static String get _baseUrl => AppConfig.baseUrl;
   static const String _endpoint = '/sales';
 
+  /// สร้างข้อความ error ที่อ่านเข้าใจง่ายจาก response ของ server
+  /// โดยดึงข้อความจริงที่ server ส่งกลับมา (เช่น "Sale code already exists")
+  /// และแปลเคสที่พบบ่อยเป็นภาษาไทย
+  String _errorMessage(http.Response response, String fallback) {
+    final body = response.body.trim();
+    final lower = body.toLowerCase();
+
+    // เคสรหัสรายการขายซ้ำ (server ตอบ 400 พร้อมข้อความนี้)
+    if (lower.contains('sale code already exists')) {
+      return 'รหัสรายการขายนี้ถูกใช้ไปแล้ว กรุณาใช้รหัสอื่น';
+    }
+
+    // มีข้อความจาก server → แสดงข้อความนั้นตรง ๆ
+    if (body.isNotEmpty && body != 'null') {
+      return '$fallback: $body';
+    }
+
+    return '$fallback (${response.statusCode})';
+  }
+
   Future<List<Sale>> getSales() async {
     final response = await http.get(
       Uri.parse('$_baseUrl$_endpoint'),
@@ -58,7 +78,7 @@ class SaleApiService {
     if (response.statusCode == 201) {
       return Sale.fromJson(json.decode(response.body));
     } else {
-      throw Exception('Failed to add sale: ${response.statusCode}');
+      throw Exception(_errorMessage(response, 'ไม่สามารถเพิ่มรายการขายได้'));
     }
   }
 
@@ -72,7 +92,7 @@ class SaleApiService {
     if (response.statusCode == 200) {
       return Sale.fromJson(json.decode(response.body));
     } else {
-      throw Exception('Failed to update sale: ${response.statusCode}');
+      throw Exception(_errorMessage(response, 'ไม่สามารถแก้ไขรายการขายได้'));
     }
   }
 
