@@ -347,6 +347,13 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
               ),
             ],
           ),
+          if (item.commissionPerUnit != null && item.commissionPerUnit! > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              'ค่าคอม (ไม่คิด VAT): ${NumberFormatter.formatPriceWithCurrency(item.commissionPerUnit!)}/ชิ้น · ต้นทุนจริง ${NumberFormatter.formatPriceWithCurrency(item.unitPrice + item.commissionPerUnit!)}/ชิ้น',
+              style: TextStyle(fontSize: 12, color: Colors.orange[800], fontStyle: FontStyle.italic),
+            ),
+          ],
           if (item.preformProductId != null && item.preformUnitPrice != null) ...[
             const SizedBox(height: 8),
             Consumer<ProductProvider>(

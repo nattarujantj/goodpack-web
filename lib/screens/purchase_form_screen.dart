@@ -128,6 +128,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       productCode: item.productCode,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
+      commissionPerUnit: item.commissionPerUnit,
       totalPrice: item.totalPrice,
     )).toList();
     
@@ -579,6 +580,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           unitPrice: item.unitPrice * factor,
           preformProductId: item.preformProductId,
           preformUnitPrice: item.preformUnitPrice,
+          commissionPerUnit: item.commissionPerUnit,
           totalPrice: roundTo2(item.totalPrice * factor),
         )).toList();
       }
