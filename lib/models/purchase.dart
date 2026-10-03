@@ -168,6 +168,8 @@ class PurchaseItem {
   final double unitPrice;
   final String? preformProductId;
   final double? preformUnitPrice;
+  // ค่าคอมต่อชิ้น (ไม่คิด VAT, ไม่รวมใน totalPrice แต่นับเป็นต้นทุนจริงที่ backend)
+  final double? commissionPerUnit;
   final double totalPrice;
 
   PurchaseItem({
@@ -178,6 +180,7 @@ class PurchaseItem {
     required this.unitPrice,
     this.preformProductId,
     this.preformUnitPrice,
+    this.commissionPerUnit,
     required this.totalPrice,
   });
 
@@ -190,6 +193,7 @@ class PurchaseItem {
       unitPrice: (json['unitPrice'] ?? 0.0).toDouble(),
       preformProductId: json['preformProductId'],
       preformUnitPrice: json['preformUnitPrice'] != null ? (json['preformUnitPrice'] as num).toDouble() : null,
+      commissionPerUnit: json['commissionPerUnit'] != null ? (json['commissionPerUnit'] as num).toDouble() : null,
       totalPrice: (json['totalPrice'] ?? 0.0).toDouble(),
     );
   }
@@ -203,6 +207,7 @@ class PurchaseItem {
       'unitPrice': unitPrice,
       if (preformProductId != null) 'preformProductId': preformProductId,
       if (preformUnitPrice != null) 'preformUnitPrice': preformUnitPrice,
+      if (commissionPerUnit != null) 'commissionPerUnit': commissionPerUnit,
       'totalPrice': totalPrice,
     };
   }

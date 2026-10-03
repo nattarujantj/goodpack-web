@@ -185,7 +185,10 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
     return item.usdPricePerUnit * rate + _shippingPerUnit(item) + item.commission;
   }
 
-  double _costAfterVAT(ImportItem item) => _costBeforeVAT(item) * 1.07;
+  // ค่าคอมไม่คิด VAT: VAT คิดจากค่าสินค้า + ค่าส่งเท่านั้น
+  double _vatPerUnit(ImportItem item) => (_costBeforeVAT(item) - item.commission) * 0.07;
+
+  double _costAfterVAT(ImportItem item) => _costBeforeVAT(item) + _vatPerUnit(item);
 
   // --- Build ---
 
@@ -596,7 +599,7 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
     double totalShipping = _items.fold(0.0, (s, i) => s + _shippingPerUnit(i) * i.quantity);
     double totalCommission = _items.fold(0.0, (s, i) => s + i.commission * i.quantity);
     double totalBeforeVAT = _items.fold(0.0, (s, i) => s + _costBeforeVAT(i) * i.quantity);
-    double totalVAT = roundTo2(totalBeforeVAT * 0.07);
+    double totalVAT = roundTo2((totalBeforeVAT - totalCommission) * 0.07);
     double grandTotal = totalBeforeVAT + totalVAT;
 
     return Card(
