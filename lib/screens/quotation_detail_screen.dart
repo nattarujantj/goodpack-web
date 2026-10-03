@@ -645,6 +645,7 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
     );
     final showImages = ValueNotifier<bool>(false);
     final includeHeader = ValueNotifier<bool>(false);
+    final documentType = ValueNotifier<QuotationDocumentType>(QuotationDocumentType.quotation);
 
     final result = await showDialog<_QuotationPrintDialogResult>(
       context: context,
@@ -653,6 +654,21 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            ValueListenableBuilder<QuotationDocumentType>(
+              valueListenable: documentType,
+              builder: (context, value, _) => DropdownButtonFormField<QuotationDocumentType>(
+                value: value,
+                decoration: const InputDecoration(
+                  labelText: 'หัวกระดาษ',
+                  border: OutlineInputBorder(),
+                ),
+                items: QuotationDocumentType.values
+                    .map((t) => DropdownMenuItem(value: t, child: Text(t.thaiTitle)))
+                    .toList(),
+                onChanged: (v) => documentType.value = v ?? QuotationDocumentType.quotation,
+              ),
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: signerNameController,
               decoration: const InputDecoration(
@@ -732,6 +748,7 @@ class _QuotationDetailScreenState extends State<QuotationDetailScreen> {
         productImages: productImages,
         targetWindow: result.targetWindow,
         includeHeader: includeHeader.value,
+        documentType: documentType.value,
       );
 
       if (quotation.status == 'draft') {
