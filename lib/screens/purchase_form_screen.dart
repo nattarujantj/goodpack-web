@@ -1080,6 +1080,13 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               ),
             ],
           ),
+          if (item.commissionPerUnit != null && item.commissionPerUnit! > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              'ค่าคอม (ไม่คิด VAT): ฿${_formatUnitPrice(item.commissionPerUnit!)}/ชิ้น · ต้นทุนจริง: ฿${_formatUnitPrice(item.unitPrice + item.commissionPerUnit!)}/ชิ้น',
+              style: TextStyle(fontSize: 12, color: Colors.orange[800], fontStyle: FontStyle.italic),
+            ),
+          ],
           if (_isVAT) ...[
             const SizedBox(height: 8),
             Row(
@@ -1120,6 +1127,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 
   Widget _buildTotalSummary() {
     final itemsTotal = _purchaseItems.fold(0.0, (sum, item) => sum + item.totalPrice);
+    final totalCommission = _purchaseItems.fold(0.0, (sum, item) => sum + (item.commissionPerUnit ?? 0) * item.quantity);
     double totalBeforeVAT = itemsTotal;
     
     // Calculate VAT based on VAT type
@@ -1210,6 +1218,19 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               ),
             ],
           ),
+          if (totalCommission > 0) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('ค่าคอมรวม (ไม่คิด VAT, นับเป็นต้นทุน):'),
+                Text(
+                  '฿${totalCommission.toStringAsFixed(2)}',
+                  style: TextStyle(color: Colors.orange[800], fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -1762,7 +1783,9 @@ class _AddItemFormState extends State<_AddItemForm> {
   Product? _selectedPreform;
   final _quantityController = TextEditingController();
   final _unitPriceController = TextEditingController();
+  final _commissionController = TextEditingController();
   final _priceFocusNode = FocusNode();
+  final _commissionFocusNode = FocusNode();
 
   bool get _isEditMode => widget.initialItem != null;
 
@@ -1781,6 +1804,9 @@ class _AddItemFormState extends State<_AddItemForm> {
       );
       _quantityController.text = item.quantity.toString();
       _unitPriceController.text = item.unitPrice.toString();
+      if (item.commissionPerUnit != null && item.commissionPerUnit! > 0) {
+        _commissionController.text = item.commissionPerUnit.toString();
+      }
       if (item.preformProductId != null) {
         _selectedPreform = widget.products.cast<Product?>().firstWhere(
           (p) => p!.id == item.preformProductId,
@@ -1794,7 +1820,9 @@ class _AddItemFormState extends State<_AddItemForm> {
   void dispose() {
     _quantityController.dispose();
     _unitPriceController.dispose();
+    _commissionController.dispose();
     _priceFocusNode.dispose();
+    _commissionFocusNode.dispose();
     super.dispose();
   }
 
@@ -1851,13 +1879,39 @@ class _AddItemFormState extends State<_AddItemForm> {
               border: OutlineInputBorder(),
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            textInputAction: TextInputAction.done,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) => _commissionFocusNode.requestFocus(),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'กรุณากรอกราคา';
               }
               if (double.tryParse(value) == null || double.parse(value) <= 0) {
                 return 'กรุณากรอกราคาที่ถูกต้อง';
+              }
+              return null;
+            },
+          ),
+
+          const SizedBox(height: 16),
+
+          // Commission per unit (Optional): นับเป็นต้นทุนสินค้า แต่ไม่คิด VAT
+          TextFormField(
+            controller: _commissionController,
+            focusNode: _commissionFocusNode,
+            decoration: const InputDecoration(
+              labelText: 'ค่าคอมต่อชิ้น (ไม่คิด VAT)',
+              helperText: 'รวมเป็นต้นทุนสินค้า แต่ไม่รวมในยอดคิด VAT',
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.done,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return null;
+              }
+              final v = double.tryParse(value);
+              if (v == null || v < 0) {
+                return 'กรุณากรอกค่าคอมที่ถูกต้อง';
               }
               return null;
             },
@@ -1915,6 +1969,7 @@ class _AddItemFormState extends State<_AddItemForm> {
 
     final quantity = int.parse(_quantityController.text);
     final unitPrice = double.parse(_unitPriceController.text);
+    final commission = double.tryParse(_commissionController.text.trim()) ?? 0.0;
     
     // Calculate total price: unitPrice * quantity (ไม่รวม preform cost)
     // Preform cost จะถูกใช้ในการคำนวณต้นทุนเฉลี่ยที่ backend เท่านั้น
@@ -1940,6 +1995,7 @@ class _AddItemFormState extends State<_AddItemForm> {
       unitPrice: unitPrice,
       preformProductId: _selectedPreform?.id,
       preformUnitPrice: _selectedPreform != null ? preformUnitPrice : null,
+      commissionPerUnit: commission > 0 ? commission : null,
       totalPrice: totalPrice,
     );
 
