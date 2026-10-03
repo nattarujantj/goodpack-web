@@ -555,7 +555,7 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
               ),
               const SizedBox(height: 12),
               Text(
-                isVAT ? 'ราคาต่อชิ้นจะใช้ราคาหลัง VAT' : 'ราคาต่อชิ้นจะใช้ราคาก่อน VAT',
+                isVAT ? 'ราคาต่อชิ้นจะใช้ราคาก่อน VAT และคิด VAT นอก 7%' : 'ราคาต่อชิ้นจะใช้ราคาก่อน VAT',
                 style: TextStyle(color: Colors.grey[600], fontSize: 13),
               ),
             ],
