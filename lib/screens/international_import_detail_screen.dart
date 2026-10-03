@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../models/international_import.dart';
 import '../providers/international_import_provider.dart';
+import '../providers/purchase_provider.dart';
 import '../widgets/responsive_layout.dart';
 import '../utils/date_formatter.dart';
 import '../utils/error_dialog.dart';
@@ -346,6 +347,17 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
           ),
         ),
         const SizedBox(width: 16),
+        if (imp.status == 'purchased') ...[
+          Expanded(
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.cancel_outlined),
+              label: const Text('ยกเลิกรายการซื้อ'),
+              style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+              onPressed: () => _cancelPurchase(imp),
+            ),
+          ),
+          const SizedBox(width: 16),
+        ],
         Expanded(
           child: ElevatedButton.icon(
             icon: const Icon(Icons.shopping_cart),
@@ -495,6 +507,43 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('เกิดข้อผิดพลาด: ${provider.error}'), backgroundColor: Colors.red),
       );
+    }
+  }
+
+  Future<void> _cancelPurchase(InternationalImport imp) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ยกเลิกรายการซื้อ'),
+        content: Text(
+          'ต้องการยกเลิกรายการซื้อที่สร้างจากรายการนำเข้า ${imp.importCode} ?\n\n'
+          'รายการซื้อจะถูกลบ และสต็อค/ราคาทุนที่เพิ่มจากรายการซื้อนี้จะถูกย้อนคืน '
+          'จากนั้นสามารถแก้ไขรายการนำเข้าและสร้างรายการซื้อใหม่ได้',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ไม่ใช่')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('ยกเลิกรายการซื้อ'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final provider = context.read<InternationalImportProvider>();
+    final success = await provider.cancelPurchaseFromImport(imp.id);
+    if (!mounted) return;
+    if (success) {
+      // รายการซื้อถูกลบที่ server แล้ว โหลดรายการซื้อใหม่เพื่อไม่ให้ cache ค้าง
+      context.read<PurchaseProvider>().loadPurchases();
+      final refreshed = provider.getById(imp.id);
+      if (refreshed != null) setState(() => _import = refreshed);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ยกเลิกรายการซื้อเรียบร้อย'), backgroundColor: Colors.orange),
+      );
+    } else {
+      ErrorDialog.showServerError(context, provider.error);
     }
   }
 

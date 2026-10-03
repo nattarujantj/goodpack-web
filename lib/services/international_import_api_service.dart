@@ -113,6 +113,22 @@ class InternationalImportApiService {
     }
   }
 
+  static Future<InternationalImport> cancelPurchaseFromImport(String id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl$_endpoint/$id/cancel-purchase'),
+        headers: AuthToken.headers,
+      );
+      if (response.statusCode == 200) {
+        return InternationalImport.fromJson(json.decode(response.body));
+      } else {
+        throw Exception('Failed to cancel purchase: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error cancelling purchase from import: $e');
+    }
+  }
+
   static Future<InternationalImport> updateCommissionPaid(
     String id,
     int itemIndex,
