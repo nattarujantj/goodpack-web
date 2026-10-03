@@ -809,6 +809,16 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             _buildDocumentTypeOption(
               context,
               sale,
+              SaleDocumentType.depositTaxInvoice,
+              'ใบรับเงินมัดจำ/ใบกำกับภาษี',
+              'Deposit Receipt/Tax Invoice',
+              Icons.savings,
+              Colors.teal,
+            ),
+            const SizedBox(height: 8),
+            _buildDocumentTypeOption(
+              context,
+              sale,
               SaleDocumentType.quotation,
               'ใบเสนอราคา',
               'Quotation',

@@ -64,6 +64,7 @@ enum SaleDocumentType {
   taxInvoice('ใบกำกับภาษี', 'Tax Invoice'),
   receipt('ใบเสร็จรับเงิน', 'Receipt'),
   taxInvoiceReceipt('ใบกำกับภาษี/ใบเสร็จรับเงิน', 'Tax Invoice/Receipt'),
+  depositTaxInvoice('ใบรับเงินมัดจำ/ใบกำกับภาษี', 'Deposit Receipt/Tax Invoice'),
   quotation('ใบเสนอราคา', 'Quotation');
 
   const SaleDocumentType(this.thaiTitle, this.englishTitle);
@@ -97,6 +98,11 @@ class PdfServiceSale {
         return [
           SignatureFieldConfig(label: 'ผู้รับสินค้า', nameDefault: '', hasDate: true),
           SignatureFieldConfig(label: 'ผู้ส่งสินค้า', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true),
+          SignatureFieldConfig(label: 'ผู้มีอำนาจอนุมัติ', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true, dateDefault: sale.saleDate),
+          SignatureFieldConfig(label: 'ผู้รับเงิน', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true, dateDefault: paymentDate),
+        ];
+      case SaleDocumentType.depositTaxInvoice:
+        return [
           SignatureFieldConfig(label: 'ผู้มีอำนาจอนุมัติ', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true, dateDefault: sale.saleDate),
           SignatureFieldConfig(label: 'ผู้รับเงิน', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true, dateDefault: paymentDate),
         ];
@@ -1168,6 +1174,8 @@ class PdfServiceSale {
         return _buildTaxInvoiceReceiptSignatureSection(thaiFont, sale, fontSizeText, signerName, opts);
       case SaleDocumentType.taxInvoice:
         return _buildTaxInvoiceSignatureSection(thaiFont, sale, fontSizeText, signerName, opts);
+      case SaleDocumentType.depositTaxInvoice:
+        return _buildDepositTaxInvoiceSignatureSection(thaiFont, sale, fontSizeText, signerName, opts);
     }
   }
 
@@ -1307,6 +1315,28 @@ class PdfServiceSale {
           _signatureColumn(thaiFont, fontSizeText, nameGoods.isEmpty ? '-' : nameGoods, 'ผู้รับสินค้า', opts?.dateGoodsReceiver, hideValue: nameGoods.isEmpty),
           _signatureColumn(thaiFont, fontSizeText, nameShipper, 'ผู้ส่งสินค้า', opts?.dateShipper, hideValue: false),
           _signatureColumn(thaiFont, fontSizeText, nameApprover, 'ผู้มีอำนาจอนุมัติ', dateApprover, hideValue: false),
+        ],
+      ),
+    );
+  }
+
+  // 5. ใบรับเงินมัดจำ/ใบกำกับภาษี - 2 columns ขวา (ยังไม่ส่งสินค้า จึงไม่มีผู้รับ/ผู้ส่งสินค้า)
+  static pw.Widget _buildDepositTaxInvoiceSignatureSection(pw.Font? thaiFont, Sale sale, double fontSizeText, String signerName, [SaleSignatureOptions? opts]) {
+    final nameApprover = (opts?.nameApprover?.trim().isNotEmpty == true) ? opts!.nameApprover! : signerName;
+    // ถ้ามี opts (มาจาก dialog) ให้ใช้ค่าตามที่ผู้ใช้เลือก รวมถึง null (ไม่แสดงวันที่)
+    final dateApprover = opts != null ? opts.dateApprover : sale.saleDate;
+    final namePayment = (opts?.namePaymentReceiver?.trim().isNotEmpty == true) ? opts!.namePaymentReceiver! : signerName;
+    final datePayment = opts != null ? opts.datePaymentReceiver : (sale.payment.paymentDate ?? sale.saleDate);
+    return pw.Container(
+      width: double.infinity,
+      child: pw.Row(
+        // จัดให้ทุกคอลัมน์เริ่มจากด้านบน บรรทัด "ลงชื่อ" และเส้นลงชื่อจะได้ตรงกันทุกช่อง
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Expanded(flex: 1, child: pw.Container()),
+          pw.Expanded(flex: 1, child: pw.Container()),
+          _signatureColumn(thaiFont, fontSizeText, nameApprover, 'ผู้มีอำนาจอนุมัติ', dateApprover, hideValue: false),
+          _signatureColumn(thaiFont, fontSizeText, namePayment, 'ผู้รับเงิน', datePayment, hideValue: false),
         ],
       ),
     );

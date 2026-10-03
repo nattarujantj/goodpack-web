@@ -9,6 +9,18 @@ import 'dart:html' as html;
 import '../models/quotation.dart';
 import '../models/bank_account.dart';
 
+/// หัวกระดาษที่เลือกได้ตอนพิมพ์ใบเสนอราคา
+enum QuotationDocumentType {
+  quotation('ใบเสนอราคา', 'Quotation', 'ผู้เสนอราคา'),
+  depositTaxInvoice('ใบรับเงินมัดจำ/ใบกำกับภาษี', 'Deposit Receipt/Tax Invoice', 'ผู้รับเงิน');
+
+  const QuotationDocumentType(this.thaiTitle, this.englishTitle, this.companySignerLabel);
+  final String thaiTitle;
+  final String englishTitle;
+  /// ป้ายใต้ช่องลงชื่อฝั่งบริษัท
+  final String companySignerLabel;
+}
+
 class PdfServiceThaiEnhanced {
   static const String defaultSignerName = 'สุภาวดี บูรณะโอสถ';
   
@@ -19,9 +31,10 @@ class PdfServiceThaiEnhanced {
     Map<String, Uint8List>? productImages,
     html.WindowBase? targetWindow,
     bool includeHeader = false,
+    QuotationDocumentType documentType = QuotationDocumentType.quotation,
   }) async {
     try {
-      final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName, productImages: productImages, includeHeader: includeHeader);
+      final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName, productImages: productImages, includeHeader: includeHeader, documentType: documentType);
       final pdfBytes = await pdf.save();
       
       // เปิด PDF ใน tab ใหม่สำหรับ Web
@@ -38,7 +51,7 @@ class PdfServiceThaiEnhanced {
         // สำหรับ mobile/desktop ใช้ Printing.sharePdf เพื่อให้สามารถดาวน์โหลดหรือแชร์ไฟล์ได้
         await Printing.sharePdf(
           bytes: pdfBytes,
-          filename: 'ใบเสนอราคา_${quotation.quotationCode}.pdf',
+          filename: '${documentType.thaiTitle}_${quotation.quotationCode}.pdf',
         );
       }
     } catch (e) {
@@ -46,16 +59,16 @@ class PdfServiceThaiEnhanced {
     }
   }
 
-  static Future<Uint8List> generateQuotationPdfBytes(Quotation quotation, {BankAccount? bankAccount, String? signerName, Map<String, Uint8List>? productImages, bool includeHeader = false}) async {
+  static Future<Uint8List> generateQuotationPdfBytes(Quotation quotation, {BankAccount? bankAccount, String? signerName, Map<String, Uint8List>? productImages, bool includeHeader = false, QuotationDocumentType documentType = QuotationDocumentType.quotation}) async {
     try {
-      final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName, productImages: productImages, includeHeader: includeHeader);
+      final pdf = await _createQuotationPdf(quotation, bankAccount: bankAccount, signerName: signerName ?? defaultSignerName, productImages: productImages, includeHeader: includeHeader, documentType: documentType);
       return pdf.save();
     } catch (e) {
       throw Exception('เกิดข้อผิดพลาดในการสร้าง PDF: $e');
     }
   }
 
-  static Future<pw.Document> _createQuotationPdf(Quotation quotation, {BankAccount? bankAccount, required String signerName, Map<String, Uint8List>? productImages, bool includeHeader = false}) async {
+  static Future<pw.Document> _createQuotationPdf(Quotation quotation, {BankAccount? bankAccount, required String signerName, Map<String, Uint8List>? productImages, bool includeHeader = false, QuotationDocumentType documentType = QuotationDocumentType.quotation}) async {
     final pdf = pw.Document();
 
     // กำหนดขนาดฟอนต์
@@ -123,7 +136,7 @@ class PdfServiceThaiEnhanced {
               ],
               
               // Document Title
-              _buildDocumentTitle(thaiFont),
+              _buildDocumentTitle(thaiFont, documentType),
               pw.SizedBox(height: 5),
               
                 // Customer and Quotation Info
@@ -140,7 +153,7 @@ class PdfServiceThaiEnhanced {
             
               
               // Signature Section
-              _buildSignatureSection(thaiFont, quotation, fontSizeText, signerName),
+              _buildSignatureSection(thaiFont, quotation, fontSizeText, signerName, documentType),
             ],
           );
         },
@@ -247,7 +260,7 @@ class PdfServiceThaiEnhanced {
     );
   }
 
-  static pw.Widget _buildDocumentTitle(pw.Font? thaiFont) {
+  static pw.Widget _buildDocumentTitle(pw.Font? thaiFont, QuotationDocumentType documentType) {
     return pw.Container(
       width: double.infinity,
       child: pw.Column(
@@ -267,7 +280,7 @@ class PdfServiceThaiEnhanced {
               pw.Column(
                 children: [
                   pw.Text(
-                    'ใบเสนอราคา',
+                    documentType.thaiTitle,
                     style: pw.TextStyle(
                       fontSize: 22,
                       fontWeight: pw.FontWeight.bold,
@@ -275,7 +288,7 @@ class PdfServiceThaiEnhanced {
                     ),
                   ),
                   pw.Text(
-                    'Quotation',
+                    documentType.englishTitle,
                     style: pw.TextStyle(
                       fontSize: 20,
                       fontWeight: pw.FontWeight.bold,
@@ -944,7 +957,7 @@ class PdfServiceThaiEnhanced {
     );
   }
 
-  static pw.Widget _buildSignatureSection(pw.Font? thaiFont, Quotation quotation, double fontSizeText, String signerName) {
+  static pw.Widget _buildSignatureSection(pw.Font? thaiFont, Quotation quotation, double fontSizeText, String signerName, QuotationDocumentType documentType) {
     return pw.Container(
       width: double.infinity,
       child: pw.Row(
@@ -1025,7 +1038,7 @@ class PdfServiceThaiEnhanced {
                 ),
                 pw.SizedBox(height: 5),
                 pw.Text(
-                  'ผู้เสนอราคา',
+                  documentType.companySignerLabel,
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
                 pw.SizedBox(height: 5),
