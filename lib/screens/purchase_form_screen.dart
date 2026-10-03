@@ -501,12 +501,9 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'วิธีคำนวณ VAT${_isEdit ? ' (ไม่สามารถเปลี่ยนได้)' : ''}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: _isEdit ? Colors.grey : null,
-                      ),
+                    const Text(
+                      'วิธีคำนวณ VAT',
+                      style: TextStyle(fontWeight: FontWeight.w500),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -517,11 +514,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                             subtitle: const Text('ราคา + VAT 7%', style: TextStyle(fontSize: 12)),
                             value: 'exclusive',
                             groupValue: _vatType,
-                            onChanged: _isEdit ? null : (value) {
-                              setState(() {
-                                _vatType = value ?? 'exclusive';
-                              });
-                            },
+                            onChanged: (value) => _onVatTypeChanged(value ?? 'exclusive'),
                             contentPadding: EdgeInsets.zero,
                             dense: true,
                           ),
@@ -532,11 +525,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                             subtitle: const Text('ราคารวม VAT แล้ว', style: TextStyle(fontSize: 12)),
                             value: 'inclusive',
                             groupValue: _vatType,
-                            onChanged: _isEdit ? null : (value) {
-                              setState(() {
-                                _vatType = value ?? 'exclusive';
-                              });
-                            },
+                            onChanged: (value) => _onVatTypeChanged(value ?? 'exclusive'),
                             contentPadding: EdgeInsets.zero,
                             dense: true,
             ),
@@ -551,6 +540,50 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
         ),
       ),
     );
+  }
+
+  // เปลี่ยนวิธีคำนวณ VAT (VAT นอก <-> VAT ใน)
+  // ถ้ามีสินค้าในรายการแล้ว ให้เลือกว่าจะแปลงราคาให้ยอดที่ต้องจ่ายเท่าเดิม หรือใช้ราคาเดิม
+  Future<void> _onVatTypeChanged(String newType) async {
+    if (newType == _vatType) return;
+    if (_purchaseItems.isEmpty) {
+      setState(() => _vatType = newType);
+      return;
+    }
+
+    final toExclusive = newType == 'exclusive';
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(toExclusive ? 'เปลี่ยนเป็น VAT นอก' : 'เปลี่ยนเป็น VAT ใน'),
+        content: Text(toExclusive
+            ? 'ต้องการแปลงราคาสินค้าเป็นราคาก่อน VAT (หาร 1.07) เพื่อให้ยอดที่ต้องจ่ายเท่าเดิมหรือไม่?'
+            : 'ต้องการแปลงราคาสินค้าเป็นราคารวม VAT (คูณ 1.07) เพื่อให้ยอดที่ต้องจ่ายเท่าเดิมหรือไม่?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+          TextButton(onPressed: () => Navigator.pop(ctx, 'keep'), child: const Text('ใช้ราคาเดิม')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, 'convert'), child: const Text('แปลงราคา')),
+        ],
+      ),
+    );
+    if (choice == null || !mounted) return;
+
+    setState(() {
+      if (choice == 'convert') {
+        final factor = toExclusive ? 1 / 1.07 : 1.07;
+        _purchaseItems = _purchaseItems.map((item) => PurchaseItem(
+          productId: item.productId,
+          productName: item.productName,
+          productCode: item.productCode,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice * factor,
+          preformProductId: item.preformProductId,
+          preformUnitPrice: item.preformUnitPrice,
+          totalPrice: roundTo2(item.totalPrice * factor),
+        )).toList();
+      }
+      _vatType = newType;
+    });
   }
 
   Widget _buildPaymentSection() {
