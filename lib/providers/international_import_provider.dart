@@ -145,6 +145,19 @@ class InternationalImportProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> cancelPurchaseFromImport(String id) async {
+    _error = '';
+    try {
+      final updated = await InternationalImportApiService.cancelPurchaseFromImport(id);
+      _putInCache(updated);
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> updateCommissionPaid(String id, int itemIndex, bool commissionPaid) async {
     _error = '';
     try {
