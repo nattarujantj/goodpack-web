@@ -1033,11 +1033,13 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                 child: Text('จำนวน: ${item.quantity}'),
               ),
               Expanded(
-                child: Text('ราคาต่อชิ้น: ฿${item.unitPrice.toStringAsFixed(2)}'),
+                child: Text('ราคาต่อชิ้น: ฿${_formatUnitPrice(item.unitPrice)}'),
               ),
               Expanded(
                 child: Text(
-                  'รวม: ฿${item.totalPrice.toStringAsFixed(2)}',
+                  _isVAT
+                      ? 'ก่อน VAT: ฿${priceBeforeVAT.toStringAsFixed(2)}'
+                      : 'รวม: ฿${item.totalPrice.toStringAsFixed(2)}',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
@@ -1073,8 +1075,17 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     );
   }
 
+  // แสดงราคาต่อชิ้นแบบทศนิยม 4 ตำแหน่งเมื่อราคามีเศษเกิน 2 ตำแหน่ง
+  // (เช่น ราคาที่ได้จากการนำเข้าต่างประเทศ) เพื่อให้ จำนวน × ราคา ตรงกับยอดรวม
+  String _formatUnitPrice(double price) {
+    final rounded2 = price.toStringAsFixed(2);
+    if ((double.parse(rounded2) - price).abs() < 0.00005) return rounded2;
+    return price.toStringAsFixed(4);
+  }
+
   Widget _buildTotalSummary() {
-    final totalBeforeVAT = _purchaseItems.fold(0.0, (sum, item) => sum + item.totalPrice);
+    final itemsTotal = _purchaseItems.fold(0.0, (sum, item) => sum + item.totalPrice);
+    double totalBeforeVAT = itemsTotal;
     
     // Calculate VAT based on VAT type
     double totalVAT = 0.0;
@@ -1085,8 +1096,9 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
         // VAT ใน: ราคารวม VAT แล้ว, ต้องถอด VAT ออก
         // ราคาก่อน VAT = ราคารวม / 1.07
         // VAT = ราคารวม - ราคาก่อน VAT
-        totalVAT = roundTo2(totalBeforeVAT - (totalBeforeVAT / 1.07));
-        grandTotal = totalBeforeVAT; // ราคาที่กรอกคือราคารวม VAT แล้ว
+        totalVAT = roundTo2(itemsTotal - (itemsTotal / 1.07));
+        grandTotal = itemsTotal; // ราคาที่กรอกคือราคารวม VAT แล้ว
+        totalBeforeVAT = itemsTotal - totalVAT;
       } else {
         // VAT นอก: ราคา + VAT 7%
         totalVAT = roundTo2(totalBeforeVAT * 0.07);
