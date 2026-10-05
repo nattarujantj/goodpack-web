@@ -17,6 +17,7 @@ class Sale {
   final bool isVAT;
   final String vatType; // "exclusive" (VAT นอก) or "inclusive" (VAT ใน)
   final double shippingCost;
+  final double deposit; // เงินมัดจำ (หักออกจากยอดที่ต้องชำระหลัง VAT)
   final PaymentInfo payment;
   final WarehouseInfo warehouse;
   final String? notes;
@@ -43,6 +44,7 @@ class Sale {
     required this.isVAT,
     this.vatType = 'exclusive',
     required this.shippingCost,
+    this.deposit = 0.0,
     required this.payment,
     required this.warehouse,
     this.notes,
@@ -73,6 +75,7 @@ class Sale {
       isVAT: json['isVAT'],
       vatType: json['vatType'] ?? 'exclusive',
       shippingCost: (json['shippingCost'] ?? 0.0).toDouble(),
+      deposit: (json['deposit'] ?? 0.0).toDouble(),
       payment: PaymentInfo.fromJson(json['payment']),
       warehouse: WarehouseInfo.fromJson(json['warehouse']),
       notes: json['notes'],
@@ -102,6 +105,7 @@ class Sale {
       'isVAT': isVAT,
       'vatType': vatType,
       'shippingCost': shippingCost,
+      'deposit': deposit,
       'payment': payment.toJson(),
       'warehouse': warehouse.toJson(),
       'notes': notes,
@@ -130,6 +134,7 @@ class Sale {
     bool? isVAT,
     String? vatType,
     double? shippingCost,
+    double? deposit,
     PaymentInfo? payment,
     WarehouseInfo? warehouse,
     String? notes,
@@ -156,6 +161,7 @@ class Sale {
       isVAT: isVAT ?? this.isVAT,
       vatType: vatType ?? this.vatType,
       shippingCost: shippingCost ?? this.shippingCost,
+      deposit: deposit ?? this.deposit,
       payment: payment ?? this.payment,
       warehouse: warehouse ?? this.warehouse,
       notes: notes ?? this.notes,
@@ -217,6 +223,7 @@ class SaleRequest {
   final bool isVAT;
   final String vatType; // "exclusive" (VAT นอก) or "inclusive" (VAT ใน)
   final double shippingCost;
+  final double deposit;
   final PaymentInfo payment;
   final WarehouseInfo warehouse;
   final String? notes;
@@ -234,6 +241,7 @@ class SaleRequest {
     required this.isVAT,
     this.vatType = 'exclusive',
     required this.shippingCost,
+    this.deposit = 0.0,
     required this.payment,
     required this.warehouse,
     this.notes,
@@ -253,6 +261,7 @@ class SaleRequest {
       'isVAT': isVAT,
       'vatType': vatType,
       'shippingCost': shippingCost,
+      'deposit': deposit,
       'payment': payment.toJson(),
       'warehouse': warehouse.toJson(),
       'notes': notes,
