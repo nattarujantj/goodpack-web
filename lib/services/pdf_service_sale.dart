@@ -903,6 +903,7 @@ class PdfServiceSale {
         grandTotal = itemsTotal + vatAmount + sale.shippingCost;
       }
     }
+    final deposit = _depositToDeduct(sale, documentType);
 
     return pw.Column(
       children: [
@@ -1017,7 +1018,7 @@ class PdfServiceSale {
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
               ),
-              _buildMergedAmountInWordsCell(sale, thaiFont, fontSizeText),
+              _buildMergedAmountInWordsCell(sale, thaiFont, fontSizeText, documentType),
               pw.Container(
                 padding: const pw.EdgeInsets.fromLTRB(3, 1, 1, 1),
                 decoration: const pw.BoxDecoration(
@@ -1036,6 +1037,16 @@ class PdfServiceSale {
                       'สุทธิ / Net Amount',
                       style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                     ),
+                    if (deposit > 0) ...[
+                      pw.Text(
+                        'หักมัดจำ / Less Deposit',
+                        style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
+                      ),
+                      pw.Text(
+                        'ยอดชำระ / Amount Due',
+                        style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, fontWeight: pw.FontWeight.bold),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1054,6 +1065,18 @@ class PdfServiceSale {
                       style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                       textAlign: pw.TextAlign.right,
                     ),
+                    if (deposit > 0) ...[
+                      pw.Text(
+                        '-${_formatCurrency(deposit)}',
+                        style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
+                        textAlign: pw.TextAlign.right,
+                      ),
+                      pw.Text(
+                        _formatCurrency(grandTotal - deposit),
+                        style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont, fontWeight: pw.FontWeight.bold),
+                        textAlign: pw.TextAlign.right,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1129,7 +1152,14 @@ class PdfServiceSale {
     );
   }
 
-  static pw.Widget _buildMergedAmountInWordsCell(Sale sale, pw.Font? thaiFont, double fontSizeText) {
+  /// เงินมัดจำที่ต้องหักออกจากยอดหลัง VAT
+  /// (ใบรับเงินมัดจำไม่หัก เพราะเป็นเอกสารของตัวมัดจำเอง)
+  static double _depositToDeduct(Sale sale, SaleDocumentType documentType) {
+    if (documentType == SaleDocumentType.depositTaxInvoice) return 0.0;
+    return sale.deposit > 0 ? sale.deposit : 0.0;
+  }
+
+  static pw.Widget _buildMergedAmountInWordsCell(Sale sale, pw.Font? thaiFont, double fontSizeText, SaleDocumentType documentType) {
     final itemsTotal = sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);
     
     // Calculate VAT based on vatType
@@ -1146,7 +1176,7 @@ class PdfServiceSale {
         grandTotal = itemsTotal + vatAmount + sale.shippingCost;
       }
     }
-    final fullAmountInWords = _convertToThaiText(grandTotal);
+    final fullAmountInWords = _convertToThaiText(grandTotal - _depositToDeduct(sale, documentType));
     
     return pw.Container(
       padding: const pw.EdgeInsets.all(1),
