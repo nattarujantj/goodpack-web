@@ -67,6 +67,14 @@ class InternationalImport {
   });
 
   factory InternationalImport.fromJson(Map<String, dynamic> json) {
+    final items = (json['items'] as List<dynamic>?)
+            ?.map((e) => ImportItem.fromJson(e))
+            .toList() ??
+        <ImportItem>[];
+    // รายการที่บันทึกก่อนมี totalVAT: รวมจาก VAT ต่อชิ้นของแต่ละสินค้า (ประมาณการ 7% เดิม)
+    final totalVAT = json['totalVAT'] != null
+        ? (json['totalVAT'] as num).toDouble()
+        : items.fold(0.0, (s, i) => s + i.vatPerUnit * i.quantity);
     return InternationalImport(
       id: json['id']?.toString() ?? '',
       importCode: json['importCode'] ?? '',
@@ -90,17 +98,14 @@ class InternationalImport {
           ? ImportCustoms.fromJson(json['customs'] as Map<String, dynamic>)
           : null,
       vatSource: json['vatSource'] ?? 'estimated',
-      items: (json['items'] as List<dynamic>?)
-              ?.map((e) => ImportItem.fromJson(e))
-              .toList() ??
-          [],
+      items: items,
       totalCBM: (json['totalCBM'] ?? 0).toDouble(),
       totalShippingCost: (json['totalShippingCost'] ?? 0).toDouble(),
       totalProductCost: (json['totalProductCost'] ?? 0).toDouble(),
       totalImportDuty: (json['totalImportDuty'] ?? 0).toDouble(),
       totalGoodsVAT: (json['totalGoodsVAT'] ?? 0).toDouble(),
       totalFreightVAT: (json['totalFreightVAT'] ?? 0).toDouble(),
-      totalVAT: (json['totalVAT'] ?? 0).toDouble(),
+      totalVAT: totalVAT,
       grandTotal: (json['grandTotal'] ?? 0).toDouble(),
       status: json['status'] ?? 'draft',
       purchaseId: json['purchaseId'],
