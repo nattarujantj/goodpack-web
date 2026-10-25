@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_app/models/bank_account.dart';
+import 'package:flutter_app/models/expense.dart';
 import 'package:flutter_app/models/fcl_shipment.dart';
 import 'package:flutter_app/models/purchase.dart';
 import 'package:flutter_app/models/sale.dart';
@@ -74,6 +75,13 @@ Widget wrap(Widget child) => MaterialApp(home: Scaffold(body: SingleChildScrollV
 
 void main() {
   group('TaxAmounts', () {
+    test('expense before VAT', () {
+      final e = Expense.fromJson({'id': 'e1', 'category': 'x', 'amount': 1070, 'vat': 70, 'expenseDate': '2026-10-08T00:00:00Z'});
+      expect(e.amountBeforeVAT, 1000);
+      final old = Expense.fromJson({'id': 'e2', 'category': 'x', 'amount': 500, 'expenseDate': '2026-10-08T00:00:00Z'});
+      expect(old.amountBeforeVAT, 500); // records saved before VAT existed
+    });
+
     test('sale VAT นอก: VAT on items only, shipping not taxed', () {
       final s = sale(code: 'S1', date: '2026-10-05T00:00:00Z', items: 1000, shipping: 50);
       expect(TaxAmounts.saleVAT(s), 70);
@@ -125,16 +133,20 @@ void main() {
         purchase(code: 'P2', date: '2026-10-03T00:00:00Z', amount: 10000, vat: 700),
       ],
       shipments: [shipment],
+      expenses: [
+        Expense.fromJson({'id': 'e1', 'category': 'ค่าขนส่ง', 'amount': 1070, 'vat': 70, 'expenseDate': '2026-10-08T00:00:00Z'}),
+        Expense.fromJson({'id': 'e2', 'category': 'ค่าน้ำมัน', 'amount': 500, 'expenseDate': '2026-10-08T00:00:00Z'}),
+      ],
       selectedMonth: DateTime(2026, 10),
     )));
 
-    // ต.ค.: ภาษีซื้อ 22,167 + 700 + 455 = 23,322 → เครดิต 16,322
+    // ต.ค.: ภาษีซื้อ 22,167 + 700 + 455 + 70 = 23,392 → เครดิต 16,392
     expect(find.text('7,000.00'), findsOneWidget);
-    expect(find.text('23,322.00'), findsNWidgets(2)); // ต.ค. and YTD (no purchases in ก.ย.)
-    expect(find.text('(16,322.00)'), findsOneWidget);
-    // YTD: ขาย 7,700 ซื้อ 23,322 → เครดิต 15,622
+    expect(find.text('23,392.00'), findsNWidgets(2)); // ต.ค. and YTD (no purchases in ก.ย.)
+    expect(find.text('(16,392.00)'), findsOneWidget);
+    // YTD: ขาย 7,700 ซื้อ 23,392 → เครดิต 15,692
     expect(find.text('7,700.00'), findsOneWidget);
-    expect(find.text('(15,622.00)'), findsOneWidget);
+    expect(find.text('(15,692.00)'), findsOneWidget);
   });
 
   testWidgets('BankAccountSummaryCard counts paid money in/out per account', (tester) async {

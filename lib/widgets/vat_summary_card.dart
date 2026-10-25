@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../models/expense.dart';
 import '../models/fcl_shipment.dart';
 import '../models/purchase.dart';
 import '../models/sale.dart';
@@ -9,7 +10,7 @@ import '../utils/tax_amounts.dart';
 /// หนึ่งรายการที่มี VAT (ภาษีขายหรือภาษีซื้อ) สำหรับสรุป VAT รายเดือน
 class _VatEntry {
   final DateTime date;
-  final String kind; // ขาย | ซื้อ | นำเข้า | ค่าตู้
+  final String kind; // ขาย | ซื้อ | นำเข้า | ค่าตู้ | ค่าใช้จ่าย
   final String code;
   final String partner;
   final double vat;
@@ -26,11 +27,12 @@ class _VatEntry {
 }
 
 /// สรุป VAT ย้อนหลังทีละเดือนของปีที่เลือก (ม.ค. ถึงเดือนที่เลือก) พร้อมยอด YTD
-/// ภาษีซื้อรวม ใบซื้อ VAT, นำเข้าตามใบขน และ VAT ค่าใช้จ่ายตู้ FCL
+/// ภาษีซื้อรวม ใบซื้อ VAT, นำเข้าตามใบขน, VAT ค่าใช้จ่ายตู้ FCL และ VAT ค่าใช้จ่ายอื่นๆ
 class VatSummaryCard extends StatelessWidget {
   final List<Sale> sales;
   final List<Purchase> purchases;
   final List<FclShipment> shipments;
+  final List<Expense> expenses;
   final DateTime selectedMonth;
 
   const VatSummaryCard({
@@ -38,6 +40,7 @@ class VatSummaryCard extends StatelessWidget {
     required this.sales,
     required this.purchases,
     required this.shipments,
+    this.expenses = const [],
     required this.selectedMonth,
   }) : super(key: key);
 
@@ -91,6 +94,21 @@ class VatSummaryCard extends StatelessWidget {
           isSale: false,
         ));
       }
+    }
+    for (final expense in expenses) {
+      if (expense.vat == 0 || expense.expenseDate.year != year) continue;
+      entries.add(_VatEntry(
+        date: expense.expenseDate,
+        kind: 'ค่าใช้จ่าย',
+        code: [
+          expense.category,
+          if (expense.description.isNotEmpty) expense.description,
+          if (expense.taxInvoiceNo.isNotEmpty) expense.taxInvoiceNo,
+        ].join(' · '),
+        partner: expense.vendor,
+        vat: expense.vat,
+        isSale: false,
+      ));
     }
     return entries;
   }
@@ -179,8 +197,8 @@ class VatSummaryCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'ภาษีซื้อรวมใบซื้อ VAT, นำเข้าตามใบขน และ VAT ค่าใช้จ่ายตู้ · กดที่เดือนเพื่อดูรายการ\n'
-              'ยังไม่รวม VAT ของค่าใช้จ่ายอื่นๆ (ไม่มีช่อง VAT) ตัวเลขนี้ใช้ดูภาพรวม ยอดยื่น ภ.พ.30 ให้ยึดตามบัญชี',
+              'ภาษีซื้อรวมใบซื้อ VAT, นำเข้าตามใบขน, VAT ค่าใช้จ่ายตู้ และค่าใช้จ่ายที่มีใบกำกับภาษี · กดที่เดือนเพื่อดูรายการ\n'
+              'ตัวเลขนี้ใช้ดูภาพรวม ยอดยื่น ภ.พ.30 ให้ยึดตามบัญชี',
               style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
@@ -198,6 +216,7 @@ class VatSummaryCard extends StatelessWidget {
           'ขาย' => Colors.green,
           'นำเข้า' => Colors.teal,
           'ค่าตู้' => Colors.indigo,
+          'ค่าใช้จ่าย' => Colors.deepOrange,
           _ => Colors.blue,
         };
 

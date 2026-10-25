@@ -49,7 +49,11 @@ class Expense {
   final String id;
   final String category;
   final String description;
-  final double amount;
+  final double amount; // ยอดที่จ่ายจริง (รวม VAT ถ้ามี)
+  // ภาษีซื้อที่รวมอยู่ใน amount ตามใบกำกับภาษี (0 = ไม่มี VAT)
+  final double vat;
+  final String vendor;
+  final String taxInvoiceNo;
   final DateTime expenseDate;
   final String notes;
   final List<ExpenseAttachment> attachments;
@@ -61,6 +65,9 @@ class Expense {
     required this.category,
     required this.description,
     required this.amount,
+    this.vat = 0,
+    this.vendor = '',
+    this.taxInvoiceNo = '',
     required this.expenseDate,
     this.notes = '',
     this.attachments = const [],
@@ -68,12 +75,18 @@ class Expense {
     required this.updatedAt,
   });
 
+  /// ยอดค่าใช้จ่ายก่อน VAT
+  double get amountBeforeVAT => amount - vat;
+
   factory Expense.fromJson(Map<String, dynamic> json) {
     return Expense(
       id: json['id'] ?? '',
       category: json['category'] ?? '',
       description: json['description'] ?? '',
       amount: (json['amount'] ?? 0).toDouble(),
+      vat: (json['vat'] ?? 0).toDouble(),
+      vendor: json['vendor'] ?? '',
+      taxInvoiceNo: json['taxInvoiceNo'] ?? '',
       expenseDate: json['expenseDate'] != null
           ? DateTime.parse(json['expenseDate']).toLocal()
           : DateTime.now(),
@@ -98,6 +111,9 @@ class Expense {
       'category': category,
       'description': description,
       'amount': amount,
+      'vat': vat,
+      'vendor': vendor,
+      'taxInvoiceNo': taxInvoiceNo,
       'expenseDate': expenseDate.toIso8601String(),
       'notes': notes,
       'attachments': attachments.map((a) => a.toJson()).toList(),
@@ -111,6 +127,9 @@ class Expense {
     String? category,
     String? description,
     double? amount,
+    double? vat,
+    String? vendor,
+    String? taxInvoiceNo,
     DateTime? expenseDate,
     String? notes,
     List<ExpenseAttachment>? attachments,
@@ -122,6 +141,9 @@ class Expense {
       category: category ?? this.category,
       description: description ?? this.description,
       amount: amount ?? this.amount,
+      vat: vat ?? this.vat,
+      vendor: vendor ?? this.vendor,
+      taxInvoiceNo: taxInvoiceNo ?? this.taxInvoiceNo,
       expenseDate: expenseDate ?? this.expenseDate,
       notes: notes ?? this.notes,
       attachments: attachments ?? this.attachments,
@@ -135,6 +157,9 @@ class ExpenseRequest {
   final String category;
   final String description;
   final double amount;
+  final double vat;
+  final String vendor;
+  final String taxInvoiceNo;
   final String expenseDate;
   final String notes;
 
@@ -142,6 +167,9 @@ class ExpenseRequest {
     required this.category,
     required this.description,
     required this.amount,
+    this.vat = 0,
+    this.vendor = '',
+    this.taxInvoiceNo = '',
     required this.expenseDate,
     this.notes = '',
   });
@@ -151,6 +179,9 @@ class ExpenseRequest {
       'category': category,
       'description': description,
       'amount': amount,
+      'vat': vat,
+      'vendor': vendor,
+      'taxInvoiceNo': taxInvoiceNo,
       'expenseDate': expenseDate,
       'notes': notes,
     };

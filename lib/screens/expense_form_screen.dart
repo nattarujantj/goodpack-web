@@ -9,6 +9,7 @@ import '../models/expense.dart';
 import '../services/expense_api_service.dart';
 import '../services/image_upload_service.dart';
 import '../widgets/responsive_layout.dart';
+import '../utils/number_formatter.dart';
 
 /// A file selected in the form before the expense has been saved.
 class _PendingAttachment {
@@ -37,6 +38,11 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
   final _descriptionController = TextEditingController();
   final _amountController = TextEditingController();
   final _notesController = TextEditingController();
+  // ใบกำกับภาษี: VAT ที่รวมอยู่ในจำนวนเงิน
+  bool _hasVAT = false;
+  final _vatController = TextEditingController();
+  final _vendorController = TextEditingController();
+  final _taxInvoiceNoController = TextEditingController();
 
   String _selectedCategory = '';
   DateTime _expenseDate = DateTime.now();
@@ -84,6 +90,10 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
         _descriptionController.text = expense.description;
         _amountController.text = expense.amount.toString();
         _notesController.text = expense.notes;
+        _hasVAT = expense.vat > 0;
+        _vatController.text = expense.vat > 0 ? expense.vat.toString() : '';
+        _vendorController.text = expense.vendor;
+        _taxInvoiceNoController.text = expense.taxInvoiceNo;
         _expenseDate = expense.expenseDate;
         _attachments = List<ExpenseAttachment>.from(expense.attachments);
       });
@@ -95,6 +105,9 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
     _descriptionController.dispose();
     _amountController.dispose();
     _notesController.dispose();
+    _vatController.dispose();
+    _vendorController.dispose();
+    _taxInvoiceNoController.dispose();
     super.dispose();
   }
 
@@ -107,6 +120,9 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
       category: _selectedCategory,
       description: _descriptionController.text.trim(),
       amount: double.tryParse(_amountController.text) ?? 0,
+      vat: _hasVAT ? (double.tryParse(_vatController.text) ?? 0) : 0,
+      vendor: _hasVAT ? _vendorController.text.trim() : '',
+      taxInvoiceNo: _hasVAT ? _taxInvoiceNoController.text.trim() : '',
       expenseDate: DateFormat('yyyy-MM-dd').format(_expenseDate),
       notes: _notesController.text.trim(),
     );
@@ -320,6 +336,85 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(0)} KB';
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  Widget _buildVATSection() {
+    final amount = double.tryParse(_amountController.text) ?? 0;
+    final vat = double.tryParse(_vatController.text) ?? 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('มีใบกำกับภาษี (VAT)'),
+          subtitle: const Text('VAT นับเป็นภาษีซื้อ ใช้ในสรุป VAT ของแดชบอร์ด', style: TextStyle(fontSize: 12)),
+          value: _hasVAT,
+          onChanged: (v) => setState(() {
+            _hasVAT = v;
+            // เปิดครั้งแรก: ประมาณ VAT 7% ที่รวมอยู่ในยอด (ยอด × 7/107)
+            if (v && _vatController.text.isEmpty && amount > 0) {
+              _vatController.text = roundTo2(amount * 7 / 107).toString();
+            }
+          }),
+        ),
+        if (_hasVAT) ...[
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _vatController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'VAT ตามใบกำกับ (บาท)',
+                    prefixIcon: Icon(Icons.receipt),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                  validator: (v) {
+                    if (!_hasVAT) return null;
+                    final value = double.tryParse(v ?? '');
+                    if (value == null || value < 0) return 'กรุณากรอก VAT ที่ถูกต้อง';
+                    if (value >= amount) return 'VAT ต้องน้อยกว่าจำนวนเงินรวม';
+                    return null;
+                  },
+                ),
+              ),
+              TextButton(
+                onPressed: amount > 0
+                    ? () => setState(() => _vatController.text = roundTo2(amount * 7 / 107).toString())
+                    : null,
+                child: const Text('7% จากยอดรวม'),
+              ),
+            ],
+          ),
+          if (amount > 0 && vat >= 0 && vat < amount)
+            Padding(
+              padding: const EdgeInsets.only(top: 4, left: 12),
+              child: Text(
+                'ก่อน VAT ฿${roundTo2(amount - vat).toStringAsFixed(2)} + VAT ฿${vat.toStringAsFixed(2)}',
+                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+              ),
+            ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _vendorController,
+                  decoration: const InputDecoration(labelText: 'ผู้ขาย / ผู้ออกใบกำกับ'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextFormField(
+                  controller: _taxInvoiceNoController,
+                  decoration: const InputDecoration(labelText: 'เลขที่ใบกำกับภาษี'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
   }
 
   Widget _buildAttachmentSection() {
@@ -539,11 +634,12 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                                   controller: _amountController,
                                   keyboardType:
                                       const TextInputType.numberWithOptions(decimal: true),
-                                  decoration: const InputDecoration(
-                                    labelText: 'จำนวนเงิน (บาท) *',
+                                  decoration: InputDecoration(
+                                    labelText: _hasVAT ? 'จำนวนเงินรวม VAT (บาท) *' : 'จำนวนเงิน (บาท) *',
                                     hintText: '0.00',
-                                    prefixIcon: Icon(Icons.attach_money),
+                                    prefixIcon: const Icon(Icons.attach_money),
                                   ),
+                                  onChanged: (_) => setState(() {}),
                                   validator: (v) {
                                     if (v == null || v.isEmpty) return 'กรุณากรอกจำนวนเงิน';
                                     final amount = double.tryParse(v);
@@ -553,6 +649,8 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                                     return null;
                                   },
                                 ),
+                                const SizedBox(height: 8),
+                                _buildVATSection(),
                                 const SizedBox(height: 16),
                                 InkWell(
                                   onTap: _pickDate,

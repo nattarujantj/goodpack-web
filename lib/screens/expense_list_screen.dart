@@ -320,13 +320,24 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                '฿${_currencyFormat.format(expense.amount)}',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.orange.shade800,
-                ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '฿${_currencyFormat.format(expense.amount)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.orange.shade800,
+                    ),
+                  ),
+                  if (expense.vat > 0)
+                    Text(
+                      'VAT ฿${_currencyFormat.format(expense.vat)}',
+                      style: TextStyle(fontSize: 11, color: Colors.green[700]),
+                    ),
+                ],
               ),
               const SizedBox(width: 4),
               IconButton(
@@ -385,6 +396,9 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
               category: expense.category,
               description: expense.description,
               amount: expense.amount,
+              vat: expense.vat,
+              vendor: expense.vendor,
+              taxInvoiceNo: expense.taxInvoiceNo,
               expenseDate: DateFormat('yyyy-MM-dd').format(expense.expenseDate),
               notes: expense.notes,
             ));

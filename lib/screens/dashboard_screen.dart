@@ -237,6 +237,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 VatSummaryCard(
                   sales: sales,
                   purchases: purchases,
+                  expenses: expenses,
                   shipments: context.watch<FclShipmentProvider>().allShipments,
                   selectedMonth: _selectedMonth,
                 ),
@@ -319,7 +320,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final thisMonthExpenses = expenses.where((e) =>
       e.expenseDate.year == selectedMonth.year && e.expenseDate.month == selectedMonth.month
     ).toList();
-    final thisMonthExpenseTotal = thisMonthExpenses.fold(0.0, (sum, e) => sum + e.amount);
+    final thisMonthExpenseTotal = thisMonthExpenses.fold(0.0, (sum, e) => sum + e.amountBeforeVAT);
 
     // Calculate growth percentage
     final growthPercent = lastMonthTotal > 0
@@ -360,7 +361,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: cardWidth,
             ),
             _buildSummaryCard(
-              'ค่าใช้จ่ายอื่นๆ',
+              'ค่าใช้จ่ายอื่นๆ (ก่อน VAT)',
               _formatCurrency(thisMonthExpenseTotal),
               Icons.receipt_long,
               Colors.deepOrange,
@@ -777,7 +778,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     for (final exp in expenses) {
       if (exp.expenseDate.year == chartYear) {
         monthlyData[exp.expenseDate.month]!['otherExpense'] =
-            (monthlyData[exp.expenseDate.month]!['otherExpense'] ?? 0) + exp.amount;
+            (monthlyData[exp.expenseDate.month]!['otherExpense'] ?? 0) + exp.amountBeforeVAT;
       }
     }
 
