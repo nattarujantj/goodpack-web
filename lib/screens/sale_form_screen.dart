@@ -39,6 +39,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
   final _saleCodeController = TextEditingController();
   final _quotationCodeController = TextEditingController();
   final _shippingCostController = TextEditingController();
+  final _depositController = TextEditingController();
 
   String? _selectedCustomerId;
   String? _selectedAccountId;
@@ -69,6 +70,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     _saleCodeController.dispose();
     _quotationCodeController.dispose();
     _shippingCostController.dispose();
+    _depositController.dispose();
     super.dispose();
   }
 
@@ -165,6 +167,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     _isVAT = sale.isVAT;
     _vatType = sale.vatType;
     _shippingCostController.text = sale.shippingCost > 0 ? sale.shippingCost.toString() : '';
+    _depositController.text = sale.deposit > 0 ? sale.deposit.toString() : '';
     _notesController.text = sale.notes ?? '';
     
     // Copy items
@@ -239,6 +242,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     _isVAT = sale.isVAT;
     _vatType = sale.vatType;
     _shippingCostController.text = sale.shippingCost.toString();
+    _depositController.text = sale.deposit > 0 ? sale.deposit.toString() : '';
     _isPaid = sale.payment.isPaid;
     _paymentMethodController.text = sale.payment.paymentMethod ?? '';
     _selectedAccountId = sale.payment.ourAccount;
@@ -403,6 +407,16 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
               label: 'ค่าส่ง',
               hint: '0.00',
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            _buildTextField(
+              controller: _depositController,
+              label: 'เงินมัดจำ',
+              hint: '0.00',
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => setState(() {}),
             ),
             
             const SizedBox(height: 16),
@@ -906,6 +920,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
   Widget _buildTotalSummary() {
     final itemsTotal = _saleItems.fold(0.0, (sum, item) => sum + item.totalPrice);
     final shippingCost = double.tryParse(_shippingCostController.text) ?? 0.0;
+    final deposit = double.tryParse(_depositController.text) ?? 0.0;
     
     // Calculate VAT based on vatType
     double totalBeforeVAT = itemsTotal;
@@ -1004,6 +1019,43 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
               ),
             ],
           ),
+          if (deposit > 0) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('หักเงินมัดจำ:'),
+                Text(
+                  '-฿${deposit.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    color: Colors.red[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'ยอดคงเหลือที่ต้องรับ:',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  '฿${(grandTotal - deposit).toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -1017,6 +1069,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     TextInputType? keyboardType,
     String? Function(String?)? validator,
     VoidCallback? onTap,
+    ValueChanged<String>? onChanged,
     bool readOnly = false,
   }) {
     final isReadOnly = readOnly && onTap == null;
@@ -1040,6 +1093,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
           keyboardType: keyboardType,
           validator: validator,
           onTap: onTap,
+          onChanged: onChanged,
       readOnly: isReadOnly || hasOnTap,
       style: isReadOnly ? TextStyle(color: Colors.grey.shade600) : null,
     );
@@ -1484,6 +1538,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
         isVAT: _isVAT,
         vatType: _vatType,
         shippingCost: double.tryParse(_shippingCostController.text) ?? 0.0,
+        deposit: double.tryParse(_depositController.text) ?? 0.0,
         payment: PaymentInfo(
           isPaid: _isPaid,
           paymentMethod: _paymentMethodController.text.trim().isEmpty ? null : _paymentMethodController.text.trim(),

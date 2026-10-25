@@ -264,6 +264,8 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
               _buildDetailRow('ชื่อผู้ติดต่อ', sale.contactName!),
             _buildDetailRow('VAT', sale.isVAT ? 'VAT (7%)' : 'Non-VAT'),
             _buildDetailRow('ค่าส่ง', NumberFormatter.formatPriceWithCurrency(sale.shippingCost)),
+            if (sale.deposit > 0)
+              _buildDetailRow('เงินมัดจำ', NumberFormatter.formatPriceWithCurrency(sale.deposit)),
             if (sale.notes != null)
               _buildDetailRow('รายละเอียด', sale.notes!),
             _buildDetailRow('วันที่สร้าง', _formatDate(sale.createdAt)),
@@ -541,6 +543,43 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
               ),
             ],
           ),
+          if (sale.deposit > 0) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('หักเงินมัดจำ:'),
+                Text(
+                  '-${NumberFormatter.formatPriceWithCurrency(sale.deposit)}',
+                  style: TextStyle(
+                    color: Colors.red[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'ยอดคงเหลือที่ต้องรับ:',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  NumberFormatter.formatPriceWithCurrency(grandTotal - sale.deposit),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
