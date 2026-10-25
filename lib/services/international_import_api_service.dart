@@ -95,12 +95,13 @@ class InternationalImportApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> createPurchaseFromImport(String id, {required bool isVAT}) async {
+  /// vatMode: "vat" (VAT นอก 7%), "nonvat" หรือ "import" (VAT ตามใบขน)
+  static Future<Map<String, dynamic>> createPurchaseFromImport(String id, {required String vatMode}) async {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl$_endpoint/$id/create-purchase'),
         headers: AuthToken.headers,
-        body: json.encode({'isVAT': isVAT}),
+        body: json.encode({'vatMode': vatMode, 'isVAT': vatMode != 'nonvat'}),
       );
       if (response.statusCode == 201) {
         return json.decode(response.body);

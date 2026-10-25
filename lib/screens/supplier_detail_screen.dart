@@ -96,6 +96,11 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
           net = item.totalPrice;
           vat = 0.0;
           total = item.totalPrice;
+        } else if (purchase.isImport) {
+          // นำเข้า: VAT จริงตามใบขน
+          net = item.totalPrice;
+          vat = item.importVAT ?? 0.0;
+          total = item.totalPrice + vat;
         } else if (purchase.vatType == 'exclusive') {
           net = item.totalPrice;
           vat = roundTo2(item.totalPrice * 0.07);
@@ -640,6 +645,12 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
                     for (final item in purchase.items) {
                       if (!purchase.isVAT) {
                         totalNet += item.totalPrice;
+                      } else if (purchase.isImport) {
+                        // นำเข้า: VAT จริงตามใบขน
+                        final itemVat = item.importVAT ?? 0.0;
+                        totalNet += item.totalPrice;
+                        totalVat += itemVat;
+                        grandTotal += item.totalPrice + itemVat;
                       } else if (purchase.vatType == 'exclusive') {
                         totalNet += item.totalPrice;
                         final itemVat = roundTo2(item.totalPrice * 0.07);

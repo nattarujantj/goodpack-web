@@ -125,13 +125,13 @@ class InternationalImportProvider with ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>?> createPurchaseFromImport(String id, {required bool isVAT}) async {
+  Future<Map<String, dynamic>?> createPurchaseFromImport(String id, {required String vatMode}) async {
     _isLoading = true;
     _error = '';
     notifyListeners();
 
     try {
-      final result = await InternationalImportApiService.createPurchaseFromImport(id, isVAT: isVAT);
+      final result = await InternationalImportApiService.createPurchaseFromImport(id, vatMode: vatMode);
       // Refresh the import to get updated status
       await fetchById(id);
       _error = '';

@@ -126,6 +126,8 @@ class TierPrice {
 class Price {
   final PriceInfo purchaseVAT;
   final PriceInfo purchaseNonVAT;
+  // ต้นทุนนำเข้า (VAT ตามใบขน รวม VAT จริง) สต็อกใช้ร่วมกับ VAT แต่ต้นทุนแยก
+  final PriceInfo purchaseImport;
   final PriceInfo saleVAT;
   final PriceInfo saleNonVAT;
   final List<TierPrice> salesTiers;
@@ -133,15 +135,17 @@ class Price {
   Price({
     required this.purchaseVAT,
     required this.purchaseNonVAT,
+    PriceInfo? purchaseImport,
     required this.saleVAT,
     required this.saleNonVAT,
     required this.salesTiers,
-  });
+  }) : purchaseImport = purchaseImport ?? PriceInfo.fromJson(const {});
 
   factory Price.fromJson(Map<String, dynamic> json) {
     return Price(
       purchaseVAT: PriceInfo.fromJson(json['purchaseVAT'] as Map<String, dynamic>? ?? {}),
       purchaseNonVAT: PriceInfo.fromJson(json['purchaseNonVAT'] as Map<String, dynamic>? ?? {}),
+      purchaseImport: PriceInfo.fromJson(json['purchaseImport'] as Map<String, dynamic>? ?? {}),
       saleVAT: PriceInfo.fromJson(json['saleVAT'] as Map<String, dynamic>? ?? {}),
       saleNonVAT: PriceInfo.fromJson(json['saleNonVAT'] as Map<String, dynamic>? ?? {}),
       salesTiers: (json['salesTiers'] as List?)
@@ -154,6 +158,7 @@ class Price {
     return {
       'purchaseVAT': purchaseVAT.toJson(),
       'purchaseNonVAT': purchaseNonVAT.toJson(),
+      'purchaseImport': purchaseImport.toJson(),
       'saleVAT': saleVAT.toJson(),
       'saleNonVAT': saleNonVAT.toJson(),
       'salesTiers': salesTiers.map((tier) => tier.toJson()).toList(),

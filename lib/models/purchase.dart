@@ -15,7 +15,8 @@ class Purchase {
   final String? notes;
   final List<PurchaseItem> items;
   final bool isVAT;
-  final String vatType; // "exclusive" (VAT นอก) or "inclusive" (VAT ใน)
+  final String vatType; // "exclusive" (VAT นอก), "inclusive" (VAT ใน) or "import" (VAT ตามใบขน)
+  final ImportCustomsInfo? importCustoms;
   final double shippingCost;
   final PaymentInfo payment;
   final WarehouseInfo warehouse;
@@ -41,6 +42,7 @@ class Purchase {
     required this.items,
     required this.isVAT,
     this.vatType = 'exclusive',
+    this.importCustoms,
     required this.shippingCost,
     required this.payment,
     required this.warehouse,
@@ -48,6 +50,9 @@ class Purchase {
     required this.totalVAT,
     required this.grandTotal,
   });
+
+  /// รายการซื้อนำเข้า (VAT ตามใบขนสินค้า): VAT ไม่ได้คิด 7% จากราคา
+  bool get isImport => vatType == 'import';
 
   factory Purchase.fromJson(Map<String, dynamic> json) {
     return Purchase(
@@ -70,6 +75,9 @@ class Purchase {
           .toList() ?? [],
       isVAT: json['isVAT'] ?? false,
       vatType: json['vatType'] ?? 'exclusive',
+      importCustoms: json['importCustoms'] != null
+          ? ImportCustomsInfo.fromJson(json['importCustoms'] as Map<String, dynamic>)
+          : null,
       shippingCost: (json['shippingCost'] ?? 0.0).toDouble(),
       payment: PaymentInfo.fromJson(json['payment'] ?? {}),
       warehouse: WarehouseInfo.fromJson(json['warehouse'] ?? {}),
@@ -98,6 +106,7 @@ class Purchase {
       'items': items.map((item) => item.toJson()).toList(),
       'isVAT': isVAT,
       'vatType': vatType,
+      if (importCustoms != null) 'importCustoms': importCustoms!.toJson(),
       'shippingCost': shippingCost,
       'payment': payment.toJson(),
       'warehouse': warehouse.toJson(),
@@ -125,6 +134,7 @@ class Purchase {
     List<PurchaseItem>? items,
     bool? isVAT,
     String? vatType,
+    ImportCustomsInfo? importCustoms,
     double? shippingCost,
     PaymentInfo? payment,
     WarehouseInfo? warehouse,
@@ -150,6 +160,7 @@ class Purchase {
       items: items ?? this.items,
       isVAT: isVAT ?? this.isVAT,
       vatType: vatType ?? this.vatType,
+      importCustoms: importCustoms ?? this.importCustoms,
       shippingCost: shippingCost ?? this.shippingCost,
       payment: payment ?? this.payment,
       warehouse: warehouse ?? this.warehouse,
@@ -170,6 +181,8 @@ class PurchaseItem {
   final double? preformUnitPrice;
   // ค่าคอมต่อชิ้น (ไม่คิด VAT, ไม่รวมใน totalPrice แต่นับเป็นต้นทุนจริงที่ backend)
   final double? commissionPerUnit;
+  // VAT จริงตามใบขนของทั้งรายการนี้ (เฉพาะ vatType = "import")
+  final double? importVAT;
   final double totalPrice;
 
   PurchaseItem({
@@ -181,8 +194,25 @@ class PurchaseItem {
     this.preformProductId,
     this.preformUnitPrice,
     this.commissionPerUnit,
+    this.importVAT,
     required this.totalPrice,
   });
+
+  /// คืนรายการเดิมพร้อม VAT ตามใบขนที่กำหนด (ใช้ตอนแก้ไขรายการซื้อนำเข้า)
+  PurchaseItem withImportVAT(double? vat) {
+    return PurchaseItem(
+      productId: productId,
+      productName: productName,
+      productCode: productCode,
+      quantity: quantity,
+      unitPrice: unitPrice,
+      preformProductId: preformProductId,
+      preformUnitPrice: preformUnitPrice,
+      commissionPerUnit: commissionPerUnit,
+      importVAT: vat,
+      totalPrice: totalPrice,
+    );
+  }
 
   factory PurchaseItem.fromJson(Map<String, dynamic> json) {
     return PurchaseItem(
@@ -194,6 +224,7 @@ class PurchaseItem {
       preformProductId: json['preformProductId'],
       preformUnitPrice: json['preformUnitPrice'] != null ? (json['preformUnitPrice'] as num).toDouble() : null,
       commissionPerUnit: json['commissionPerUnit'] != null ? (json['commissionPerUnit'] as num).toDouble() : null,
+      importVAT: json['importVAT'] != null ? (json['importVAT'] as num).toDouble() : null,
       totalPrice: (json['totalPrice'] ?? 0.0).toDouble(),
     );
   }
@@ -208,7 +239,55 @@ class PurchaseItem {
       if (preformProductId != null) 'preformProductId': preformProductId,
       if (preformUnitPrice != null) 'preformUnitPrice': preformUnitPrice,
       if (commissionPerUnit != null) 'commissionPerUnit': commissionPerUnit,
+      if (importVAT != null) 'importVAT': importVAT,
       'totalPrice': totalPrice,
+    };
+  }
+}
+
+/// ข้อมูลใบขนสินค้าของรายการซื้อนำเข้า
+class ImportCustomsInfo {
+  final String importId;
+  final String importCode;
+  final String declarationNo;
+  final DateTime? declarationDate;
+  final double goodsVAT; // VAT ค่าของ
+  final double freightVAT; // VAT ค่าเฟรท
+  final double importDuty; // อากรขาเข้า
+
+  ImportCustomsInfo({
+    required this.importId,
+    required this.importCode,
+    required this.declarationNo,
+    this.declarationDate,
+    required this.goodsVAT,
+    required this.freightVAT,
+    required this.importDuty,
+  });
+
+  factory ImportCustomsInfo.fromJson(Map<String, dynamic> json) {
+    return ImportCustomsInfo(
+      importId: json['importId'] ?? '',
+      importCode: json['importCode'] ?? '',
+      declarationNo: json['declarationNo'] ?? '',
+      declarationDate: json['declarationDate'] != null
+          ? DateTime.tryParse(json['declarationDate'])?.toLocal()
+          : null,
+      goodsVAT: (json['goodsVAT'] ?? 0).toDouble(),
+      freightVAT: (json['freightVAT'] ?? 0).toDouble(),
+      importDuty: (json['importDuty'] ?? 0).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'importId': importId,
+      'importCode': importCode,
+      'declarationNo': declarationNo,
+      if (declarationDate != null) 'declarationDate': declarationDate!.toUtc().toIso8601String(),
+      'goodsVAT': goodsVAT,
+      'freightVAT': freightVAT,
+      'importDuty': importDuty,
     };
   }
 }
@@ -329,7 +408,8 @@ class PurchaseRequest {
   final String? notes;
   final List<PurchaseItem> items;
   final bool isVAT;
-  final String vatType; // "exclusive" or "inclusive"
+  final String vatType; // "exclusive", "inclusive" or "import"
+  final ImportCustomsInfo? importCustoms;
   final double shippingCost;
   final PaymentInfo payment;
   final WarehouseInfo warehouse;
@@ -343,6 +423,7 @@ class PurchaseRequest {
     required this.items,
     required this.isVAT,
     this.vatType = 'exclusive',
+    this.importCustoms,
     required this.shippingCost,
     required this.payment,
     required this.warehouse,
@@ -358,6 +439,7 @@ class PurchaseRequest {
       'items': items.map((item) => item.toJson()).toList(),
       'isVAT': isVAT,
       'vatType': vatType,
+      if (importCustoms != null) 'importCustoms': importCustoms!.toJson(),
       'shippingCost': shippingCost,
       'payment': payment.toJson(),
       'warehouse': warehouse.toJson(),

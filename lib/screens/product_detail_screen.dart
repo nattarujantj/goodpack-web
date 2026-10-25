@@ -674,6 +674,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               final updatedPrice = Price(
                 purchaseVAT: product.price.purchaseVAT,
                 purchaseNonVAT: product.price.purchaseNonVAT,
+                purchaseImport: product.price.purchaseImport,
                 saleVAT: product.price.saleVAT,
                 saleNonVAT: product.price.saleNonVAT,
                 salesTiers: updatedTiers,
@@ -740,6 +741,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final updatedPrice = Price(
       purchaseVAT: product.price.purchaseVAT,
       purchaseNonVAT: product.price.purchaseNonVAT,
+      purchaseImport: product.price.purchaseImport,
       saleVAT: product.price.saleVAT,
       saleNonVAT: product.price.saleNonVAT,
       salesTiers: updatedTiers,
@@ -1010,6 +1012,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 ),
               ],
             ),
+            if (product.price.purchaseImport.totalQuantity > 0 || product.price.purchaseImport.latest > 0) ...[
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _buildPriceDetails(
+                      title: 'นำเข้า (รวม VAT ตามใบขน)',
+                      priceInfo: product.price.purchaseImport,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(child: SizedBox()),
+                ],
+              ),
+            ],
             
             const SizedBox(height: 24),
             
