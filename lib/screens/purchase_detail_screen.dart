@@ -170,7 +170,7 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
                   child: _buildDetailRow('ซัพพลายเออร์', purchase.supplierName),
                 ),
                 Expanded(
-                  child: _buildDetailRow('VAT', purchase.isVAT ? 'มี' : 'ไม่มี'),
+                  child: _buildDetailRow('VAT', purchase.isImport ? 'นำเข้า (ตามใบขน)' : (purchase.isVAT ? 'มี' : 'ไม่มี')),
                 ),
               ],
             ),
@@ -232,13 +232,32 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _buildDetailRow('VAT (7%)', NumberFormatter.formatPriceWithCurrency(purchase.totalVAT)),
+                  child: _buildDetailRow(purchase.isImport ? 'VAT (ตามใบขน)' : 'VAT (7%)', NumberFormatter.formatPriceWithCurrency(purchase.totalVAT)),
                 ),
                 Expanded(
                   child: _buildDetailRow('ยอดรวมทั้งสิ้น', NumberFormatter.formatPriceWithCurrency(purchase.grandTotal)),
                 ),
               ],
             ),
+            if (purchase.isImport && purchase.importCustoms != null) ...[
+              const SizedBox(height: 8),
+              _buildDetailRow('ใบขนสินค้า', purchase.importCustoms!.declarationNo.isEmpty ? '-' : purchase.importCustoms!.declarationNo),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildDetailRow('VAT ค่าของ', NumberFormatter.formatPriceWithCurrency(purchase.importCustoms!.goodsVAT)),
+                  ),
+                  Expanded(
+                    child: _buildDetailRow('VAT ค่าเฟรท', NumberFormatter.formatPriceWithCurrency(purchase.importCustoms!.freightVAT)),
+                  ),
+                ],
+              ),
+              if (purchase.importCustoms!.importDuty > 0) ...[
+                const SizedBox(height: 8),
+                _buildDetailRow('อากรขาเข้า (รวมในราคาสินค้า)', NumberFormatter.formatPriceWithCurrency(purchase.importCustoms!.importDuty)),
+              ],
+            ],
           ],
         ),
       ),

@@ -40,6 +40,13 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
   final _usdToThbRateController = TextEditingController();
   final _pricePerCBMController = TextEditingController();
   final _notesController = TextEditingController();
+  // ใบขนสินค้า (FCL): กรอกยอดรวมตามใบขน ระบบเฉลี่ยเป็นต่อชิ้นเอง
+  final _declarationNoController = TextEditingController();
+  final _declarationDateController = TextEditingController();
+  final _cifController = TextEditingController();
+  final _freightController = TextEditingController();
+  final _dutyController = TextEditingController();
+  final _customsVatController = TextEditingController();
 
   String _importType = 'LCL';
   String? _selectedSupplierId;
@@ -65,6 +72,12 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
     _usdToThbRateController.dispose();
     _pricePerCBMController.dispose();
     _notesController.dispose();
+    _declarationNoController.dispose();
+    _declarationDateController.dispose();
+    _cifController.dispose();
+    _freightController.dispose();
+    _dutyController.dispose();
+    _customsVatController.dispose();
     super.dispose();
   }
 
@@ -119,6 +132,16 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
       _originalCBM = imp.totalCBM;
       _items = List.from(imp.items);
       _notesController.text = imp.notes ?? '';
+      final c = imp.customs;
+      if (c != null) {
+        _declarationNoController.text = c.declarationNo;
+        _declarationDateController.text =
+            c.declarationDate != null ? DateFormat('dd/MM/yyyy').format(c.declarationDate!) : '';
+        _cifController.text = c.cifValue > 0 ? c.cifValue.toString() : '';
+        _freightController.text = c.freightValue > 0 ? c.freightValue.toString() : '';
+        _dutyController.text = c.importDuty > 0 ? c.importDuty.toString() : '';
+        _customsVatController.text = c.vat > 0 ? c.vat.toString() : '';
+      }
     });
   }
 
@@ -180,13 +203,70 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
     }
   }
 
-  double _costBeforeVAT(ImportItem item) {
-    double rate = double.tryParse(_usdToThbRateController.text) ?? 0;
-    return item.usdPricePerUnit * rate + _shippingPerUnit(item) + item.commission;
+  double get _rate => double.tryParse(_usdToThbRateController.text) ?? 0;
+
+  /// ข้อมูลใบขนที่กรอกในฟอร์ม (FCL เท่านั้น) หรือ null ถ้ายังไม่ได้กรอกอะไรเลย
+  ImportCustoms? _customs() {
+    if (_importType != 'FCL') return null;
+    final controllers = [
+      _declarationNoController,
+      _declarationDateController,
+      _cifController,
+      _freightController,
+      _dutyController,
+      _customsVatController,
+    ];
+    if (controllers.every((c) => c.text.trim().isEmpty)) return null;
+    return ImportCustoms(
+      declarationNo: _declarationNoController.text.trim(),
+      declarationDate: _declarationDateController.text.trim().isEmpty
+          ? null
+          : _parseDate(_declarationDateController.text.trim()),
+      cifValue: double.tryParse(_cifController.text) ?? 0,
+      freightValue: double.tryParse(_freightController.text) ?? 0,
+      importDuty: double.tryParse(_dutyController.text) ?? 0,
+      vat: double.tryParse(_customsVatController.text) ?? 0,
+    );
   }
 
-  // ค่าคอมไม่คิด VAT: VAT คิดจากค่าสินค้า + ค่าส่งเท่านั้น
-  double _vatPerUnit(ImportItem item) => (_costBeforeVAT(item) - item.commission) * 0.07;
+  /// VAT มาจากใบขน (ไม่ใช่ประมาณ 7%) เมื่อเป็น FCL และกรอกยอด VAT แล้ว
+  bool get _useCustomsVAT => (_customs()?.vat ?? 0) > 0;
+
+  double get _totalGoods => _items.fold(0.0, (s, i) => s + i.usdPricePerUnit * _rate * i.quantity);
+
+  // อากรเฉลี่ยตามสัดส่วนมูลค่าสินค้า
+  double _dutyPerUnit(ImportItem item) {
+    final duty = _customs()?.importDuty ?? 0;
+    final totalGoods = _totalGoods;
+    if (duty == 0 || totalGoods <= 0 || item.quantity <= 0) return 0;
+    return item.usdPricePerUnit * _rate * duty / totalGoods;
+  }
+
+  // VAT ค่าของ: เฉลี่ยตามสัดส่วนมูลค่าสินค้า
+  double _goodsVATPerUnit(ImportItem item) {
+    final c = _customs();
+    final totalGoods = _totalGoods;
+    if (!_useCustomsVAT || totalGoods <= 0 || item.quantity <= 0) return 0;
+    return item.usdPricePerUnit * _rate * c!.splitVAT().goods / totalGoods;
+  }
+
+  // VAT ค่าเฟรท: เฉลี่ยตามสัดส่วน CBM ภายใน imp
+  double _freightVATPerUnit(ImportItem item) {
+    final c = _customs();
+    final totalCBM = _totalCBM;
+    if (!_useCustomsVAT || totalCBM <= 0 || item.quantity <= 0) return 0;
+    return _calcItemCBM(item) / totalCBM * c!.splitVAT().freight / item.quantity;
+  }
+
+  double _costBeforeVAT(ImportItem item) {
+    return item.usdPricePerUnit * _rate + _shippingPerUnit(item) + _dutyPerUnit(item) + item.commission;
+  }
+
+  // ใบขน: VAT ค่าของ + VAT ค่าเฟรท ตามใบขน
+  // ไม่มีใบขน: ประมาณ 7% (ค่าคอมไม่คิด VAT: VAT คิดจากค่าสินค้า + ค่าส่ง + อากร เท่านั้น)
+  double _vatPerUnit(ImportItem item) => _useCustomsVAT
+      ? _goodsVATPerUnit(item) + _freightVATPerUnit(item)
+      : (_costBeforeVAT(item) - item.commission) * 0.07;
 
   double _costAfterVAT(ImportItem item) => _costBeforeVAT(item) + _vatPerUnit(item);
 
@@ -212,6 +292,10 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
                         const SizedBox(height: 16),
                         _buildShippingCostCard(),
                         const SizedBox(height: 16),
+                        if (_importType == 'FCL') ...[
+                          _buildCustomsCard(),
+                          const SizedBox(height: 16),
+                        ],
                         _buildItemsCard(),
                         const SizedBox(height: 16),
                         _buildSummaryCard(),
@@ -497,6 +581,117 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
     );
   }
 
+  // ----- Section 2.5: Customs declaration (FCL) -----
+
+  Widget _customsField(TextEditingController controller, String label) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(labelText: label, suffixText: 'บาท'),
+      onChanged: (_) => setState(() {}),
+      validator: (v) {
+        if (v == null || v.trim().isEmpty) return null;
+        return double.tryParse(v.trim()) == null ? 'กรุณากรอกตัวเลขที่ถูกต้อง' : null;
+      },
+    );
+  }
+
+  Widget _buildCustomsCard() {
+    final c = _customs();
+    final split = c?.splitVAT();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('ใบขนสินค้าขาเข้า', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(
+              'กรอกยอดรวมตามใบขนของ IMP นี้ ระบบจะแยก VAT ค่าของ / VAT ค่าเฟรท และเฉลี่ยเป็นต่อชิ้นให้เอง '
+              '(ยังไม่กรอก VAT = ประมาณ 7%)',
+              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _declarationNoController,
+                    decoration: const InputDecoration(labelText: 'เลขที่ใบขนสินค้า'),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: _declarationDateController,
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      labelText: 'วันที่ใบขน',
+                      suffixIcon: Icon(Icons.calendar_today),
+                    ),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _declarationDateController.text.isEmpty
+                            ? DateTime.now()
+                            : _parseDate(_declarationDateController.text),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setState(() => _declarationDateController.text = DateFormat('dd/MM/yyyy').format(picked));
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(child: _customsField(_cifController, 'ราคา CIF')),
+                const SizedBox(width: 12),
+                Expanded(child: _customsField(_freightController, 'ค่าเฟรท (F)')),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(child: _customsField(_dutyController, 'อากรขาเข้า')),
+                const SizedBox(width: 12),
+                Expanded(child: _customsField(_customsVatController, 'ภาษีมูลค่าเพิ่ม (ยอดรวม)')),
+              ],
+            ),
+            if (split != null && c!.vat > 0) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.teal[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'VAT ค่าของ ${_currencyFormat.format(split.goods)} บาท · '
+                  'VAT ค่าเฟรท ${_currencyFormat.format(split.freight)} บาท',
+                  style: TextStyle(color: Colors.teal[900], fontWeight: FontWeight.w500),
+                ),
+              ),
+              if (c.cifValue <= 0 && c.freightValue > 0)
+                const Padding(
+                  padding: EdgeInsets.only(top: 4),
+                  child: Text('กรอกราคา CIF เพื่อแยก VAT ค่าเฟรท',
+                      style: TextStyle(fontSize: 12, color: Colors.orange)),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   // ----- Section 3: Items -----
 
   Widget _buildItemsCard() {
@@ -540,6 +735,7 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
                     DataColumn(label: Text('Commission'), numeric: true),
                     DataColumn(label: Text('จ่าย Comm.')),
                     DataColumn(label: Text('ต้นทุน/ชิ้น\n(ก่อน VAT)'), numeric: true),
+                    DataColumn(label: Text('VAT/ชิ้น'), numeric: true),
                     DataColumn(label: Text('ต้นทุน/ชิ้น\n(หลัง VAT)'), numeric: true),
                     DataColumn(label: Text('')),
                   ],
@@ -569,6 +765,7 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
                         }),
                       )),
                       DataCell(Text(_currencyFormat.format(costBV))),
+                      DataCell(Text(_currencyFormat.format(_vatPerUnit(item)))),
                       DataCell(Text(_currencyFormat.format(costAV))),
                       DataCell(Row(
                         mainAxisSize: MainAxisSize.min,
@@ -598,8 +795,11 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
     double totalProductCost = _items.fold(0.0, (s, i) => s + i.usdPricePerUnit * rate * i.quantity);
     double totalShipping = _items.fold(0.0, (s, i) => s + _shippingPerUnit(i) * i.quantity);
     double totalCommission = _items.fold(0.0, (s, i) => s + i.commission * i.quantity);
+    double totalDuty = _items.fold(0.0, (s, i) => s + _dutyPerUnit(i) * i.quantity);
     double totalBeforeVAT = _items.fold(0.0, (s, i) => s + _costBeforeVAT(i) * i.quantity);
-    double totalVAT = roundTo2((totalBeforeVAT - totalCommission) * 0.07);
+    double totalGoodsVAT = _items.fold(0.0, (s, i) => s + _goodsVATPerUnit(i) * i.quantity);
+    double totalFreightVAT = _items.fold(0.0, (s, i) => s + _freightVATPerUnit(i) * i.quantity);
+    double totalVAT = roundTo2(_items.fold(0.0, (s, i) => s + _vatPerUnit(i) * i.quantity));
     double grandTotal = totalBeforeVAT + totalVAT;
 
     return Card(
@@ -614,10 +814,16 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
             _summaryRow('รวม CBM', '${totalCBM.toStringAsFixed(1)} คิว'),
             _summaryRow('รวมต้นทุนสินค้า', '${_currencyFormat.format(totalProductCost)} บาท'),
             _summaryRow('รวมค่าส่ง', '${_currencyFormat.format(totalShipping)} บาท'),
+            if (totalDuty > 0) _summaryRow('รวมอากรขาเข้า', '${_currencyFormat.format(totalDuty)} บาท'),
             _summaryRow('รวมค่าคอมมิชชั่น', '${_currencyFormat.format(totalCommission)} บาท'),
             const Divider(),
             _summaryRow('รวมก่อน VAT', '${_currencyFormat.format(totalBeforeVAT)} บาท'),
-            _summaryRow('VAT 7%', '${_currencyFormat.format(totalVAT)} บาท'),
+            if (_useCustomsVAT) ...[
+              _summaryRow('VAT ค่าของ (ใบขน)', '${_currencyFormat.format(totalGoodsVAT)} บาท'),
+              _summaryRow('VAT ค่าเฟรท (ใบขน)', '${_currencyFormat.format(totalFreightVAT)} บาท'),
+              _summaryRow('VAT รวมตามใบขน', '${_currencyFormat.format(totalVAT)} บาท'),
+            ] else
+              _summaryRow('VAT 7% (ประมาณการ)', '${_currencyFormat.format(totalVAT)} บาท'),
             _summaryRow('รวมทั้งหมด', '${_currencyFormat.format(grandTotal)} บาท',
                 isBold: true, fontSize: 18),
           ],
@@ -771,6 +977,7 @@ class _InternationalImportFormScreenState extends State<InternationalImportFormS
         pricePerCBM: double.tryParse(_pricePerCBMController.text) ?? 0,
         fclCostDetails: const [],
         fclShipmentId: _importType == 'FCL' ? _selectedFclShipmentId : null,
+        customs: _customs(),
         items: _items,
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
       );

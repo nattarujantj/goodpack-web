@@ -67,7 +67,7 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
-            tooltip: 'แก้ไข',
+            tooltip: imp.status == 'purchased' ? 'ยกเลิกใบซื้อก่อนจึงจะแก้ไขได้' : 'แก้ไข',
             onPressed: imp.status == 'purchased'
                 ? null
                 : () => context.push('/international-form?id=${imp.id}'),
@@ -148,7 +148,9 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
                 padding: const EdgeInsets.only(top: 4),
                 child: _infoRow(
                   'ประเภทรายการซื้อ',
-                  imp.purchaseIsVAT == true ? 'VAT' : 'ไม่ VAT',
+                  imp.purchaseVatMode == 'import'
+                      ? 'นำเข้า (VAT ตามใบขน)'
+                      : (imp.purchaseIsVAT == true ? 'VAT' : 'ไม่ VAT'),
                 ),
               ),
             ],
@@ -202,6 +204,8 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
   }
 
   Widget _buildItemsCard(InternationalImport imp) {
+    final fromCustoms = imp.vatSource == 'customs';
+    final hasDuty = imp.totalImportDuty > 0;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -214,21 +218,26 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
               scrollDirection: Axis.horizontal,
               child: DataTable(
                 columnSpacing: 12,
-                columns: const [
-                  DataColumn(label: Text('#')),
-                  DataColumn(label: Text('สินค้า')),
-                  DataColumn(label: Text('USD/ชิ้น'), numeric: true),
-                  DataColumn(label: Text('จำนวน'), numeric: true),
-                  DataColumn(label: Text('ชิ้น/ลัง'), numeric: true),
-                  DataColumn(label: Text('กล่อง')),
-                  DataColumn(label: Text('CBM'), numeric: true),
-                  DataColumn(label: Text('ค่าส่ง/ชิ้น'), numeric: true),
-                  DataColumn(label: Text('Commission'), numeric: true),
-                  DataColumn(label: Text('จ่าย Comm.')),
-                  DataColumn(label: Text('ต้นทุน/ชิ้น\n(ก่อน VAT)'), numeric: true),
-                  DataColumn(label: Text('VAT/ชิ้น'), numeric: true),
-                  DataColumn(label: Text('ต้นทุน/ชิ้น\n(หลัง VAT)'), numeric: true),
-                  DataColumn(label: Text('รวม'), numeric: true),
+                columns: [
+                  const DataColumn(label: Text('#')),
+                  const DataColumn(label: Text('สินค้า')),
+                  const DataColumn(label: Text('USD/ชิ้น'), numeric: true),
+                  const DataColumn(label: Text('จำนวน'), numeric: true),
+                  const DataColumn(label: Text('ชิ้น/ลัง'), numeric: true),
+                  const DataColumn(label: Text('กล่อง')),
+                  const DataColumn(label: Text('CBM'), numeric: true),
+                  const DataColumn(label: Text('ค่าส่ง/ชิ้น'), numeric: true),
+                  if (hasDuty) const DataColumn(label: Text('อากร/ชิ้น'), numeric: true),
+                  const DataColumn(label: Text('Commission'), numeric: true),
+                  const DataColumn(label: Text('จ่าย Comm.')),
+                  const DataColumn(label: Text('ต้นทุน/ชิ้น\n(ก่อน VAT)'), numeric: true),
+                  if (fromCustoms) ...const [
+                    DataColumn(label: Text('VAT ค่าของ\n/ชิ้น'), numeric: true),
+                    DataColumn(label: Text('VAT ค่าเฟรท\n/ชิ้น'), numeric: true),
+                  ],
+                  DataColumn(label: Text(fromCustoms ? 'VAT/ชิ้น\n(ใบขน)' : 'VAT/ชิ้น\n(ประมาณ 7%)'), numeric: true),
+                  const DataColumn(label: Text('ต้นทุน/ชิ้น\n(หลัง VAT)'), numeric: true),
+                  const DataColumn(label: Text('รวม'), numeric: true),
                 ],
                 rows: imp.items.asMap().entries.map((entry) {
                   final idx = entry.key;
@@ -244,6 +253,7 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
                         : '${item.boxWidth}x${item.boxLength}x${item.boxHeight}')),
                     DataCell(Text(item.cbm.toStringAsFixed(1))),
                     DataCell(Text(_currencyFormat.format(item.shippingCostPerUnit))),
+                    if (hasDuty) DataCell(Text(_currencyFormat.format(item.dutyPerUnit))),
                     DataCell(Text(_currencyFormat.format(item.commission))),
                     DataCell(
                       Tooltip(
@@ -260,6 +270,10 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
                       ),
                     ),
                     DataCell(Text(_currencyFormat.format(item.costPerUnitBeforeVAT))),
+                    if (fromCustoms) ...[
+                      DataCell(Text(_currencyFormat.format(item.goodsVATPerUnit))),
+                      DataCell(Text(_currencyFormat.format(item.freightVATPerUnit))),
+                    ],
                     DataCell(Text(_currencyFormat.format(item.vatPerUnit))),
                     DataCell(Text(_currencyFormat.format(item.costPerUnitAfterVAT))),
                     DataCell(Text(_currencyFormat.format(item.totalCost))),
@@ -286,6 +300,22 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
             _infoRow('รวม CBM', '${imp.totalCBM.toStringAsFixed(1)} คิว'),
             _infoRow('รวมต้นทุนสินค้า', '${_currencyFormat.format(imp.totalProductCost)} บาท'),
             _infoRow('รวมค่าส่ง', '${_currencyFormat.format(imp.totalShippingCost)} บาท'),
+            if (imp.totalImportDuty > 0)
+              _infoRow('รวมอากรขาเข้า', '${_currencyFormat.format(imp.totalImportDuty)} บาท'),
+            if (imp.vatSource == 'customs') ...[
+              _infoRow('VAT ค่าของ (ใบขน)', '${_currencyFormat.format(imp.totalGoodsVAT)} บาท'),
+              _infoRow('VAT ค่าเฟรท (ใบขน)', '${_currencyFormat.format(imp.totalFreightVAT)} บาท'),
+              _infoRow('VAT รวมตามใบขน', '${_currencyFormat.format(imp.totalVAT)} บาท'),
+            ] else
+              _infoRow('VAT 7% (ประมาณการ)', '${_currencyFormat.format(imp.totalVAT)} บาท'),
+            if (imp.importType == 'FCL' && imp.customs != null) ...[
+              const Divider(),
+              _infoRow('เลขที่ใบขน', imp.customs!.declarationNo.isEmpty ? '-' : imp.customs!.declarationNo),
+              if (imp.customs!.declarationDate != null)
+                _infoRow('วันที่ใบขน', DateFormatter.formatDate(imp.customs!.declarationDate!)),
+              _infoRow('ราคา CIF / ค่าเฟรท (F)',
+                  '${_currencyFormat.format(imp.customs!.cifValue)} / ${_currencyFormat.format(imp.customs!.freightValue)} บาท'),
+            ],
             const Divider(),
             _infoRow('รวมทั้งหมด', '${_currencyFormat.format(imp.grandTotal)} บาท', isBold: true, fontSize: 18),
           ],
@@ -580,7 +610,10 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
   }
 
   void _createPurchase(InternationalImport imp) {
-    bool isVAT = true;
+    // FCL ที่กรอกใบขนแล้ว: แนะนำ "นำเข้า (VAT ตามใบขน)" เป็นค่าเริ่มต้น
+    final canImport = imp.importType == 'FCL' && imp.vatSource == 'customs';
+    String vatMode = canImport ? 'import' : 'vat';
+    const labels = {'import': 'นำเข้า (VAT ตามใบขน)', 'vat': 'VAT', 'nonvat': 'ไม่ VAT'};
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -594,19 +627,31 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
               const SizedBox(height: 16),
               const Text('ประเภทรายการซื้อ', style: TextStyle(fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
-              SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(value: true, label: Text('VAT')),
-                  ButtonSegment(value: false, label: Text('ไม่ VAT')),
+              SegmentedButton<String>(
+                segments: [
+                  if (canImport) const ButtonSegment(value: 'import', label: Text('นำเข้า (ใบขน)')),
+                  const ButtonSegment(value: 'vat', label: Text('VAT')),
+                  const ButtonSegment(value: 'nonvat', label: Text('ไม่ VAT')),
                 ],
-                selected: {isVAT},
-                onSelectionChanged: (v) => setDialogState(() => isVAT = v.first),
+                selected: {vatMode},
+                onSelectionChanged: (v) => setDialogState(() => vatMode = v.first),
               ),
               const SizedBox(height: 12),
               Text(
-                isVAT ? 'ราคาต่อชิ้นจะใช้ราคาก่อน VAT และคิด VAT นอก 7%' : 'ราคาต่อชิ้นจะใช้ราคาก่อน VAT',
+                switch (vatMode) {
+                  'import' => 'VAT ตามใบขน ${_currencyFormat.format(imp.totalVAT)} บาท '
+                      '(ค่าของ ${_currencyFormat.format(imp.totalGoodsVAT)} + ค่าเฟรท ${_currencyFormat.format(imp.totalFreightVAT)})\n'
+                      'เข้าสต็อก VAT · ต้นทุนสินค้าบันทึกแยกเป็น "นำเข้า" (รวม VAT จริง)',
+                  'vat' => 'ราคาต่อชิ้นจะใช้ราคาก่อน VAT และคิด VAT นอก 7%',
+                  _ => 'ราคาต่อชิ้นจะใช้ราคาก่อน VAT',
+                },
                 style: TextStyle(color: Colors.grey[600], fontSize: 13),
               ),
+              if (!canImport && imp.importType == 'FCL') ...[
+                const SizedBox(height: 8),
+                const Text('กรอกใบขนสินค้า (ภาษีมูลค่าเพิ่ม) ในหน้าแก้ไข เพื่อสร้างแบบ "นำเข้า (VAT ตามใบขน)"',
+                    style: TextStyle(color: Colors.orange, fontSize: 12)),
+              ],
             ],
           ),
           actions: [
@@ -617,11 +662,11 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
                 Navigator.pop(ctx);
                 setState(() => _isLoading = true);
                 final provider = context.read<InternationalImportProvider>();
-                final result = await provider.createPurchaseFromImport(imp.id, isVAT: isVAT);
+                final result = await provider.createPurchaseFromImport(imp.id, vatMode: vatMode);
                 if (result != null && mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('สร้างรายการซื้อเรียบร้อย (${isVAT ? "VAT" : "ไม่ VAT"})'),
+                      content: Text('สร้างรายการซื้อเรียบร้อย (${labels[vatMode]})'),
                       backgroundColor: Colors.green,
                     ),
                   );

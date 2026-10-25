@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../utils/number_formatter.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/nav_menu_button.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +12,11 @@ import '../models/product.dart';
 import '../models/expense.dart';
 import '../widgets/responsive_layout.dart';
 import '../config/app_config.dart';
+import '../utils/tax_amounts.dart';
+import '../providers/fcl_shipment_provider.dart';
+import '../providers/bank_account_provider.dart';
+import '../widgets/vat_summary_card.dart';
+import '../widgets/bank_account_summary_card.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -38,6 +42,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context.read<PurchaseProvider>().loadPurchasesIfNeeded();
       context.read<ProductProvider>().loadProducts();
       context.read<ExpenseProvider>().loadExpensesIfNeeded();
+      context.read<FclShipmentProvider>().loadIfNeeded();
+      final bankAccounts = context.read<BankAccountProvider>();
+      if (bankAccounts.bankAccounts.isEmpty) bankAccounts.loadBankAccounts();
     });
   }
 
@@ -226,6 +233,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 _buildRevenueExpenseChart(sales, purchases, expenses, _selectedMonth),
                 const SizedBox(height: 24),
 
+                // VAT summary: monthly + YTD
+                VatSummaryCard(
+                  sales: sales,
+                  purchases: purchases,
+                  expenses: expenses,
+                  shipments: context.watch<FclShipmentProvider>().allShipments,
+                  selectedMonth: _selectedMonth,
+                ),
+                const SizedBox(height: 24),
+
+                // Money in/out per bank account
+                BankAccountSummaryCard(
+                  sales: sales,
+                  purchases: purchases,
+                  accounts: context.watch<BankAccountProvider>().bankAccounts,
+                  selectedMonth: _selectedMonth,
+                ),
+                const SizedBox(height: 24),
+
                 // Low Stock Alert
                 _buildLowStockAlert(products, sales),
                 const SizedBox(height: 32),
@@ -264,6 +290,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     context.read<PurchaseProvider>().loadPurchases();
     context.read<ProductProvider>().loadProducts();
     context.read<ExpenseProvider>().loadExpenses();
+    context.read<FclShipmentProvider>().load();
+    context.read<BankAccountProvider>().loadBankAccounts();
   }
 
   // ==================== Summary Cards ====================
@@ -274,25 +302,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final thisMonthSales = sales.where((s) =>
       s.saleDate.year == selectedMonth.year && s.saleDate.month == selectedMonth.month
     ).toList();
-    final thisMonthTotal = thisMonthSales.fold(0.0, (sum, s) => sum + _calculateSaleTotal(s));
+    final thisMonthTotal = thisMonthSales.fold(0.0, (sum, s) => sum + TaxAmounts.saleBeforeVAT(s));
 
     // Sales เดือนก่อน (เทียบเปรียบเทียบ)
     final lastMonthSales = sales.where((s) =>
       s.saleDate.year == prevMonth.year && s.saleDate.month == prevMonth.month
     ).toList();
-    final lastMonthTotal = lastMonthSales.fold(0.0, (sum, s) => sum + _calculateSaleTotal(s));
+    final lastMonthTotal = lastMonthSales.fold(0.0, (sum, s) => sum + TaxAmounts.saleBeforeVAT(s));
 
     // ซื้อ ในเดือนที่เลือก
     final thisMonthPurchases = purchases.where((p) =>
       p.purchaseDate.year == selectedMonth.year && p.purchaseDate.month == selectedMonth.month
     ).toList();
-    final thisMonthPurchaseTotal = thisMonthPurchases.fold(0.0, (sum, p) => sum + p.grandTotal);
+    final thisMonthPurchaseTotal = thisMonthPurchases.fold(0.0, (sum, p) => sum + TaxAmounts.purchaseBeforeVAT(p));
 
     // ค่าใช้จ่ายในเดือนที่เลือก
     final thisMonthExpenses = expenses.where((e) =>
       e.expenseDate.year == selectedMonth.year && e.expenseDate.month == selectedMonth.month
     ).toList();
-    final thisMonthExpenseTotal = thisMonthExpenses.fold(0.0, (sum, e) => sum + e.amount);
+    final thisMonthExpenseTotal = thisMonthExpenses.fold(0.0, (sum, e) => sum + e.amountBeforeVAT);
 
     // Calculate growth percentage
     final growthPercent = lastMonthTotal > 0
@@ -309,7 +337,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           runSpacing: 16,
           children: [
             _buildSummaryCard(
-              'ยอดขายเดือนที่เลือก',
+              'ยอดขาย (ก่อน VAT)',
               _formatCurrency(thisMonthTotal),
               Icons.trending_up,
               Colors.green,
@@ -325,7 +353,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: cardWidth,
             ),
             _buildSummaryCard(
-              'ยอดซื้อเดือนที่เลือก',
+              'ยอดซื้อ (ก่อน VAT)',
               _formatCurrency(thisMonthPurchaseTotal),
               Icons.shopping_cart,
               Colors.blue,
@@ -333,7 +361,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: cardWidth,
             ),
             _buildSummaryCard(
-              'ค่าใช้จ่ายอื่นๆ',
+              'ค่าใช้จ่ายอื่นๆ (ก่อน VAT)',
               _formatCurrency(thisMonthExpenseTotal),
               Icons.receipt_long,
               Colors.deepOrange,
@@ -341,7 +369,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: cardWidth,
             ),
             _buildSummaryCard(
-              'กำไรขั้นต้น',
+              'กำไรขั้นต้น (ก่อน VAT)',
               _formatCurrency(thisMonthTotal - thisMonthPurchaseTotal - thisMonthExpenseTotal),
               Icons.account_balance_wallet,
               (thisMonthTotal - thisMonthPurchaseTotal - thisMonthExpenseTotal) >= 0 ? Colors.orange : Colors.red,
@@ -416,7 +444,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     for (final sale in sales) {
       if (sale.saleDate.year == chartYear) {
         monthlyData[sale.saleDate.month] =
-            (monthlyData[sale.saleDate.month] ?? 0) + _calculateSaleTotal(sale);
+            (monthlyData[sale.saleDate.month] ?? 0) + TaxAmounts.saleBeforeVAT(sale);
       }
     }
 
@@ -433,7 +461,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const Icon(Icons.bar_chart, color: Colors.blue),
                 const SizedBox(width: 8),
                 Text(
-                  'ยอดขายรายเดือน ปี ${chartYear + 543}',
+                  'ยอดขายรายเดือน (ก่อน VAT) ปี ${chartYear + 543}',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -513,14 +541,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
           product = null;
         }
         
-        // Estimate cost (use purchase price if available, or 70% of sale price)
-        double costPerUnit = item.unitPrice * 0.7;
+        // ราคาขายก่อน VAT − ต้นทุนก่อน VAT ล่าสุด (VAT → Non-VAT)
+        // สินค้าที่มีแต่ต้นทุนนำเข้า ใช้ต้นทุนนำเข้า (รวม VAT ตามใบขน จึงประเมินกำไรต่ำไว้ก่อน)
+        // ไม่มีต้นทุนเลย ประมาณ 70% ของราคาขาย
+        final unitPrice = TaxAmounts.saleUnitPriceBeforeVAT(sale, item);
+        double costPerUnit = unitPrice * 0.7;
         if (product != null) {
-          costPerUnit = product.price.purchaseVAT.latest > 0 
-              ? product.price.purchaseVAT.latest 
-              : item.unitPrice * 0.7;
+          final price = product.price;
+          if (price.purchaseVAT.latest > 0) {
+            costPerUnit = price.purchaseVAT.latest;
+          } else if (price.purchaseNonVAT.latest > 0) {
+            costPerUnit = price.purchaseNonVAT.latest;
+          } else if (price.purchaseImport.latest > 0) {
+            costPerUnit = price.purchaseImport.latest;
+          }
         }
-        final profit = (item.unitPrice - costPerUnit) * item.quantity;
+        final profit = (unitPrice - costPerUnit) * item.quantity;
           
         if (!profitMap.containsKey(item.productId)) {
           profitMap[item.productId] = {
@@ -728,21 +764,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     for (final sale in sales) {
       if (sale.saleDate.year == chartYear) {
         monthlyData[sale.saleDate.month]!['revenue'] =
-            (monthlyData[sale.saleDate.month]!['revenue'] ?? 0) + _calculateSaleTotal(sale);
+            (monthlyData[sale.saleDate.month]!['revenue'] ?? 0) + TaxAmounts.saleBeforeVAT(sale);
       }
     }
 
     for (final purchase in purchases) {
       if (purchase.purchaseDate.year == chartYear) {
         monthlyData[purchase.purchaseDate.month]!['expense'] =
-            (monthlyData[purchase.purchaseDate.month]!['expense'] ?? 0) + purchase.grandTotal;
+            (monthlyData[purchase.purchaseDate.month]!['expense'] ?? 0) + TaxAmounts.purchaseBeforeVAT(purchase);
       }
     }
 
     for (final exp in expenses) {
       if (exp.expenseDate.year == chartYear) {
         monthlyData[exp.expenseDate.month]!['otherExpense'] =
-            (monthlyData[exp.expenseDate.month]!['otherExpense'] ?? 0) + exp.amount;
+            (monthlyData[exp.expenseDate.month]!['otherExpense'] ?? 0) + exp.amountBeforeVAT;
       }
     }
 
@@ -759,7 +795,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const Icon(Icons.compare_arrows, color: Colors.purple),
                 const SizedBox(width: 8),
                 Text(
-                  'รายได้ vs รายจ่าย ปี ${chartYear + 543}',
+                  'รายได้ vs รายจ่าย (ก่อน VAT) ปี ${chartYear + 543}',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -976,7 +1012,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           };
         }
         spenderMap[id]!['total'] =
-            (spenderMap[id]!['total'] as double) + _calculateSaleTotal(sale);
+            (spenderMap[id]!['total'] as double) + TaxAmounts.saleBeforeVAT(sale);
         spenderMap[id]!['count'] = (spenderMap[id]!['count'] as int) + 1;
       }
     }
@@ -1105,22 +1141,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ==================== Helper Methods ====================
-  double _calculateSaleTotal(Sale sale) {
-    final itemsTotal = sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);
-    double vatAmount = 0.0;
-    
-    if (sale.isVAT) {
-      if (sale.vatType == 'inclusive') {
-        // VAT included in price
-        vatAmount = 0;
-      } else {
-        vatAmount = roundTo2(itemsTotal * 0.07);
-      }
-    }
-    
-    return itemsTotal + vatAmount + sale.shippingCost;
-  }
-
   String _formatCurrency(double value) {
     return '฿${value.toStringAsFixed(2).replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),

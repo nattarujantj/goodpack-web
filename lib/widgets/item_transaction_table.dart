@@ -224,12 +224,34 @@ class _ItemTransactionTableState extends State<ItemTransactionTable> {
       cells: [
         DataCell(Text(DateFormatter.formatDate(item.date))),
         DataCell(
-          Text(
-            item.documentCode,
-            style: TextStyle(
-              color: Colors.blue[700],
-              fontWeight: FontWeight.w500,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                item.documentCode,
+                style: TextStyle(
+                  color: Colors.blue[700],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (item.isImport) ...[
+                const SizedBox(width: 6),
+                Tooltip(
+                  message: item.declarationNo.isEmpty
+                      ? 'นำเข้า (VAT ตามใบขน)'
+                      : 'นำเข้า · ใบขน ${item.declarationNo}',
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.teal[50],
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.teal[200]!),
+                    ),
+                    child: Text('นำเข้า', style: TextStyle(fontSize: 11, color: Colors.teal[800])),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
         DataCell(

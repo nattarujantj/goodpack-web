@@ -67,6 +67,7 @@ class _FclShipmentFormScreenState extends State<FclShipmentFormScreen> {
   double get _defaultRate => double.tryParse(_usdRateController.text) ?? 0;
   double get _totalCostThb =>
       _costLines.fold(0.0, (s, l) => s + l.computeThb(_defaultRate));
+  double get _totalVAT => _costLines.fold(0.0, (s, l) => s + l.vat);
 
   DateTime _parseDate(String text) {
     try {
@@ -252,16 +253,32 @@ class _FclShipmentFormScreenState extends State<FclShipmentFormScreen> {
                                 '\$${_currencyFormat.format(line.amount)} × ${line.usdRate > 0 ? line.usdRate : _defaultRate}',
                                 style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                               ),
+                            if (line.vendor.isNotEmpty || line.taxInvoiceNo.isNotEmpty)
+                              Text(
+                                [
+                                  if (line.vendor.isNotEmpty) line.vendor,
+                                  if (line.taxInvoiceNo.isNotEmpty) 'ใบกำกับ ${line.taxInvoiceNo}',
+                                ].join(' · '),
+                                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                              ),
                           ],
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         flex: 2,
-                        child: Text(
-                          '${_currencyFormat.format(thb)} ฿',
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '${_currencyFormat.format(thb)} ฿',
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            if (line.vat > 0)
+                              Text('VAT ${_currencyFormat.format(line.vat)} ฿',
+                                  style: TextStyle(fontSize: 12, color: Colors.green[700])),
+                          ],
                         ),
                       ),
                       IconButton(
@@ -281,10 +298,24 @@ class _FclShipmentFormScreenState extends State<FclShipmentFormScreen> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Text(
-                  'ค่าตู้รวม: ${_currencyFormat.format(_totalCostThb)} บาท',
+                  'ค่าตู้รวม (ก่อน VAT): ${_currencyFormat.format(_totalCostThb)} บาท',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ],
+            ),
+            if (_totalVAT > 0)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text('VAT (ภาษีซื้อ ไม่รวมในค่าตู้): ${_currencyFormat.format(_totalVAT)} บาท',
+                      style: TextStyle(color: Colors.green[700])),
+                ],
+              ),
+            const SizedBox(height: 4),
+            Text(
+              'กรอกยอดก่อน VAT ตามใบกำกับภาษีของผู้ออกบิล (เช่น THC, ค่าเคลียร์) · '
+              'อย่ากรอกภาษีนำเข้าตามใบขน (เช่น ADV IMPORT DUTY&TAX) ที่นี่ ให้กรอกที่รายการนำเข้า',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -347,13 +378,19 @@ class _FclShipmentFormScreenState extends State<FclShipmentFormScreen> {
     final rateCtrl = TextEditingController(
         text: (existing != null && existing.usdRate > 0) ? existing.usdRate.toString() : '');
     String currency = existing?.currency ?? 'THB';
+    final vatCtrl = TextEditingController(
+        text: (existing != null && existing.vat > 0) ? existing.vat.toString() : '');
+    final vendorCtrl = TextEditingController(text: existing?.vendor ?? '');
+    final invoiceNoCtrl = TextEditingController(text: existing?.taxInvoiceNo ?? '');
+    DateTime? invoiceDate = existing?.taxInvoiceDate;
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           title: Text(index == null ? 'เพิ่มรายการค่าตู้' : 'แก้ไขรายการค่าตู้'),
-          content: Column(
+          content: SingleChildScrollView(
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
@@ -388,7 +425,67 @@ class _FclShipmentFormScreenState extends State<FclShipmentFormScreen> {
                   ),
                 ),
               ],
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('ใบกำกับภาษี (ถ้ามี VAT)',
+                    style: TextStyle(fontWeight: FontWeight.w500, color: Colors.grey[700])),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: vatCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'VAT (บาท)'),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      final amount = double.tryParse(amountCtrl.text) ?? 0;
+                      final rate = double.tryParse(rateCtrl.text) ?? 0;
+                      final thb = FclCostLine(
+                        name: '',
+                        currency: currency,
+                        amount: amount,
+                        usdRate: currency == 'USD' ? rate : 0,
+                      ).computeThb(_defaultRate);
+                      setDialogState(() => vatCtrl.text = ((thb * 0.07 * 100).roundToDouble() / 100).toString());
+                    },
+                    child: const Text('7%'),
+                  ),
+                ],
+              ),
+              TextField(
+                controller: vendorCtrl,
+                decoration: const InputDecoration(labelText: 'ผู้ออกบิล (เช่น MPJ)'),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: invoiceNoCtrl,
+                      decoration: const InputDecoration(labelText: 'เลขที่ใบกำกับ'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    icon: const Icon(Icons.calendar_today, size: 16),
+                    label: Text(invoiceDate != null ? DateFormat('dd/MM/yyyy').format(invoiceDate!) : 'วันที่'),
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: invoiceDate ?? DateTime.now(),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) setDialogState(() => invoiceDate = picked);
+                    },
+                  ),
+                ],
+              ),
             ],
+          ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
@@ -401,6 +498,10 @@ class _FclShipmentFormScreenState extends State<FclShipmentFormScreen> {
                   currency: currency,
                   amount: double.tryParse(amountCtrl.text) ?? 0,
                   usdRate: currency == 'USD' ? (double.tryParse(rateCtrl.text) ?? 0) : 0,
+                  vat: double.tryParse(vatCtrl.text) ?? 0,
+                  vendor: vendorCtrl.text.trim(),
+                  taxInvoiceNo: invoiceNoCtrl.text.trim(),
+                  taxInvoiceDate: invoiceDate,
                 );
                 setState(() {
                   if (index == null) {

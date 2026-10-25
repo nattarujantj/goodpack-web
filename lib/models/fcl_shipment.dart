@@ -10,6 +10,8 @@ class FclShipment {
   final double usdToThbRate;
   final List<FclCostLine> costLines;
   final double totalCostThb;
+  // ภาษีซื้อจากใบกำกับภาษีของค่าใช้จ่ายตู้ (ไม่รวมในค่าตู้)
+  final double totalVAT;
   final double totalCBM;
   final int linkedImportCount;
   final String status; // "open" | "closed"
@@ -26,6 +28,7 @@ class FclShipment {
     required this.usdToThbRate,
     required this.costLines,
     required this.totalCostThb,
+    this.totalVAT = 0,
     required this.totalCBM,
     required this.linkedImportCount,
     required this.status,
@@ -51,6 +54,7 @@ class FclShipment {
               .toList() ??
           [],
       totalCostThb: (json['totalCostThb'] ?? 0).toDouble(),
+      totalVAT: (json['totalVAT'] ?? 0).toDouble(),
       totalCBM: (json['totalCBM'] ?? 0).toDouble(),
       linkedImportCount: json['linkedImportCount'] ?? 0,
       status: json['status'] ?? 'open',
@@ -71,6 +75,11 @@ class FclCostLine {
   final double amount;
   final double usdRate;
   final double amountThb;
+  // VAT ตามใบกำกับภาษีของผู้ออกบิล (บาท) เป็นภาษีซื้อ ไม่นับเป็นค่าตู้
+  final double vat;
+  final String vendor;
+  final String taxInvoiceNo;
+  final DateTime? taxInvoiceDate;
 
   FclCostLine({
     required this.name,
@@ -78,6 +87,10 @@ class FclCostLine {
     required this.amount,
     this.usdRate = 0,
     this.amountThb = 0,
+    this.vat = 0,
+    this.vendor = '',
+    this.taxInvoiceNo = '',
+    this.taxInvoiceDate,
   });
 
   /// Computes the THB value of this line given the shipment's default rate,
@@ -97,6 +110,12 @@ class FclCostLine {
       amount: (json['amount'] ?? 0).toDouble(),
       usdRate: (json['usdRate'] ?? 0).toDouble(),
       amountThb: (json['amountThb'] ?? 0).toDouble(),
+      vat: (json['vat'] ?? 0).toDouble(),
+      vendor: json['vendor'] ?? '',
+      taxInvoiceNo: json['taxInvoiceNo'] ?? '',
+      taxInvoiceDate: json['taxInvoiceDate'] != null
+          ? DateTime.tryParse(json['taxInvoiceDate'])?.toLocal()
+          : null,
     );
   }
 
@@ -107,6 +126,10 @@ class FclCostLine {
       'amount': amount,
       'usdRate': usdRate,
       'amountThb': amountThb,
+      'vat': vat,
+      'vendor': vendor,
+      'taxInvoiceNo': taxInvoiceNo,
+      if (taxInvoiceDate != null) 'taxInvoiceDate': taxInvoiceDate!.toUtc().toIso8601String(),
     };
   }
 
@@ -122,6 +145,10 @@ class FclCostLine {
       amount: amount ?? this.amount,
       usdRate: usdRate ?? this.usdRate,
       amountThb: amountThb,
+      vat: vat,
+      vendor: vendor,
+      taxInvoiceNo: taxInvoiceNo,
+      taxInvoiceDate: taxInvoiceDate,
     );
   }
 }

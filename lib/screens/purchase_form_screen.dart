@@ -47,7 +47,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   int _selectedContactIndex = 0; // Index ของผู้ติดต่อที่เลือก (default = 0 = primary)
   int? _selectedSupplierBankIndex; // Index ของบัญชี supplier ที่เลือก (null = กรอกเอง)
   bool _isVAT = false;
-  String _vatType = 'exclusive'; // "exclusive" (VAT นอก) or "inclusive" (VAT ใน)
+  String _vatType = 'exclusive'; // "exclusive" (VAT นอก), "inclusive" (VAT ใน) or "import" (VAT ตามใบขน)
+  ImportCustomsInfo? _importCustoms; // ข้อมูลใบขน (เฉพาะรายการซื้อนำเข้า)
   bool _isPaid = false;
   bool _isWarehouseUpdated = false;
   List<PurchaseItem> _purchaseItems = [];
@@ -55,6 +56,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 
   bool _isLoading = false;
   bool get _isEdit => widget.purchase != null || widget.purchaseId != null;
+  // รายการซื้อนำเข้า: VAT มาจากใบขนสินค้า (ไม่คิด 7%) และเปลี่ยนวิธีคำนวณ VAT ไม่ได้
+  bool get _isImport => _isVAT && _vatType == 'import';
 
   @override
   void initState() {
@@ -188,6 +191,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     _selectedSupplierId = purchase.supplierId;
     _isVAT = purchase.isVAT;
     _vatType = purchase.vatType;
+    _importCustoms = purchase.importCustoms;
     _isPaid = purchase.payment.isPaid;
     _paymentMethodController.text = purchase.payment.paymentMethod ?? '';
     _selectedAccountId = purchase.payment.ourAccount;
@@ -494,8 +498,12 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               ],
             ),
             
+            if (_isImport) ...[
+              const SizedBox(height: 8),
+              _buildImportCustomsInfo(),
+            ],
             // VAT Type selector (only show when VAT is selected)
-            if (_isVAT) ...[
+            if (_isVAT && !_isImport) ...[
               const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -539,6 +547,36 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildImportCustomsInfo() {
+    final c = _importCustoms;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.teal[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.teal[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('นำเข้า (VAT ตามใบขนสินค้า)',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal[800])),
+          const SizedBox(height: 4),
+          const Text('VAT ไม่ได้คิด 7% จากราคา แต่ใช้ยอดจริงตามใบขน · เข้าสต็อก VAT · ต้นทุนแยกเป็น "นำเข้า"',
+              style: TextStyle(fontSize: 12)),
+          if (c != null) ...[
+            const SizedBox(height: 8),
+            Text('ใบขน: ${c.declarationNo.isEmpty ? '-' : c.declarationNo}'
+                '${c.importCode.isNotEmpty ? ' · ${c.importCode}' : ''}'),
+            Text('VAT ค่าของ ฿${c.goodsVAT.toStringAsFixed(2)} · VAT ค่าเฟรท ฿${c.freightVAT.toStringAsFixed(2)}'
+                '${c.importDuty > 0 ? ' · อากร ฿${c.importDuty.toStringAsFixed(2)}' : ''}'),
+          ],
+        ],
       ),
     );
   }
@@ -1014,7 +1052,11 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     double priceBeforeVAT = item.totalPrice;
     double itemTotalWithVAT = item.totalPrice;
     
-    if (_isVAT) {
+    if (_isImport) {
+      // นำเข้า: VAT จริงตามใบขน
+      vatAmount = item.importVAT ?? 0;
+      itemTotalWithVAT = item.totalPrice + vatAmount;
+    } else if (_isVAT) {
       if (_vatType == 'inclusive') {
         // VAT ใน: ราคารวม VAT แล้ว, ต้องถอด VAT ออก
         // ราคาก่อน VAT = ราคารวม / 1.07
@@ -1093,7 +1135,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'VAT (7%): ฿${vatAmount.toStringAsFixed(2)}',
+                    '${_isImport ? 'VAT (ใบขน)' : 'VAT (7%)'}: ฿${vatAmount.toStringAsFixed(2)}',
                     style: TextStyle(
                       color: Colors.green[700],
                       fontWeight: FontWeight.w500,
@@ -1134,7 +1176,11 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     double totalVAT = 0.0;
     double grandTotal = 0.0;
     
-    if (_isVAT) {
+    if (_isImport) {
+      // นำเข้า: VAT จริงตามใบขน
+      totalVAT = roundTo2(_purchaseItems.fold(0.0, (sum, item) => sum + (item.importVAT ?? 0)));
+      grandTotal = totalBeforeVAT + totalVAT;
+    } else if (_isVAT) {
       if (_vatType == 'inclusive') {
         // VAT ใน: ราคารวม VAT แล้ว, ต้องถอด VAT ออก
         // ราคาก่อน VAT = ราคารวม / 1.07
@@ -1184,7 +1230,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('VAT (7%):'),
+                Text(_isImport ? 'VAT (ตามใบขน):' : 'VAT (7%):'),
                 Text(
                   '฿${totalVAT.toStringAsFixed(2)}',
                   style: TextStyle(
@@ -1443,7 +1489,9 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               initialItem: _purchaseItems[index],
               onAdd: (item) {
                 setState(() {
-                  _purchaseItems[index] = item;
+                  // รายการนำเข้า: VAT ตามใบขนเป็นยอดคงที่ของรายการ ให้คงไว้ตอนแก้ไข
+                  _purchaseItems[index] =
+                      _isImport ? item.withImportVAT(_purchaseItems[index].importVAT) : item;
                 });
                 Navigator.of(context).pop();
               },
@@ -1701,6 +1749,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
         items: _purchaseItems,
         isVAT: _isVAT,
         vatType: _vatType,
+        importCustoms: _isImport ? _importCustoms : null,
         shippingCost: double.tryParse(_shippingCostController.text) ?? 0.0,
         payment: PaymentInfo(
           isPaid: _isPaid,
