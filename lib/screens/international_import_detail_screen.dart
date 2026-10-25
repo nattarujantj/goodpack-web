@@ -67,7 +67,7 @@ class _InternationalImportDetailScreenState extends State<InternationalImportDet
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
-            tooltip: 'แก้ไข',
+            tooltip: imp.status == 'purchased' ? 'ยกเลิกใบซื้อก่อนจึงจะแก้ไขได้' : 'แก้ไข',
             onPressed: imp.status == 'purchased'
                 ? null
                 : () => context.push('/international-form?id=${imp.id}'),

@@ -201,11 +201,28 @@ class _FclShipmentDetailScreenState extends State<FclShipmentDetailScreen> {
                           children: [
                             Text(line.name),
                             if (sub != null) Text(sub, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                            if (line.vendor.isNotEmpty || line.taxInvoiceNo.isNotEmpty)
+                              Text(
+                                [
+                                  if (line.vendor.isNotEmpty) line.vendor,
+                                  if (line.taxInvoiceNo.isNotEmpty) 'ใบกำกับ ${line.taxInvoiceNo}',
+                                  if (line.taxInvoiceDate != null) DateFormatter.formatDate(line.taxInvoiceDate!),
+                                ].join(' · '),
+                                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                              ),
                           ],
                         ),
                       ),
-                      Text('${_currencyFormat.format(line.amountThb)} ฿',
-                          style: const TextStyle(fontWeight: FontWeight.w500)),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text('${_currencyFormat.format(line.amountThb)} ฿',
+                              style: const TextStyle(fontWeight: FontWeight.w500)),
+                          if (line.vat > 0)
+                            Text('VAT ${_currencyFormat.format(line.vat)} ฿',
+                                style: TextStyle(fontSize: 12, color: Colors.green[700])),
+                        ],
+                      ),
                     ],
                   ),
                 );
@@ -214,11 +231,22 @@ class _FclShipmentDetailScreenState extends State<FclShipmentDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('ค่าตู้รวม', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const Text('ค่าตู้รวม (ก่อน VAT)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 Text('${_currencyFormat.format(s.totalCostThb)} บาท',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ],
             ),
+            if (s.totalVAT > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('VAT ค่าใช้จ่ายตู้ (ภาษีซื้อ)', style: TextStyle(color: Colors.green[700])),
+                    Text('${_currencyFormat.format(s.totalVAT)} บาท', style: TextStyle(color: Colors.green[700])),
+                  ],
+                ),
+              ),
           ],
         ),
       ),

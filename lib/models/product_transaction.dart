@@ -8,6 +8,9 @@ class ProductTransactionItem {
   final double totalPrice;
   final double totalVAT;
   final double grandTotal;
+  // ใบซื้อนำเข้า (VAT ตามใบขน) และเลขที่ใบขน
+  final bool isImport;
+  final String declarationNo;
 
   const ProductTransactionItem({
     required this.id,
@@ -19,6 +22,8 @@ class ProductTransactionItem {
     required this.totalPrice,
     required this.totalVAT,
     required this.grandTotal,
+    this.isImport = false,
+    this.declarationNo = '',
   });
 
   factory ProductTransactionItem.fromJson(Map<String, dynamic> json) {
@@ -32,6 +37,8 @@ class ProductTransactionItem {
       totalPrice: (json['totalPrice'] as num).toDouble(),
       totalVAT: (json['totalVAT'] as num).toDouble(),
       grandTotal: (json['grandTotal'] as num).toDouble(),
+      isImport: json['isImport'] as bool? ?? false,
+      declarationNo: json['declarationNo'] as String? ?? '',
     );
   }
 }
