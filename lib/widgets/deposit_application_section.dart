@@ -155,12 +155,13 @@ class _DepositApplicationSectionState extends State<DepositApplicationSection> {
     setState(() {
       if (checked) {
         _selected.add(d.id);
-        // แนะนำยอดหัก = ยอดที่ยังหักได้ (ไม่เกินยอดคงเหลือของมัดจำก้อนนี้)
+        // แนะนำยอดหัก = ยอดที่ทำให้รายการนี้เหลือศูนย์พอดี (ไม่เกินยอดคงเหลือของมัดจำก้อนนี้)
+        // ถ้ายอดที่ต้องหักต่างจากยอดคงเหลือแค่เศษสตางค์จากการปัด ให้หักพอดีเพื่อให้ทั้งสองฝั่งเหลือศูนย์
         final stillDue = d.isVAT
             ? widget.itemsBeforeVAT - _selectedTotal(vat: true, except: d.id)
             : widget.totalAfterVAT - _selectedTotal(vat: false, except: d.id);
-        var suggest = d.remainingAmount;
-        if (stillDue > 0 && stillDue < suggest) suggest = stillDue;
+        var suggest = d.displayRemaining;
+        if (stillDue > 0 && stillDue <= d.remainingAmount + Deposit.roundingTolerance) suggest = stillDue;
         _controllerFor(d.id).text = _formatInput(double.parse(suggest.toStringAsFixed(2)));
       } else {
         _selected.remove(d.id);
@@ -311,10 +312,13 @@ class _DepositApplicationSectionState extends State<DepositApplicationSection> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text('คงเหลือ ฿${_currency.format(d.remainingAmount)}',
+                Text('คงเหลือ ฿${_currency.format(d.displayRemaining)}',
                     style: TextStyle(fontWeight: FontWeight.bold, color: color.shade700)),
                 Text('จาก ฿${_currency.format(d.deductibleAmount)}${d.balanceUnitLabel}',
                     style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                if (d.isVAT)
+                  Text('≈ ฿${_currency.format(Deposit.withVAT(d.displayRemaining))} รวม VAT',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600])),
               ],
             ),
           ),
@@ -329,9 +333,12 @@ class _DepositApplicationSectionState extends State<DepositApplicationSection> {
                   prefixText: '฿ ',
                   isDense: true,
                   border: const OutlineInputBorder(),
+                  helperText: d.isVAT
+                      ? '≈ ฿${_currency.format(Deposit.withVAT(_parse(_controllerFor(d.id).text)))} รวม VAT'
+                      : null,
                   suffixIcon: TextButton(
                     onPressed: () {
-                      _controllerFor(d.id).text = _formatInput(d.remainingAmount);
+                      _controllerFor(d.id).text = _formatInput(d.displayRemaining);
                       setState(() {});
                       _notify();
                     },
@@ -345,8 +352,8 @@ class _DepositApplicationSectionState extends State<DepositApplicationSection> {
                 validator: (value) {
                   final amount = _parse(value ?? '');
                   if (amount <= 0) return 'กรุณาระบุยอดที่หัก (หรือเอาเครื่องหมายเลือกออก)';
-                  if (amount > d.remainingAmount + 0.005) {
-                    return 'เกินยอดคงเหลือ ฿${_currency.format(d.remainingAmount)}';
+                  if (amount > d.remainingAmount + Deposit.roundingTolerance) {
+                    return 'เกินยอดคงเหลือ ฿${_currency.format(d.displayRemaining)}';
                   }
                   return null;
                 },

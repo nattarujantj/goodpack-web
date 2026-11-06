@@ -185,7 +185,7 @@ class _DepositListScreenState extends State<DepositListScreen> {
     // มัดจำ VAT นับเป็นยอดก่อน VAT (หน่วยเดียวกับยอดที่หักได้)
     final total = deposits.fold(0.0, (sum, d) => sum + d.deductibleAmount);
     final used = deposits.fold(0.0, (sum, d) => sum + d.usedAmount);
-    final remaining = deposits.fold(0.0, (sum, d) => sum + d.remainingAmount);
+    final remaining = deposits.fold(0.0, (sum, d) => sum + d.displayRemaining);
 
     Widget stat(String label, double value, {bool bold = false}) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,7 +288,7 @@ class _DepositListScreenState extends State<DepositListScreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '฿${_currency.format(d.remainingAmount)}',
+                        '฿${_currency.format(d.displayRemaining)}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,

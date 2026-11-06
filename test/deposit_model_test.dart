@@ -71,4 +71,16 @@ void main() {
     expect(DepositApplication.sumBeforeVAT(apps), 10000);
     expect(DepositApplication.sumAfterVAT(apps), 5000);
   });
+
+  test('VAT inclusive deposit split over two VAT inclusive sales ends at zero', () {
+    final dep = Deposit.calculateVAT(10000, true, 'inclusive'); // ก่อน VAT 9,345.79
+    final need = SaleTotals.calculate(itemsTotal: 5000, isVAT: true, vatType: 'inclusive').itemsBeforeVAT;
+    final remainingAfterFirst = dep.beforeVAT - need;
+    // ใบที่สองต้องการมากกว่ายอดคงเหลือ 1 สตางค์ แต่ยังอยู่ในเกณฑ์ปัดเศษ
+    expect(need - remainingAfterFirst, lessThanOrEqualTo(Deposit.roundingTolerance));
+    final second = SaleTotals.calculate(itemsTotal: 5000, isVAT: true, vatType: 'inclusive', depositBeforeVAT: need);
+    expect(second.afterVAT, 0);
+    final full = SaleTotals.calculate(itemsTotal: 10000, isVAT: true, vatType: 'inclusive', depositBeforeVAT: dep.beforeVAT);
+    expect(full.afterVAT, 0);
+  });
 }

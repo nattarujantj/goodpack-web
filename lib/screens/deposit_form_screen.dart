@@ -38,7 +38,7 @@ class _DepositFormScreenState extends State<DepositFormScreen> {
   String? _partyId;
   String? _ourAccount;
   bool _isVAT = true; // บริษัทจด VAT: ค่าเริ่มต้นคือมัดจำออกใบกำกับภาษี
-  String _vatType = 'exclusive';
+  String _vatType = 'inclusive'; // ส่วนใหญ่รับมัดจำเป็นยอดรวม VAT แล้ว
   DateTime _depositDate = DateTime.now();
   Deposit? _deposit;
   bool _isLoading = false;
@@ -90,7 +90,7 @@ class _DepositFormScreenState extends State<DepositFormScreen> {
         _depositDate = d.depositDate;
         _codeController.text = d.depositCode;
         _isVAT = d.isVAT;
-        _vatType = d.vatType == 'inclusive' ? 'inclusive' : 'exclusive';
+        _vatType = d.vatType == 'exclusive' ? 'exclusive' : 'inclusive';
         // VAT นอกกรอกยอดก่อน VAT, VAT ใน/ไม่มี VAT กรอกยอดรวม
         final entered = d.isVAT && _vatType == 'exclusive' ? d.amountBeforeVAT : d.amount;
         _amountController.text =
@@ -375,7 +375,7 @@ class _DepositFormScreenState extends State<DepositFormScreen> {
                 final used = _deposit?.usedAmount ?? 0;
                 final calc = Deposit.calculateVAT(amount, _isVAT, _vatType);
                 final deductible = _isVAT ? calc.beforeVAT : calc.total;
-                if (deductible < used - 0.005) {
+                if (deductible < used - Deposit.roundingTolerance) {
                   return 'ต้องไม่น้อยกว่ายอดที่หักไปแล้ว ฿${_currency.format(used)}${_isVAT ? ' (ก่อน VAT)' : ''}';
                 }
                 return null;
@@ -430,8 +430,8 @@ class _DepositFormScreenState extends State<DepositFormScreen> {
       children: [
         SegmentedButton<String>(
           segments: const [
-            ButtonSegment(value: 'exclusive', label: Text('VAT นอก (+7%)')),
             ButtonSegment(value: 'inclusive', label: Text('VAT ใน (รวม VAT แล้ว)')),
+            ButtonSegment(value: 'exclusive', label: Text('VAT นอก (+7%)')),
             ButtonSegment(value: 'none', label: Text('ไม่มี VAT')),
           ],
           selected: {selected},
@@ -505,7 +505,7 @@ class _DepositFormScreenState extends State<DepositFormScreen> {
           children: [
             stat(d.isVAT ? 'ยอดมัดจำ (ก่อน VAT)' : 'ยอดมัดจำ', d.deductibleAmount, null),
             stat('หักไปแล้ว', d.usedAmount, Colors.red[700]),
-            stat('คงเหลือ', d.remainingAmount, _color.shade800),
+            stat('คงเหลือ', d.displayRemaining, _color.shade800),
           ],
         ),
       ),

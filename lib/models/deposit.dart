@@ -55,7 +55,17 @@ class Deposit {
         remainingAmount = remainingAmount ?? (isVAT ? (amountBeforeVAT ?? amount) : amount);
 
   bool get isCustomer => type == typeCustomer;
-  bool get isFullyUsed => remainingAmount <= 0.005;
+  /// ส่วนต่างจากการปัดเศษที่ยอมให้หักเกินยอดคงเหลือได้ (เท่ากับ server: 5 สตางค์)
+  /// เช่น มัดจำ 10,000 รวม VAT แบ่งหักใบ VAT ใน 5,000 สองใบ ยอดก่อน VAT รวมกันเกิน 1 สตางค์
+  static const double roundingTolerance = 0.05;
+
+  bool get isFullyUsed => remainingAmount <= roundingTolerance;
+
+  /// ยอดคงเหลือสำหรับแสดงผล (ไม่ติดลบจากการปัดเศษ)
+  double get displayRemaining => remainingAmount < 0 ? 0 : remainingAmount;
+
+  /// ยอดรวม VAT โดยประมาณของยอดก่อน VAT (ใช้แสดงให้เทียบกับเงินที่รับจริง)
+  static double withVAT(double beforeVAT) => (beforeVAT * 1.07 * 100).roundToDouble() / 100;
 
   static String typeLabel(String type) =>
       type == typeSupplier ? 'เราวางมัดจำกับซัพพลายเออร์' : 'ลูกค้าวางมัดจำกับเรา';
