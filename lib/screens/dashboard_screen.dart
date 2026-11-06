@@ -15,6 +15,7 @@ import '../config/app_config.dart';
 import '../utils/tax_amounts.dart';
 import '../providers/fcl_shipment_provider.dart';
 import '../providers/bank_account_provider.dart';
+import '../providers/deposit_provider.dart';
 import '../widgets/vat_summary_card.dart';
 import '../widgets/bank_account_summary_card.dart';
 
@@ -43,6 +44,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context.read<ProductProvider>().loadProducts();
       context.read<ExpenseProvider>().loadExpensesIfNeeded();
       context.read<FclShipmentProvider>().loadIfNeeded();
+      context.read<DepositProvider>().loadDepositsIfNeeded();
       final bankAccounts = context.read<BankAccountProvider>();
       if (bankAccounts.bankAccounts.isEmpty) bankAccounts.loadBankAccounts();
     });
@@ -239,6 +241,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   purchases: purchases,
                   expenses: expenses,
                   shipments: context.watch<FclShipmentProvider>().allShipments,
+                  deposits: context.watch<DepositProvider>().deposits,
                   selectedMonth: _selectedMonth,
                 ),
                 const SizedBox(height: 24),
@@ -247,6 +250,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 BankAccountSummaryCard(
                   sales: sales,
                   purchases: purchases,
+                  deposits: context.watch<DepositProvider>().deposits,
                   accounts: context.watch<BankAccountProvider>().bankAccounts,
                   selectedMonth: _selectedMonth,
                 ),
@@ -291,6 +295,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     context.read<ProductProvider>().loadProducts();
     context.read<ExpenseProvider>().loadExpenses();
     context.read<FclShipmentProvider>().load();
+    context.read<DepositProvider>().loadDeposits();
     context.read<BankAccountProvider>().loadBankAccounts();
   }
 

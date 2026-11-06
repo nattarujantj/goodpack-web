@@ -22,6 +22,7 @@ class Purchase {
   final double shippingCost;
   final double deposit; // เงินมัดจำที่เราวางไว้กับซัพพลายเออร์และหักในรายการนี้
   final List<DepositApplication> depositApplications;
+  final double depositBeforeVAT; // มัดจำที่ซัพพลายเออร์ออกใบกำกับแล้ว หักก่อนคิด VAT
   final PaymentInfo payment;
   final WarehouseInfo warehouse;
   final double totalAmount;
@@ -50,6 +51,7 @@ class Purchase {
     required this.shippingCost,
     this.deposit = 0.0,
     this.depositApplications = const [],
+    this.depositBeforeVAT = 0.0,
     required this.payment,
     required this.warehouse,
     required this.totalAmount,
@@ -90,6 +92,7 @@ class Purchase {
       shippingCost: (json['shippingCost'] ?? 0.0).toDouble(),
       deposit: (json['deposit'] ?? 0.0).toDouble(),
       depositApplications: DepositApplication.listFromJson(json['depositApplications']),
+      depositBeforeVAT: (json['depositBeforeVAT'] ?? 0.0).toDouble(),
       payment: PaymentInfo.fromJson(json['payment'] ?? {}),
       warehouse: WarehouseInfo.fromJson(json['warehouse'] ?? {}),
       totalAmount: (json['totalAmount'] ?? 0.0).toDouble(),
@@ -121,6 +124,7 @@ class Purchase {
       'shippingCost': shippingCost,
       'deposit': deposit,
       'depositApplications': depositApplications.map((a) => a.toJson()).toList(),
+      'depositBeforeVAT': depositBeforeVAT,
       'payment': payment.toJson(),
       'warehouse': warehouse.toJson(),
       'totalAmount': totalAmount,
@@ -179,6 +183,7 @@ class Purchase {
       shippingCost: shippingCost ?? this.shippingCost,
       deposit: deposit ?? this.deposit,
       depositApplications: depositApplications ?? this.depositApplications,
+      depositBeforeVAT: depositBeforeVAT,
       payment: payment ?? this.payment,
       warehouse: warehouse ?? this.warehouse,
       totalAmount: totalAmount ?? this.totalAmount,

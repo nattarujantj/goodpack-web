@@ -1,9 +1,12 @@
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../models/deposit.dart';
 import '../providers/deposit_provider.dart';
+import '../providers/customer_provider.dart';
+import '../services/pdf_service_deposit.dart';
 import '../widgets/nav_menu_button.dart';
 import '../widgets/responsive_layout.dart';
 
@@ -51,6 +54,23 @@ class _DepositListScreenState extends State<DepositListScreen> {
           d.notes.toLowerCase().contains(query) ||
           d.usages.any((u) => u.docCode.toLowerCase().contains(query));
     }).toList();
+  }
+
+  Future<void> _print(Deposit d) async {
+    final targetWindow = html.window.open('', '_blank');
+    try {
+      final customerProvider = context.read<CustomerProvider>();
+      if (customerProvider.allCustomers.isEmpty) await customerProvider.loadCustomers();
+      final matches = customerProvider.allCustomers.where((c) => c.id == d.partyId);
+      await PdfServiceDeposit.printDeposit(d, matches.isEmpty ? null : matches.first, targetWindow: targetWindow);
+    } catch (e) {
+      targetWindow.close();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(e.toString().replaceFirst('Exception: ', '')),
+        backgroundColor: Colors.red,
+      ));
+    }
   }
 
   @override
@@ -162,7 +182,8 @@ class _DepositListScreenState extends State<DepositListScreen> {
   }
 
   Widget _buildSummaryBar(List<Deposit> deposits) {
-    final total = deposits.fold(0.0, (sum, d) => sum + d.amount);
+    // มัดจำ VAT นับเป็นยอดก่อน VAT (หน่วยเดียวกับยอดที่หักได้)
+    final total = deposits.fold(0.0, (sum, d) => sum + d.deductibleAmount);
     final used = deposits.fold(0.0, (sum, d) => sum + d.usedAmount);
     final remaining = deposits.fold(0.0, (sum, d) => sum + d.remainingAmount);
 
@@ -190,7 +211,7 @@ class _DepositListScreenState extends State<DepositListScreen> {
         runSpacing: 8,
         children: [
           Text('${deposits.length} รายการ', style: TextStyle(color: Colors.grey[700], fontSize: 13)),
-          stat('ยอดมัดจำ', total),
+          stat('ยอดมัดจำ (VAT นับก่อน VAT)', total),
           stat('หักไปแล้ว', used),
           stat('คงเหลือ', remaining, bold: true),
         ],
@@ -199,7 +220,7 @@ class _DepositListScreenState extends State<DepositListScreen> {
   }
 
   Widget _buildCard(Deposit d) {
-    final progress = d.amount > 0 ? (d.usedAmount / d.amount).clamp(0.0, 1.0) : 0.0;
+    final progress = d.deductibleAmount > 0 ? (d.usedAmount / d.deductibleAmount).clamp(0.0, 1.0) : 0.0;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: InkWell(
@@ -226,7 +247,27 @@ class _DepositListScreenState extends State<DepositListScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(d.partyName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(d.partyName,
+                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: d.isVAT ? Colors.green.shade50 : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                d.isVAT ? 'VAT ฿${_currency.format(d.amount)}' : 'ไม่มี VAT',
+                                style: TextStyle(
+                                    fontSize: 10, color: d.isVAT ? Colors.green.shade800 : Colors.grey.shade700),
+                              ),
+                            ),
+                          ],
+                        ),
                         Text(
                           [
                             d.depositCode,
@@ -254,10 +295,16 @@ class _DepositListScreenState extends State<DepositListScreen> {
                           color: d.isFullyUsed ? Colors.grey : _color.shade800,
                         ),
                       ),
-                      Text('คงเหลือ จาก ฿${_currency.format(d.amount)}',
+                      Text('คงเหลือ${d.balanceUnitLabel} จาก ฿${_currency.format(d.deductibleAmount)}',
                           style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                     ],
                   ),
+                  if (_isCustomer)
+                    IconButton(
+                      icon: const Icon(Icons.print, size: 20),
+                      tooltip: d.isVAT ? 'พิมพ์ใบรับเงินมัดจำ/ใบกำกับภาษี' : 'พิมพ์ใบรับเงินมัดจำ',
+                      onPressed: () => _print(d),
+                    ),
                 ],
               ),
               const SizedBox(height: 8),

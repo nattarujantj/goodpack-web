@@ -4,6 +4,7 @@ import '../models/expense.dart';
 import '../models/fcl_shipment.dart';
 import '../models/purchase.dart';
 import '../models/sale.dart';
+import '../models/deposit.dart';
 import '../utils/date_formatter.dart';
 import '../utils/tax_amounts.dart';
 
@@ -33,6 +34,7 @@ class VatSummaryCard extends StatelessWidget {
   final List<Purchase> purchases;
   final List<FclShipment> shipments;
   final List<Expense> expenses;
+  final List<Deposit> deposits;
   final DateTime selectedMonth;
 
   const VatSummaryCard({
@@ -41,6 +43,7 @@ class VatSummaryCard extends StatelessWidget {
     required this.purchases,
     required this.shipments,
     this.expenses = const [],
+    this.deposits = const [],
     required this.selectedMonth,
   }) : super(key: key);
 
@@ -108,6 +111,18 @@ class VatSummaryCard extends StatelessWidget {
         partner: expense.vendor,
         vat: expense.vat,
         isSale: false,
+      ));
+    }
+    // มัดจำที่ออกใบกำกับภาษีแล้ว ลง VAT ในเดือนที่รับ/จ่ายมัดจำ
+    for (final deposit in deposits) {
+      if (!deposit.isVAT || deposit.vatAmount == 0 || deposit.depositDate.year != year) continue;
+      entries.add(_VatEntry(
+        date: deposit.depositDate,
+        kind: 'มัดจำ',
+        code: [deposit.depositCode, if (deposit.reference.isNotEmpty) deposit.reference].join(' · '),
+        partner: deposit.partyName,
+        vat: deposit.vatAmount,
+        isSale: deposit.isCustomer,
       ));
     }
     return entries;

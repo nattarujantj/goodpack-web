@@ -20,6 +20,7 @@ class Sale {
   final double shippingCost;
   final double deposit; // เงินมัดจำ (หักออกจากยอดที่ต้องชำระหลัง VAT)
   final List<DepositApplication> depositApplications; // มัดจำของลูกค้าที่หักในรายการนี้
+  final double depositBeforeVAT; // มัดจำที่ออกใบกำกับภาษีแล้ว หักก่อนคิด VAT
   final PaymentInfo payment;
   final WarehouseInfo warehouse;
   final String? notes;
@@ -48,6 +49,7 @@ class Sale {
     required this.shippingCost,
     this.deposit = 0.0,
     this.depositApplications = const [],
+    this.depositBeforeVAT = 0.0,
     required this.payment,
     required this.warehouse,
     this.notes,
@@ -80,6 +82,7 @@ class Sale {
       shippingCost: (json['shippingCost'] ?? 0.0).toDouble(),
       deposit: (json['deposit'] ?? 0.0).toDouble(),
       depositApplications: DepositApplication.listFromJson(json['depositApplications']),
+      depositBeforeVAT: (json['depositBeforeVAT'] ?? 0.0).toDouble(),
       payment: PaymentInfo.fromJson(json['payment']),
       warehouse: WarehouseInfo.fromJson(json['warehouse']),
       notes: json['notes'],
@@ -111,6 +114,7 @@ class Sale {
       'shippingCost': shippingCost,
       'deposit': deposit,
       'depositApplications': depositApplications.map((a) => a.toJson()).toList(),
+      'depositBeforeVAT': depositBeforeVAT,
       'payment': payment.toJson(),
       'warehouse': warehouse.toJson(),
       'notes': notes,
@@ -169,6 +173,7 @@ class Sale {
       shippingCost: shippingCost ?? this.shippingCost,
       deposit: deposit ?? this.deposit,
       depositApplications: depositApplications ?? this.depositApplications,
+      depositBeforeVAT: depositBeforeVAT,
       payment: payment ?? this.payment,
       warehouse: warehouse ?? this.warehouse,
       notes: notes ?? this.notes,
@@ -180,6 +185,67 @@ class Sale {
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+}
+
+/// ยอดของใบขาย (ไม่รวมค่าส่ง) สูตรเดียวกับ server
+/// มัดจำที่ออกใบกำกับภาษีแล้ว [depositBeforeVAT] หักจากยอดสินค้าก่อนคิด VAT
+class SaleTotals {
+  final double itemsBeforeVAT; // ยอดสินค้าก่อน VAT
+  final double depositBeforeVAT; // มัดจำที่หักก่อน VAT
+  final double netBeforeVAT; // ฐานภาษีของใบนี้
+  final double vat;
+  final double afterVAT; // netBeforeVAT + vat
+
+  const SaleTotals({
+    required this.itemsBeforeVAT,
+    required this.depositBeforeVAT,
+    required this.netBeforeVAT,
+    required this.vat,
+    required this.afterVAT,
+  });
+
+  static double _r2(double v) => (v * 100).roundToDouble() / 100;
+
+  factory SaleTotals.calculate({
+    required double itemsTotal,
+    required bool isVAT,
+    required String vatType,
+    double depositBeforeVAT = 0,
+  }) {
+    if (!isVAT) {
+      return SaleTotals(
+          itemsBeforeVAT: itemsTotal, depositBeforeVAT: 0, netBeforeVAT: itemsTotal, vat: 0, afterVAT: itemsTotal);
+    }
+    double itemsBeforeVAT = itemsTotal;
+    if (vatType == 'inclusive') {
+      itemsBeforeVAT = _r2(itemsTotal / 1.07);
+      if (depositBeforeVAT <= 0) {
+        return SaleTotals(
+          itemsBeforeVAT: itemsBeforeVAT,
+          depositBeforeVAT: 0,
+          netBeforeVAT: itemsBeforeVAT,
+          vat: _r2(itemsTotal - itemsBeforeVAT),
+          afterVAT: itemsTotal,
+        );
+      }
+    }
+    final net = _r2(itemsBeforeVAT - depositBeforeVAT);
+    final vat = _r2(net * 0.07);
+    return SaleTotals(
+      itemsBeforeVAT: itemsBeforeVAT,
+      depositBeforeVAT: depositBeforeVAT,
+      netBeforeVAT: net,
+      vat: vat,
+      afterVAT: _r2(net + vat),
+    );
+  }
+
+  factory SaleTotals.ofSale(Sale sale) => SaleTotals.calculate(
+        itemsTotal: sale.items.fold(0.0, (sum, item) => sum + item.totalPrice),
+        isVAT: sale.isVAT,
+        vatType: sale.vatType,
+        depositBeforeVAT: sale.depositBeforeVAT,
+      );
 }
 
 class SaleItem {

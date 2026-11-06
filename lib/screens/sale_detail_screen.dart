@@ -264,8 +264,11 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
               _buildDetailRow('ชื่อผู้ติดต่อ', sale.contactName!),
             _buildDetailRow('VAT', sale.isVAT ? 'VAT (7%)' : 'Non-VAT'),
             _buildDetailRow('ค่าส่ง', NumberFormatter.formatPriceWithCurrency(sale.shippingCost)),
+            if (sale.depositBeforeVAT > 0)
+              _buildDetailRow('มัดจำก่อน VAT', NumberFormatter.formatPriceWithCurrency(sale.depositBeforeVAT)),
             if (sale.deposit > 0)
-              _buildDetailRow('เงินมัดจำ', NumberFormatter.formatPriceWithCurrency(sale.deposit)),
+              _buildDetailRow(sale.depositBeforeVAT > 0 ? 'มัดจำหลัง VAT' : 'เงินมัดจำ',
+                  NumberFormatter.formatPriceWithCurrency(sale.deposit)),
             ...sale.depositApplications.map((app) => Padding(
                   padding: const EdgeInsets.only(left: 120, bottom: 8),
                   child: InkWell(
@@ -460,20 +463,16 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   }
 
   Widget _buildTotalSummary(Sale sale) {
-    final totalBeforeVAT = sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);
-    double totalVAT = 0.0;
-    double grandTotal;
-    if (sale.isVAT) {
-      if (sale.vatType == 'inclusive') {
-        totalVAT = totalBeforeVAT - roundTo2(totalBeforeVAT / 1.07);
-        grandTotal = totalBeforeVAT + sale.shippingCost;
-      } else {
-        totalVAT = roundTo2(totalBeforeVAT * 0.07);
-        grandTotal = totalBeforeVAT + totalVAT + sale.shippingCost;
-      }
-    } else {
-      grandTotal = totalBeforeVAT + sale.shippingCost;
-    }
+    // มัดจำที่ออกใบกำกับภาษีแล้วหักก่อนคิด VAT (ดู SaleTotals)
+    final totals = SaleTotals.ofSale(sale);
+    final hasVATDeposit = totals.depositBeforeVAT > 0;
+    final totalBeforeVAT = hasVATDeposit
+        ? totals.itemsBeforeVAT
+        : sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);
+    final totalVAT = totals.vat;
+    final grandTotal = totals.afterVAT + sale.shippingCost;
+    final vatDepositCodes =
+        sale.depositApplications.where((a) => a.beforeVAT).map((a) => a.depositCode).join(', ');
     
     return Container(
       padding: const EdgeInsets.all(16),
@@ -503,6 +502,30 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
               ),
             ],
           ),
+          if (hasVATDeposit) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(child: Text('หักเงินมัดจำ ($vatDepositCodes):')),
+                Text(
+                  '-${NumberFormatter.formatPriceWithCurrency(totals.depositBeforeVAT)}',
+                  style: TextStyle(color: Colors.red[700], fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('ยอดหลังหักมัดจำ:'),
+                Text(
+                  NumberFormatter.formatPriceWithCurrency(totals.netBeforeVAT),
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ],
           if (sale.isVAT) ...[
             const SizedBox(height: 8),
             Row(

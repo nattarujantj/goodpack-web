@@ -65,6 +65,7 @@ enum SaleDocumentType {
   receipt('ใบเสร็จรับเงิน', 'Receipt'),
   taxInvoiceReceipt('ใบกำกับภาษี/ใบเสร็จรับเงิน', 'Tax Invoice/Receipt'),
   depositTaxInvoice('ใบรับเงินมัดจำ/ใบกำกับภาษี', 'Deposit Receipt/Tax Invoice'),
+  depositReceipt('ใบรับเงินมัดจำ', 'Deposit Receipt'),
   quotation('ใบเสนอราคา', 'Quotation');
 
   const SaleDocumentType(this.thaiTitle, this.englishTitle);
@@ -102,6 +103,7 @@ class PdfServiceSale {
           SignatureFieldConfig(label: 'ผู้รับเงิน', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true, dateDefault: paymentDate),
         ];
       case SaleDocumentType.depositTaxInvoice:
+      case SaleDocumentType.depositReceipt:
         return [
           SignatureFieldConfig(label: 'ผู้มีอำนาจอนุมัติ', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true, dateDefault: sale.saleDate),
           SignatureFieldConfig(label: 'ผู้รับเงิน', nameDefault: SaleSignatureOptions.defaultCompanyName, hasDate: true, dateDefault: paymentDate),
@@ -883,27 +885,33 @@ class PdfServiceSale {
   }
 
   static pw.Widget _buildSummarySection(Sale sale, pw.Font? thaiFont, double fontSizeText, SaleDocumentType documentType, {BankAccount? bankAccount}) {
-    final itemsTotal = sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);
-    
-    // Calculate VAT based on vatType
-    double subtotal = itemsTotal;
-    double vatAmount = 0.0;
-    double grandTotal = itemsTotal + sale.shippingCost;
-    
-    if (sale.isVAT) {
-      if (sale.vatType == 'inclusive') {
-        // VAT ใน: ราคาที่กรอกรวม VAT แล้ว
-        subtotal = itemsTotal / 1.07;
-        vatAmount = itemsTotal - subtotal;
-        grandTotal = itemsTotal + sale.shippingCost;
-      } else {
-        // VAT นอก: ราคา + VAT 7%
-        subtotal = itemsTotal;
-        vatAmount = _roundToTwoDecimals(itemsTotal * 0.07);
-        grandTotal = itemsTotal + vatAmount + sale.shippingCost;
-      }
-    }
+    final totals = _documentTotals(sale, documentType);
+    final subtotal = totals.subtotal;
+    final vatAmount = totals.vat;
+    final grandTotal = totals.grandTotal;
     final deposit = _depositToDeduct(sale, documentType);
+    final vatDepositCodes =
+        sale.depositApplications.where((a) => a.beforeVAT).map((a) => a.depositCode).join(', ');
+    // แถวที่แสดงข้อมูลธนาคารเรียงต่อกันในคอลัมน์ซ้าย
+    var bankRow = 0;
+    pw.TableRow labelValueRow(String label, String value) => pw.TableRow(
+          children: [
+            pw.Container(),
+            _buildBankInfoCell(sale, thaiFont, bankRow++, fontSizeText, bankAccount: bankAccount),
+            pw.Container(
+              padding: const pw.EdgeInsets.fromLTRB(3, 1, 1, 1),
+              decoration: const pw.BoxDecoration(
+                border: pw.Border(left: pw.BorderSide(color: PdfColors.black, width: 1)),
+              ),
+              child: pw.Text(label, style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont)),
+            ),
+            pw.Container(
+              padding: const pw.EdgeInsets.fromLTRB(1, 1, 2, 1),
+              child: pw.Text(value,
+                  style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont), textAlign: pw.TextAlign.right),
+            ),
+          ],
+        );
 
     return pw.Column(
       children: [
@@ -931,7 +939,7 @@ class PdfServiceSale {
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                 ),
               ),
-              _buildBankInfoCell(sale, thaiFont, 0, fontSizeText, bankAccount: bankAccount),
+              _buildBankInfoCell(sale, thaiFont, bankRow++, fontSizeText, bankAccount: bankAccount),
               pw.Container(
                 padding: const pw.EdgeInsets.fromLTRB(3, 1, 1, 1),
                 decoration: const pw.BoxDecoration(
@@ -954,11 +962,16 @@ class PdfServiceSale {
               ),
             ],
           ),
+          // หักมัดจำที่ออกใบกำกับภาษีแล้ว (ก่อนคิด VAT)
+          if (totals.depositBeforeVAT > 0)
+            labelValueRow('หักมัดจำ $vatDepositCodes', '-${_formatCurrency(totals.depositBeforeVAT)}'),
+          if (totals.depositBeforeVAT > 0)
+            labelValueRow('ราคาหลังหักมัดจำ / Net Value', _formatCurrency(totals.netBeforeVAT)),
           // แถวที่ 2: ภาษี (แสดงเฉพาะเมื่อเป็น VAT)
           if (sale.isVAT) pw.TableRow(
             children: [
               pw.Container(),
-              _buildBankInfoCell(sale, thaiFont, 1, fontSizeText, bankAccount: bankAccount),
+              _buildBankInfoCell(sale, thaiFont, bankRow++, fontSizeText, bankAccount: bankAccount),
               pw.Container(
                 padding: const pw.EdgeInsets.fromLTRB(3, 1, 1, 1),
                 decoration: const pw.BoxDecoration(
@@ -985,7 +998,7 @@ class PdfServiceSale {
           if (sale.isVAT) pw.TableRow(
             children: [
               pw.Container(),
-              _buildBankInfoCell(sale, thaiFont, 2, fontSizeText, bankAccount: bankAccount),
+              _buildBankInfoCell(sale, thaiFont, bankRow++, fontSizeText, bankAccount: bankAccount),
               pw.Container(
                 padding: const pw.EdgeInsets.fromLTRB(3, 1, 1, 1),
                 decoration: const pw.BoxDecoration(
@@ -1001,7 +1014,7 @@ class PdfServiceSale {
               pw.Container(
                 padding: const pw.EdgeInsets.fromLTRB(1, 1, 2, 1),
                 child: pw.Text(
-                  _formatCurrency(_roundToTwoDecimals(subtotal) + _roundToTwoDecimals(vatAmount)),
+                  _formatCurrency(_roundToTwoDecimals(totals.netBeforeVAT) + _roundToTwoDecimals(vatAmount)),
                   style: pw.TextStyle(fontSize: fontSizeText, font: thaiFont),
                   textAlign: pw.TextAlign.right,
                 ),
@@ -1155,27 +1168,53 @@ class PdfServiceSale {
   /// เงินมัดจำที่ต้องหักออกจากยอดหลัง VAT
   /// (ใบรับเงินมัดจำไม่หัก เพราะเป็นเอกสารของตัวมัดจำเอง)
   static double _depositToDeduct(Sale sale, SaleDocumentType documentType) {
-    if (documentType == SaleDocumentType.depositTaxInvoice) return 0.0;
+    if (_isDepositDocument(documentType)) return 0.0;
     return sale.deposit > 0 ? sale.deposit : 0.0;
   }
 
-  static pw.Widget _buildMergedAmountInWordsCell(Sale sale, pw.Font? thaiFont, double fontSizeText, SaleDocumentType documentType) {
+  static bool _isDepositDocument(SaleDocumentType documentType) =>
+      documentType == SaleDocumentType.depositTaxInvoice || documentType == SaleDocumentType.depositReceipt;
+
+  /// มัดจำที่ออกใบกำกับภาษีแล้ว ซึ่งหักจากราคาสินค้าก่อนคิด VAT
+  static double _depositBeforeVAT(Sale sale, SaleDocumentType documentType) {
+    if (_isDepositDocument(documentType) || !sale.isVAT) return 0.0;
+    return sale.depositBeforeVAT > 0 ? sale.depositBeforeVAT : 0.0;
+  }
+
+  /// ราคาสินค้า / VAT / ยอดสุทธิ (รวมค่าส่ง) ของเอกสาร
+  /// ถ้ามีมัดจำที่ออกใบกำกับแล้ว ใช้ SaleTotals (หักก่อนคิด VAT) ไม่งั้นใช้สูตรเดิม
+  static ({double subtotal, double depositBeforeVAT, double netBeforeVAT, double vat, double grandTotal})
+      _documentTotals(Sale sale, SaleDocumentType documentType) {
     final itemsTotal = sale.items.fold(0.0, (sum, item) => sum + item.totalPrice);
-    
-    // Calculate VAT based on vatType
-    double vatAmount = 0.0;
+    final depositBeforeVAT = _depositBeforeVAT(sale, documentType);
+    if (depositBeforeVAT > 0) {
+      final t = SaleTotals.calculate(
+          itemsTotal: itemsTotal, isVAT: true, vatType: sale.vatType, depositBeforeVAT: depositBeforeVAT);
+      return (
+        subtotal: t.itemsBeforeVAT,
+        depositBeforeVAT: depositBeforeVAT,
+        netBeforeVAT: t.netBeforeVAT,
+        vat: t.vat,
+        grandTotal: t.afterVAT + sale.shippingCost,
+      );
+    }
+    double subtotal = itemsTotal;
+    double vat = 0.0;
     double grandTotal = itemsTotal + sale.shippingCost;
-    
     if (sale.isVAT) {
       if (sale.vatType == 'inclusive') {
-        // VAT ใน: ราคาที่กรอกรวม VAT แล้ว
-        grandTotal = itemsTotal + sale.shippingCost;
+        subtotal = itemsTotal / 1.07;
+        vat = itemsTotal - subtotal;
       } else {
-        // VAT นอก: ราคา + VAT 7%
-        vatAmount = _roundToTwoDecimals(itemsTotal * 0.07);
-        grandTotal = itemsTotal + vatAmount + sale.shippingCost;
+        vat = _roundToTwoDecimals(itemsTotal * 0.07);
+        grandTotal = itemsTotal + vat + sale.shippingCost;
       }
     }
+    return (subtotal: subtotal, depositBeforeVAT: 0.0, netBeforeVAT: subtotal, vat: vat, grandTotal: grandTotal);
+  }
+
+  static pw.Widget _buildMergedAmountInWordsCell(Sale sale, pw.Font? thaiFont, double fontSizeText, SaleDocumentType documentType) {
+    final grandTotal = _documentTotals(sale, documentType).grandTotal;
     final fullAmountInWords = _convertToThaiText(grandTotal - _depositToDeduct(sale, documentType));
     
     return pw.Container(
@@ -1205,6 +1244,7 @@ class PdfServiceSale {
       case SaleDocumentType.taxInvoice:
         return _buildTaxInvoiceSignatureSection(thaiFont, sale, fontSizeText, signerName, opts);
       case SaleDocumentType.depositTaxInvoice:
+      case SaleDocumentType.depositReceipt:
         return _buildDepositTaxInvoiceSignatureSection(thaiFont, sale, fontSizeText, signerName, opts);
     }
   }

@@ -8,14 +8,19 @@ import '../services/deposit_api_service.dart';
 /// แสดงเงินมัดจำที่ยังมียอดคงเหลือของลูกค้า/ซัพพลายเออร์ที่เลือก ให้ติ๊กเลือกได้หลายก้อน
 /// และระบุยอดที่จะหักจากแต่ละก้อน (หักบางส่วนได้ ส่วนที่เหลือใช้กับรายการอื่นต่อได้)
 ///
-/// ใช้ [Key] ที่ผูกกับ partyId เพื่อให้ widget สร้างใหม่เมื่อเปลี่ยนคู่ค้า
+/// - มัดจำ VAT (ออกใบกำกับภาษีแล้ว): ยอดเป็นก่อน VAT หักก่อนคิด VAT ใช้ได้เฉพาะรายการ VAT
+/// - มัดจำไม่มี VAT: หักออกจากยอดรวมหลัง VAT
+///
+/// ใช้ [Key] ที่ผูกกับ partyId และ [allowVATDeposits] เพื่อให้ widget สร้างใหม่เมื่อเปลี่ยน
 /// [initialApplications] ใช้ตอนสร้าง widget เท่านั้น
 class DepositApplicationSection extends StatefulWidget {
   final String depositType; // Deposit.typeCustomer หรือ Deposit.typeSupplier
   final String? partyId;
   final String? currentDocId; // id ของรายการขาย/ซื้อที่กำลังแก้ไข (ไม่นับยอดที่หักไว้เดิม)
   final List<DepositApplication> initialApplications;
-  final double amountDue; // ยอดที่ต้องชำระก่อนหักมัดจำ (ใช้แนะนำยอดหัก/เตือนหักเกิน)
+  final bool allowVATDeposits; // รายการเป็น VAT นอก/VAT ใน จึงใช้มัดจำ VAT ได้
+  final double itemsBeforeVAT; // ยอดสินค้าก่อน VAT (เพดานหักมัดจำ VAT)
+  final double totalAfterVAT; // ยอดรวมหลัง VAT หลังหักมัดจำ VAT แล้ว (เพดานหักมัดจำไม่มี VAT)
   final ValueChanged<List<DepositApplication>> onChanged;
 
   const DepositApplicationSection({
@@ -24,7 +29,9 @@ class DepositApplicationSection extends StatefulWidget {
     required this.partyId,
     this.currentDocId,
     this.initialApplications = const [],
-    required this.amountDue,
+    required this.allowVATDeposits,
+    required this.itemsBeforeVAT,
+    required this.totalAfterVAT,
     required this.onChanged,
   });
 
@@ -37,6 +44,7 @@ class _DepositApplicationSectionState extends State<DepositApplicationSection> {
   final _dateFormat = DateFormat('dd/MM/yyyy');
 
   List<Deposit> _deposits = [];
+  int _hiddenVATDeposits = 0; // มัดจำ VAT ที่ใช้ไม่ได้เพราะรายการไม่ใช่ VAT
   final Set<String> _selected = {};
   final Map<String, TextEditingController> _controllers = {};
   bool _isLoading = false;
@@ -48,8 +56,16 @@ class _DepositApplicationSectionState extends State<DepositApplicationSection> {
   void initState() {
     super.initState();
     for (final app in widget.initialApplications) {
+      if (app.beforeVAT && !widget.allowVATDeposits) continue;
       _selected.add(app.depositId);
       _controllerFor(app.depositId).text = _formatInput(app.amount);
+    }
+    if (_selected.length != widget.initialApplications.length) {
+      // บางรายการใช้ไม่ได้แล้ว (เช่น เปลี่ยนเป็น Non-VAT) แจ้งรายการที่เหลือกลับไป
+      final kept = widget.initialApplications.where((a) => _selected.contains(a.depositId)).toList();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onChanged(kept);
+      });
     }
     _load();
   }
@@ -86,8 +102,10 @@ class _DepositApplicationSectionState extends State<DepositApplicationSection> {
       if (!mounted) return;
       setState(() {
         // แสดงเฉพาะมัดจำที่ยังมียอดเหลือ หรือที่รายการนี้หักไว้อยู่แล้ว
-        _deposits = all
-            .where((d) => !d.isFullyUsed || _selected.contains(d.id))
+        final usable = all.where((d) => !d.isFullyUsed || _selected.contains(d.id)).toList();
+        _hiddenVATDeposits = widget.allowVATDeposits ? 0 : usable.where((d) => d.isVAT).length;
+        _deposits = usable
+            .where((d) => widget.allowVATDeposits || !d.isVAT)
             .toList()
           ..sort((a, b) => a.depositDate.compareTo(b.depositDate));
         _isLoading = false;
@@ -101,10 +119,20 @@ class _DepositApplicationSectionState extends State<DepositApplicationSection> {
     }
   }
 
-  double _selectedTotal({String? except}) {
+  Deposit? _depositById(String id) {
+    for (final d in _deposits) {
+      if (d.id == id) return d;
+    }
+    return null;
+  }
+
+  /// ยอดที่เลือกหัก แยกตามมัดจำ VAT (หักก่อน VAT) หรือไม่มี VAT (หักหลัง VAT)
+  double _selectedTotal({required bool vat, String? except}) {
     var total = 0.0;
     for (final id in _selected) {
       if (id == except) continue;
+      final d = _depositById(id);
+      if (d == null || d.isVAT != vat) continue;
       total += _parse(_controllerFor(id).text);
     }
     return total;
@@ -116,7 +144,8 @@ class _DepositApplicationSectionState extends State<DepositApplicationSection> {
       if (!_selected.contains(d.id)) continue;
       final amount = _parse(_controllerFor(d.id).text);
       if (amount > 0) {
-        apps.add(DepositApplication(depositId: d.id, depositCode: d.depositCode, amount: amount));
+        apps.add(DepositApplication(
+            depositId: d.id, depositCode: d.depositCode, amount: amount, beforeVAT: d.isVAT));
       }
     }
     widget.onChanged(apps);
@@ -126,8 +155,10 @@ class _DepositApplicationSectionState extends State<DepositApplicationSection> {
     setState(() {
       if (checked) {
         _selected.add(d.id);
-        // แนะนำยอดหัก = ยอดที่ยังต้องชำระ (ไม่เกินยอดคงเหลือของมัดจำก้อนนี้)
-        final stillDue = widget.amountDue - _selectedTotal(except: d.id);
+        // แนะนำยอดหัก = ยอดที่ยังหักได้ (ไม่เกินยอดคงเหลือของมัดจำก้อนนี้)
+        final stillDue = d.isVAT
+            ? widget.itemsBeforeVAT - _selectedTotal(vat: true, except: d.id)
+            : widget.totalAfterVAT - _selectedTotal(vat: false, except: d.id);
         var suggest = d.remainingAmount;
         if (stillDue > 0 && stillDue < suggest) suggest = stillDue;
         _controllerFor(d.id).text = _formatInput(double.parse(suggest.toStringAsFixed(2)));
@@ -186,36 +217,61 @@ class _DepositApplicationSectionState extends State<DepositApplicationSection> {
     if (_error != null) {
       return [Text(_error!, style: const TextStyle(color: Colors.red))];
     }
+    final hiddenNote = _hiddenVATDeposits > 0
+        ? _hint('มีมัดจำแบบ VAT $_hiddenVATDeposits รายการ ใช้หักได้เฉพาะรายการที่เป็น VAT')
+        : null;
     if (_deposits.isEmpty) {
-      return [_hint('$_partyLabelนี้ไม่มีเงินมัดจำคงเหลือ')];
+      return [
+        _hint('$_partyLabelนี้ไม่มีเงินมัดจำคงเหลือ'),
+        if (hiddenNote != null) ...[const SizedBox(height: 4), hiddenNote],
+      ];
     }
 
-    final total = _selectedTotal();
+    final vatTotal = _selectedTotal(vat: true);
+    final nonVatTotal = _selectedTotal(vat: false);
+    Widget totalRow(String label, double value) => Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold))),
+              Text('฿${_currency.format(value)}',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: color.shade700)),
+            ],
+          ),
+        );
+    Widget warn(String text) => Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(text, style: TextStyle(color: Colors.orange.shade800, fontSize: 12)),
+        );
+
     return [
-      _hint('เลือกมัดจำที่จะหักในรายการนี้ หักบางส่วนได้ ยอดที่เหลือใช้กับรายการอื่นต่อได้'),
+      _hint('เลือกมัดจำที่จะหักในรายการนี้ หักบางส่วนได้ ยอดที่เหลือใช้กับรายการอื่นต่อได้\n'
+          'มัดจำ VAT (ออกใบกำกับภาษีแล้ว) หักก่อนคิด VAT · มัดจำไม่มี VAT หักจากยอดรวมหลัง VAT'),
+      if (hiddenNote != null) ...[const SizedBox(height: 4), hiddenNote],
       const SizedBox(height: 8),
       ..._deposits.map((d) => _buildDepositRow(d, color)),
       if (_selected.isNotEmpty) ...[
         const Divider(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('รวมหักมัดจำ', style: TextStyle(fontWeight: FontWeight.bold)),
-            Text('฿${_currency.format(total)}',
-                style: TextStyle(fontWeight: FontWeight.bold, color: color.shade700)),
-          ],
-        ),
-        if (widget.amountDue > 0 && total > widget.amountDue + 0.005)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              'ยอดหักมัดจำเกินยอดรวมของรายการ (฿${_currency.format(widget.amountDue)})',
-              style: TextStyle(color: Colors.orange.shade800, fontSize: 12),
-            ),
-          ),
+        if (vatTotal > 0) totalRow('หักมัดจำก่อน VAT', vatTotal),
+        if (nonVatTotal > 0) totalRow('หักมัดจำหลัง VAT', nonVatTotal),
+        if (vatTotal > widget.itemsBeforeVAT + 0.005)
+          warn('ยอดหักมัดจำก่อน VAT เกินยอดสินค้าก่อน VAT (฿${_currency.format(widget.itemsBeforeVAT)})'),
+        if (widget.totalAfterVAT > 0 && nonVatTotal > widget.totalAfterVAT + 0.005)
+          warn('ยอดหักมัดจำเกินยอดรวมของรายการ (฿${_currency.format(widget.totalAfterVAT)})'),
       ],
     ];
   }
+
+  Widget _badge(String text, MaterialColor color) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+        decoration: BoxDecoration(
+          color: color.shade50,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: color.shade200),
+        ),
+        child: Text(text, style: TextStyle(fontSize: 10, color: color.shade800)),
+      );
 
   Widget _hint(String text) =>
       Text(text, style: TextStyle(color: Colors.grey[600], fontSize: 13));
@@ -242,7 +298,14 @@ class _DepositApplicationSectionState extends State<DepositApplicationSection> {
             onChanged: (v) => _toggle(d, v ?? false),
             controlAffinity: ListTileControlAffinity.leading,
             dense: true,
-            title: Text(d.depositCode, style: const TextStyle(fontWeight: FontWeight.w600)),
+            title: Wrap(
+              spacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(d.depositCode, style: const TextStyle(fontWeight: FontWeight.w600)),
+                _badge(d.isVAT ? 'VAT · หักก่อน VAT' : 'ไม่มี VAT', d.isVAT ? Colors.green : Colors.grey),
+              ],
+            ),
             subtitle: Text(details, maxLines: 2, overflow: TextOverflow.ellipsis),
             secondary: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -250,7 +313,7 @@ class _DepositApplicationSectionState extends State<DepositApplicationSection> {
               children: [
                 Text('คงเหลือ ฿${_currency.format(d.remainingAmount)}',
                     style: TextStyle(fontWeight: FontWeight.bold, color: color.shade700)),
-                Text('จาก ฿${_currency.format(d.amount)}',
+                Text('จาก ฿${_currency.format(d.deductibleAmount)}${d.balanceUnitLabel}',
                     style: TextStyle(fontSize: 11, color: Colors.grey[600])),
               ],
             ),
@@ -262,7 +325,7 @@ class _DepositApplicationSectionState extends State<DepositApplicationSection> {
                 controller: _controllerFor(d.id),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'ยอดที่หักจาก ${d.depositCode}',
+                  labelText: 'ยอดที่หักจาก ${d.depositCode}${d.balanceUnitLabel}',
                   prefixText: '฿ ',
                   isDense: true,
                   border: const OutlineInputBorder(),
