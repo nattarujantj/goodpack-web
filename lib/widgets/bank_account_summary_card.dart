@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/bank_account.dart';
 import '../models/purchase.dart';
 import '../models/sale.dart';
+import '../models/deposit.dart';
 import '../utils/tax_amounts.dart';
 
 /// ยอดเข้า-ออกของหนึ่งบัญชี
@@ -17,11 +18,13 @@ class _AccountFlow {
 }
 
 /// สรุปจำนวนครั้งและยอดเงินเข้า-ออกของแต่ละบัญชีธนาคาร (เดือนที่เลือก หรือทั้งปีถึงเดือนที่เลือก)
-/// เงินเข้า = ใบขายที่ชำระแล้ว (ยอดรวม VAT), เงินออก = ใบซื้อที่ชำระแล้ว (ยอดรวม VAT + ค่าส่ง)
-/// นับตามวันที่ชำระ ถ้าไม่ได้กรอกใช้วันที่เอกสาร
+/// เงินเข้า = ใบขายที่ชำระแล้ว (ยอดรวม VAT หลังหักมัดจำที่ผูกไว้) + เงินมัดจำที่รับจากลูกค้า
+/// เงินออก = ใบซื้อที่ชำระแล้ว (ยอดรวม VAT + ค่าส่ง หลังหักมัดจำ) + เงินมัดจำที่วางกับซัพพลายเออร์
+/// นับตามวันที่ชำระ ถ้าไม่ได้กรอกใช้วันที่เอกสาร (มัดจำนับตามวันที่วางมัดจำ)
 class BankAccountSummaryCard extends StatefulWidget {
   final List<Sale> sales;
   final List<Purchase> purchases;
+  final List<Deposit> deposits;
   final List<BankAccount> accounts;
   final DateTime selectedMonth;
 
@@ -29,6 +32,7 @@ class BankAccountSummaryCard extends StatefulWidget {
     Key? key,
     required this.sales,
     required this.purchases,
+    this.deposits = const [],
     required this.accounts,
     required this.selectedMonth,
   }) : super(key: key);
@@ -78,14 +82,25 @@ class _BankAccountSummaryCardState extends State<BankAccountSummaryCard> {
       if (!_inPeriod(sale.payment.paymentDate?.toLocal() ?? sale.saleDate)) continue;
       final flow = flowFor(sale.payment.ourAccount, sale.payment.ourAccountInfo);
       flow.inCount++;
-      flow.inAmount += TaxAmounts.saleGrandTotal(sale);
+      flow.inAmount += TaxAmounts.saleCashReceived(sale);
     }
     for (final purchase in widget.purchases) {
       if (!purchase.payment.isPaid) continue;
       if (!_inPeriod(purchase.payment.paymentDate?.toLocal() ?? purchase.purchaseDate)) continue;
       final flow = flowFor(purchase.payment.ourAccount, null);
       flow.outCount++;
-      flow.outAmount += TaxAmounts.purchaseGrandTotal(purchase);
+      flow.outAmount += TaxAmounts.purchaseCashPaid(purchase);
+    }
+    for (final deposit in widget.deposits) {
+      if (!_inPeriod(deposit.depositDate)) continue;
+      final flow = flowFor(deposit.ourAccount, null);
+      if (deposit.isCustomer) {
+        flow.inCount++;
+        flow.inAmount += deposit.amount;
+      } else {
+        flow.outCount++;
+        flow.outAmount += deposit.amount;
+      }
     }
     return flows;
   }

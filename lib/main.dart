@@ -12,6 +12,7 @@ import 'providers/shipping_company_provider.dart';
 import 'providers/international_import_provider.dart';
 import 'providers/fcl_shipment_provider.dart';
 import 'providers/expense_provider.dart';
+import 'providers/deposit_provider.dart';
 import 'providers/inventory_snapshot_provider.dart';
 import 'services/config_service.dart';
 import 'config/app_config.dart';
@@ -55,6 +56,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => InternationalImportProvider()),
         ChangeNotifierProvider(create: (_) => FclShipmentProvider()),
         ChangeNotifierProvider(create: (_) => ExpenseProvider()),
+        ChangeNotifierProvider(create: (_) => DepositProvider()),
         ChangeNotifierProvider(create: (_) => InventorySnapshotProvider()),
       ],
       child: MaterialApp.router(

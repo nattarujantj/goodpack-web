@@ -1,3 +1,5 @@
+import 'deposit.dart';
+
 class Purchase {
   final String id;
   final String purchaseCode;
@@ -18,6 +20,9 @@ class Purchase {
   final String vatType; // "exclusive" (VAT นอก), "inclusive" (VAT ใน) or "import" (VAT ตามใบขน)
   final ImportCustomsInfo? importCustoms;
   final double shippingCost;
+  final double deposit; // เงินมัดจำที่เราวางไว้กับซัพพลายเออร์และหักในรายการนี้
+  final List<DepositApplication> depositApplications;
+  final double depositBeforeVAT; // มัดจำที่ซัพพลายเออร์ออกใบกำกับแล้ว หักก่อนคิด VAT
   final PaymentInfo payment;
   final WarehouseInfo warehouse;
   final double totalAmount;
@@ -44,6 +49,9 @@ class Purchase {
     this.vatType = 'exclusive',
     this.importCustoms,
     required this.shippingCost,
+    this.deposit = 0.0,
+    this.depositApplications = const [],
+    this.depositBeforeVAT = 0.0,
     required this.payment,
     required this.warehouse,
     required this.totalAmount,
@@ -53,6 +61,9 @@ class Purchase {
 
   /// รายการซื้อนำเข้า (VAT ตามใบขนสินค้า): VAT ไม่ได้คิด 7% จากราคา
   bool get isImport => vatType == 'import';
+
+  /// ยอดที่ต้องชำระหลังหักมัดจำ
+  double get amountDue => grandTotal - deposit;
 
   factory Purchase.fromJson(Map<String, dynamic> json) {
     return Purchase(
@@ -79,6 +90,9 @@ class Purchase {
           ? ImportCustomsInfo.fromJson(json['importCustoms'] as Map<String, dynamic>)
           : null,
       shippingCost: (json['shippingCost'] ?? 0.0).toDouble(),
+      deposit: (json['deposit'] ?? 0.0).toDouble(),
+      depositApplications: DepositApplication.listFromJson(json['depositApplications']),
+      depositBeforeVAT: (json['depositBeforeVAT'] ?? 0.0).toDouble(),
       payment: PaymentInfo.fromJson(json['payment'] ?? {}),
       warehouse: WarehouseInfo.fromJson(json['warehouse'] ?? {}),
       totalAmount: (json['totalAmount'] ?? 0.0).toDouble(),
@@ -108,6 +122,9 @@ class Purchase {
       'vatType': vatType,
       if (importCustoms != null) 'importCustoms': importCustoms!.toJson(),
       'shippingCost': shippingCost,
+      'deposit': deposit,
+      'depositApplications': depositApplications.map((a) => a.toJson()).toList(),
+      'depositBeforeVAT': depositBeforeVAT,
       'payment': payment.toJson(),
       'warehouse': warehouse.toJson(),
       'totalAmount': totalAmount,
@@ -136,6 +153,8 @@ class Purchase {
     String? vatType,
     ImportCustomsInfo? importCustoms,
     double? shippingCost,
+    double? deposit,
+    List<DepositApplication>? depositApplications,
     PaymentInfo? payment,
     WarehouseInfo? warehouse,
     double? totalAmount,
@@ -162,6 +181,9 @@ class Purchase {
       vatType: vatType ?? this.vatType,
       importCustoms: importCustoms ?? this.importCustoms,
       shippingCost: shippingCost ?? this.shippingCost,
+      deposit: deposit ?? this.deposit,
+      depositApplications: depositApplications ?? this.depositApplications,
+      depositBeforeVAT: depositBeforeVAT,
       payment: payment ?? this.payment,
       warehouse: warehouse ?? this.warehouse,
       totalAmount: totalAmount ?? this.totalAmount,
@@ -411,6 +433,7 @@ class PurchaseRequest {
   final String vatType; // "exclusive", "inclusive" or "import"
   final ImportCustomsInfo? importCustoms;
   final double shippingCost;
+  final List<DepositApplication> depositApplications;
   final PaymentInfo payment;
   final WarehouseInfo warehouse;
 
@@ -425,6 +448,7 @@ class PurchaseRequest {
     this.vatType = 'exclusive',
     this.importCustoms,
     required this.shippingCost,
+    this.depositApplications = const [],
     required this.payment,
     required this.warehouse,
   });
@@ -441,6 +465,7 @@ class PurchaseRequest {
       'vatType': vatType,
       if (importCustoms != null) 'importCustoms': importCustoms!.toJson(),
       'shippingCost': shippingCost,
+      'depositApplications': depositApplications.map((a) => a.toJson()).toList(),
       'payment': payment.toJson(),
       'warehouse': warehouse.toJson(),
     };

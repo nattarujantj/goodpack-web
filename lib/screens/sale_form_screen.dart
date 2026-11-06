@@ -4,15 +4,18 @@ import 'package:go_router/go_router.dart';
 import '../models/sale.dart';
 import '../models/product.dart';
 import '../models/quotation.dart';
+import '../models/deposit.dart';
 import '../providers/sale_provider.dart';
 import '../providers/customer_provider.dart';
 import '../providers/product_provider.dart';
 import '../providers/quotation_provider.dart';
+import '../providers/deposit_provider.dart';
 import '../services/config_service.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/customer_dropdown.dart';
 import '../widgets/product_search_dropdown.dart';
 import '../widgets/account_dropdown.dart';
+import '../widgets/deposit_application_section.dart';
 import '../utils/error_dialog.dart';
 import '../utils/date_formatter.dart';
 
@@ -49,6 +52,12 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
   bool _isWarehouseUpdated = false;
   List<SaleItem> _saleItems = [];
   List<WarehouseItem> _warehouseItems = [];
+
+  // เงินมัดจำของลูกค้าที่เลือกหักในรายการนี้ (ผูกกับรายการในเมนูมัดจำ)
+  List<DepositApplication> _depositApplications = [];
+  int _depositSeed = 0; // เปลี่ยนเมื่อต้องการสร้างส่วนเลือกมัดจำใหม่
+  // รายการขายเก่าที่กรอกยอดมัดจำเองโดยไม่ได้ผูกกับรายการมัดจำ
+  bool _hasLegacyDeposit = false;
 
   bool _isLoading = false;
   bool get _isEdit => widget.sale != null || widget.saleId != null;
@@ -167,7 +176,10 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     _isVAT = sale.isVAT;
     _vatType = sale.vatType;
     _shippingCostController.text = sale.shippingCost > 0 ? sale.shippingCost.toString() : '';
-    _depositController.text = sale.deposit > 0 ? sale.deposit.toString() : '';
+    // ไม่คัดลอกการหักมัดจำ (ยอดมัดจำอาจถูกใช้ไปแล้ว) ให้เลือกใหม่
+    _depositController.text = '';
+    _hasLegacyDeposit = false;
+    _setDepositApplications(const []);
     _notesController.text = sale.notes ?? '';
     
     // Copy items
@@ -242,7 +254,9 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
     _isVAT = sale.isVAT;
     _vatType = sale.vatType;
     _shippingCostController.text = sale.shippingCost.toString();
-    _depositController.text = sale.deposit > 0 ? sale.deposit.toString() : '';
+    _hasLegacyDeposit = sale.deposit > 0 && sale.depositApplications.isEmpty;
+    _depositController.text = _hasLegacyDeposit ? sale.deposit.toString() : '';
+    _setDepositApplications(sale.depositApplications);
     _isPaid = sale.payment.isPaid;
     _paymentMethodController.text = sale.payment.paymentMethod ?? '';
     _selectedAccountId = sale.payment.ourAccount;
@@ -347,6 +361,8 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
                 const SizedBox(height: 24),
                 _buildSaleItemsSection(),
                 const SizedBox(height: 24),
+                _buildDepositSection(),
+                const SizedBox(height: 24),
                 _buildPaymentSection(),
                 const SizedBox(height: 24),
                 _buildWarehouseSection(),
@@ -411,15 +427,16 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
             
             const SizedBox(height: 16),
             
-            _buildTextField(
-              controller: _depositController,
-              label: 'เงินมัดจำ',
-              hint: '0.00',
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              onChanged: (_) => setState(() {}),
-            ),
-            
-            const SizedBox(height: 16),
+            if (_hasLegacyDeposit && _depositApplications.isEmpty) ...[
+              _buildTextField(
+                controller: _depositController,
+                label: 'เงินมัดจำ (กรอกเอง - ไม่ได้ผูกกับรายการมัดจำ)',
+                hint: '0.00',
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 16),
+            ],
             
             _buildTextField(
               controller: _notesController,
@@ -794,9 +811,51 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
       selectedCustomerId: _selectedCustomerId,
       onChanged: (value) {
         setState(() {
+          if (value != _selectedCustomerId) {
+            // เปลี่ยนลูกค้า: มัดจำของลูกค้าเดิมใช้ไม่ได้
+            _setDepositApplications(const []);
+          }
           _selectedCustomerId = value;
         });
       },
+    );
+  }
+
+  void _setDepositApplications(List<DepositApplication> apps) {
+    _depositApplications = List.of(apps);
+    _depositSeed++;
+  }
+
+  /// มัดจำที่หักหลัง VAT: มัดจำไม่มี VAT ที่เลือก หรือยอดที่กรอกเอง (รายการเก่า)
+  double get _effectiveDeposit {
+    if (_depositApplications.isNotEmpty) return DepositApplication.sumAfterVAT(_depositApplications);
+    if (_hasLegacyDeposit) return double.tryParse(_depositController.text) ?? 0.0;
+    return 0.0;
+  }
+
+  /// ยอดของใบนี้ (มัดจำ VAT หักก่อนคิด VAT)
+  SaleTotals _saleTotals() => SaleTotals.calculate(
+        itemsTotal: _saleItems.fold(0.0, (sum, item) => sum + item.totalPrice),
+        isVAT: _isVAT,
+        vatType: _vatType,
+        depositBeforeVAT: _isVAT ? DepositApplication.sumBeforeVAT(_depositApplications) : 0,
+      );
+
+  double get _shippingCost => double.tryParse(_shippingCostController.text) ?? 0.0;
+
+  Widget _buildDepositSection() {
+    final totals = _saleTotals();
+    return DepositApplicationSection(
+      // สร้างใหม่เมื่อเปลี่ยนลูกค้าหรือเปลี่ยน VAT/Non-VAT (มัดจำ VAT ใช้ได้เฉพาะรายการ VAT)
+      key: ValueKey('sale-deposit-$_selectedCustomerId-$_depositSeed-$_isVAT'),
+      depositType: Deposit.typeCustomer,
+      partyId: _selectedCustomerId,
+      currentDocId: _isEdit ? (widget.sale?.id ?? widget.saleId) : null,
+      initialApplications: _depositApplications,
+      allowVATDeposits: _isVAT,
+      itemsBeforeVAT: totals.itemsBeforeVAT,
+      totalAfterVAT: totals.afterVAT + _shippingCost,
+      onChanged: (apps) => setState(() => _depositApplications = apps),
     );
   }
 
@@ -917,30 +976,41 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
 
   double _roundToTwoDecimals(double value) => (value * 100).roundToDouble() / 100;
 
+  Widget _summaryRow(String label, double value,
+      {bool bold = false, bool negative = false, Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+            child: Text(label,
+                style: TextStyle(fontSize: bold ? 16 : null, fontWeight: bold ? FontWeight.bold : null)),
+          ),
+          Text(
+            '${negative ? '-' : ''}฿${value.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontSize: bold ? 18 : null,
+              fontWeight: bold ? FontWeight.bold : FontWeight.w500,
+              color: color ?? (negative ? Colors.red[700] : null),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _depositCodes(bool beforeVAT) => _depositApplications
+      .where((a) => a.beforeVAT == beforeVAT)
+      .map((a) => a.depositCode)
+      .join(', ');
+
   Widget _buildTotalSummary() {
-    final itemsTotal = _saleItems.fold(0.0, (sum, item) => sum + item.totalPrice);
-    final shippingCost = double.tryParse(_shippingCostController.text) ?? 0.0;
-    final deposit = double.tryParse(_depositController.text) ?? 0.0;
-    
-    // Calculate VAT based on vatType
-    double totalBeforeVAT = itemsTotal;
-    double totalVAT = 0.0;
-    double grandTotal = itemsTotal + shippingCost;
-    
-    if (_isVAT) {
-      if (_vatType == 'inclusive') {
-        // VAT ใน: ราคาที่กรอกรวม VAT แล้ว
-        totalBeforeVAT = _roundToTwoDecimals(itemsTotal / 1.07);
-        totalVAT = itemsTotal - totalBeforeVAT;
-        grandTotal = itemsTotal + shippingCost; // ราคาที่กรอกคือราคารวม VAT แล้ว
-      } else {
-        // VAT นอก: ราคา + VAT 7%
-        totalBeforeVAT = itemsTotal;
-        totalVAT = _roundToTwoDecimals(itemsTotal * 0.07);
-        grandTotal = itemsTotal + totalVAT + shippingCost;
-      }
-    }
-    
+    final totals = _saleTotals();
+    final shippingCost = _shippingCost;
+    final deposit = _effectiveDeposit;
+    final grandTotal = totals.afterVAT + shippingCost;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -953,108 +1023,28 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
         children: [
           ResponsiveText(
             'สรุปยอดรวม',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('ยอดรวมก่อน VAT:'),
-              Text(
-                '฿${totalBeforeVAT.toStringAsFixed(2)}',
-                style: const TextStyle(fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
-          if (_isVAT) ...[
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('VAT (7%):'),
-                Text(
-                  '฿${totalVAT.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    color: Colors.green[700],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
+          const SizedBox(height: 4),
+          _summaryRow('ยอดรวมก่อน VAT:', totals.itemsBeforeVAT),
+          if (totals.depositBeforeVAT > 0) ...[
+            _summaryRow('หักเงินมัดจำ (${_depositCodes(true)}):', totals.depositBeforeVAT, negative: true),
+            _summaryRow('ยอดหลังหักมัดจำ:', totals.netBeforeVAT),
           ],
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('ค่าส่ง:'),
-              Text(
-                '฿${shippingCost.toStringAsFixed(2)}',
-                style: const TextStyle(fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
+          if (_isVAT) _summaryRow('VAT (7%):', totals.vat, color: Colors.green[700]),
+          _summaryRow('ค่าส่ง:', shippingCost),
           const SizedBox(height: 8),
           const Divider(),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'ยอดรวมที่ต้องรับ:',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                '฿${grandTotal.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
-            ],
-          ),
+          _summaryRow('ยอดรวมที่ต้องรับ:', grandTotal, bold: true, color: Colors.green),
           if (deposit > 0) ...[
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('หักเงินมัดจำ:'),
-                Text(
-                  '-฿${deposit.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    color: Colors.red[700],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+            _summaryRow(
+              _depositApplications.isEmpty
+                  ? 'หักเงินมัดจำ:'
+                  : 'หักเงินมัดจำ ไม่มี VAT (${_depositCodes(false)}):',
+              deposit,
+              negative: true,
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'ยอดคงเหลือที่ต้องรับ:',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  '฿${(grandTotal - deposit).toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                ),
-              ],
-            ),
+            _summaryRow('ยอดคงเหลือที่ต้องรับ:', grandTotal - deposit, bold: true, color: Colors.green),
           ],
         ],
       ),
@@ -1538,7 +1528,8 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
         isVAT: _isVAT,
         vatType: _vatType,
         shippingCost: double.tryParse(_shippingCostController.text) ?? 0.0,
-        deposit: double.tryParse(_depositController.text) ?? 0.0,
+        deposit: _effectiveDeposit,
+        depositApplications: _depositApplications,
         payment: PaymentInfo(
           isPaid: _isPaid,
           paymentMethod: _paymentMethodController.text.trim().isEmpty ? null : _paymentMethodController.text.trim(),
@@ -1570,6 +1561,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
       }
 
       if (resultSaleId != null && mounted) {
+        context.read<DepositProvider>().invalidate();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
