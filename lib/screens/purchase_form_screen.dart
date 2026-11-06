@@ -4,15 +4,18 @@ import 'package:go_router/go_router.dart';
 import '../models/purchase.dart';
 import '../models/product.dart';
 import '../models/contact.dart';
+import '../models/deposit.dart';
 import '../providers/purchase_provider.dart';
 import '../providers/supplier_provider.dart';
 import '../providers/product_provider.dart';
+import '../providers/deposit_provider.dart';
 import '../models/customer_bank_account.dart';
 import '../services/config_service.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/supplier_dropdown.dart';
 import '../widgets/product_search_dropdown.dart';
 import '../widgets/account_dropdown.dart';
+import '../widgets/deposit_application_section.dart';
 import '../utils/error_dialog.dart';
 import '../utils/date_formatter.dart';
 import '../utils/number_formatter.dart';
@@ -53,6 +56,11 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   bool _isWarehouseUpdated = false;
   List<PurchaseItem> _purchaseItems = [];
   List<WarehouseItem> _warehouseItems = [];
+
+  // เงินมัดจำที่เราวางไว้กับซัพพลายเออร์และเลือกหักในรายการนี้
+  List<DepositApplication> _depositApplications = [];
+  List<DepositApplication> _initialDepositApplications = [];
+  int _depositSeed = 0;
 
   bool _isLoading = false;
   bool get _isEdit => widget.purchase != null || widget.purchaseId != null;
@@ -120,6 +128,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     _purchaseDateController.text = _formatDate(DateTime.now()); // Use current date
     _selectedSupplierId = purchase.supplierId;
     _isVAT = purchase.isVAT;
+    _setDepositApplications(const []); // ไม่คัดลอกการหักมัดจำ ให้เลือกใหม่
     _shippingCostController.text = purchase.shippingCost > 0 ? purchase.shippingCost.toString() : '';
     _actualShippingController.text = purchase.warehouse.actualShipping > 0 ? purchase.warehouse.actualShipping.toString() : '';
     _notesController.text = purchase.notes ?? '';
@@ -189,6 +198,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     _purchaseCodeController.text = purchase.purchaseCode;
     _invoiceNumberController.text = purchase.invoiceNumber ?? '';
     _selectedSupplierId = purchase.supplierId;
+    _setDepositApplications(purchase.depositApplications);
     _isVAT = purchase.isVAT;
     _vatType = purchase.vatType;
     _importCustoms = purchase.importCustoms;
@@ -265,6 +275,11 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                 // Purchase Items Section
                 _buildPurchaseItemsSection(),
                 
+                const SizedBox(height: 24),
+
+                // Deposit Section (หักเงินมัดจำที่วางไว้กับซัพพลายเออร์)
+                _buildDepositSection(),
+
                 const SizedBox(height: 24),
                 
                 // Payment Section
@@ -817,6 +832,10 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               selectedSupplierId: _selectedSupplierId,
               onChanged: (value) {
                 setState(() {
+                  if (value != _selectedSupplierId) {
+                    // เปลี่ยนซัพพลายเออร์: มัดจำของเจ้าเดิมใช้ไม่ได้
+                    _setDepositApplications(const []);
+                  }
                   _selectedSupplierId = value;
                   _selectedContactIndex = 0;
                 });
@@ -1167,7 +1186,40 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     return price.toStringAsFixed(4);
   }
 
+  void _setDepositApplications(List<DepositApplication> apps) {
+    _initialDepositApplications = List.of(apps);
+    _depositApplications = List.of(apps);
+    _depositSeed++;
+  }
+
+  double get _depositTotal => DepositApplication.sum(_depositApplications);
+
+  /// ยอดรวมที่ต้องจ่ายก่อนหักมัดจำ (คำนวณแบบเดียวกับ server: ไม่รวมค่าส่ง)
+  double _grandTotalBeforeDeposit() {
+    final itemsTotal = _purchaseItems.fold(0.0, (sum, item) => sum + item.totalPrice);
+    if (_isImport) {
+      return itemsTotal + roundTo2(_purchaseItems.fold(0.0, (sum, item) => sum + (item.importVAT ?? 0)));
+    }
+    if (_isVAT && _vatType != 'inclusive') {
+      return itemsTotal + roundTo2(itemsTotal * 0.07);
+    }
+    return itemsTotal;
+  }
+
+  Widget _buildDepositSection() {
+    return DepositApplicationSection(
+      key: ValueKey('purchase-deposit-$_selectedSupplierId-$_depositSeed'),
+      depositType: Deposit.typeSupplier,
+      partyId: _selectedSupplierId,
+      currentDocId: _isEdit ? (widget.purchase?.id ?? widget.purchaseId) : null,
+      initialApplications: _initialDepositApplications,
+      amountDue: _grandTotalBeforeDeposit(),
+      onChanged: (apps) => setState(() => _depositApplications = apps),
+    );
+  }
+
   Widget _buildTotalSummary() {
+    final deposit = _depositTotal;
     final itemsTotal = _purchaseItems.fold(0.0, (sum, item) => sum + item.totalPrice);
     final totalCommission = _purchaseItems.fold(0.0, (sum, item) => sum + (item.commissionPerUnit ?? 0) * item.quantity);
     double totalBeforeVAT = itemsTotal;
@@ -1264,6 +1316,35 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               ),
             ],
           ),
+          if (deposit > 0) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text('หักเงินมัดจำ (${_depositApplications.map((a) => a.depositCode).join(', ')}):'),
+                ),
+                Text(
+                  '-฿${deposit.toStringAsFixed(2)}',
+                  style: TextStyle(color: Colors.red[700], fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'ยอดคงเหลือที่ต้องจ่าย:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '฿${(grandTotal - deposit).toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
+                ),
+              ],
+            ),
+          ],
           if (totalCommission > 0) ...[
             const SizedBox(height: 8),
             Row(
@@ -1751,6 +1832,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
         vatType: _vatType,
         importCustoms: _isImport ? _importCustoms : null,
         shippingCost: double.tryParse(_shippingCostController.text) ?? 0.0,
+        depositApplications: _depositApplications,
         payment: PaymentInfo(
           isPaid: _isPaid,
           paymentMethod: _paymentMethodController.text.trim().isEmpty ? null : _paymentMethodController.text.trim(),
@@ -1779,6 +1861,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       }
 
       if (resultPurchaseId != null && mounted) {
+        context.read<DepositProvider>().invalidate();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(

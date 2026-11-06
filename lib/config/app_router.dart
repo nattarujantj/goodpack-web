@@ -25,6 +25,8 @@ import '../screens/export_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/expense_list_screen.dart';
 import '../screens/expense_form_screen.dart';
+import '../screens/deposit_list_screen.dart';
+import '../screens/deposit_form_screen.dart';
 import '../screens/international_import_list_screen.dart';
 import '../screens/international_import_detail_screen.dart';
 import '../screens/international_import_form_screen.dart';
@@ -386,6 +388,27 @@ class AppRouter {
                 final expenseId = state.uri.queryParameters['id'];
                 return _noAnimationPage(
                   ExpenseFormScreen(expenseId: expenseId),
+                  state,
+                );
+              },
+            ),
+            GoRoute(
+              path: '/deposits',
+              pageBuilder: (context, state) {
+                final type = state.uri.queryParameters['type'] ?? 'customer';
+                return _noAnimationPage(
+                  DepositListScreen(key: ValueKey('deposits-$type'), depositType: type),
+                  state,
+                );
+              },
+            ),
+            GoRoute(
+              path: '/deposit-form',
+              pageBuilder: (context, state) {
+                final id = state.uri.queryParameters['id'];
+                final type = state.uri.queryParameters['type'];
+                return _noAnimationPage(
+                  DepositFormScreen(key: ValueKey('deposit-form-$id-$type'), depositId: id, initialType: type),
                   state,
                 );
               },

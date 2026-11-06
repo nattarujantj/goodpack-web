@@ -266,6 +266,16 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             _buildDetailRow('ค่าส่ง', NumberFormatter.formatPriceWithCurrency(sale.shippingCost)),
             if (sale.deposit > 0)
               _buildDetailRow('เงินมัดจำ', NumberFormatter.formatPriceWithCurrency(sale.deposit)),
+            ...sale.depositApplications.map((app) => Padding(
+                  padding: const EdgeInsets.only(left: 120, bottom: 8),
+                  child: InkWell(
+                    onTap: () => context.go('/deposit-form?id=${app.depositId}'),
+                    child: Text(
+                      'หักจากมัดจำ ${app.depositCode}: ${NumberFormatter.formatPriceWithCurrency(app.amount)}',
+                      style: TextStyle(color: Colors.teal[700], decoration: TextDecoration.underline),
+                    ),
+                  ),
+                )),
             if (sale.notes != null)
               _buildDetailRow('รายละเอียด', sale.notes!),
             _buildDetailRow('วันที่สร้าง', _formatDate(sale.createdAt)),

@@ -239,6 +239,29 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
                 ),
               ],
             ),
+            if (purchase.deposit > 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildDetailRow('หักเงินมัดจำ', '-${NumberFormatter.formatPriceWithCurrency(purchase.deposit)}'),
+                  ),
+                  Expanded(
+                    child: _buildDetailRow('ยอดคงเหลือที่ต้องจ่าย', NumberFormatter.formatPriceWithCurrency(purchase.amountDue)),
+                  ),
+                ],
+              ),
+              ...purchase.depositApplications.map((app) => Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: InkWell(
+                      onTap: () => context.go('/deposit-form?id=${app.depositId}'),
+                      child: Text(
+                        'หักจากมัดจำ ${app.depositCode}: ${NumberFormatter.formatPriceWithCurrency(app.amount)}',
+                        style: TextStyle(color: Colors.indigo[700], decoration: TextDecoration.underline),
+                      ),
+                    ),
+                  )),
+            ],
             if (purchase.isImport && purchase.importCustoms != null) ...[
               const SizedBox(height: 8),
               _buildDetailRow('ใบขนสินค้า', purchase.importCustoms!.declarationNo.isEmpty ? '-' : purchase.importCustoms!.declarationNo),

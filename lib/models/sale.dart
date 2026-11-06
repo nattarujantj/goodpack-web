@@ -1,5 +1,6 @@
 
 import 'bank_account.dart';
+import 'deposit.dart';
 
 class Sale {
   final String id;
@@ -18,6 +19,7 @@ class Sale {
   final String vatType; // "exclusive" (VAT นอก) or "inclusive" (VAT ใน)
   final double shippingCost;
   final double deposit; // เงินมัดจำ (หักออกจากยอดที่ต้องชำระหลัง VAT)
+  final List<DepositApplication> depositApplications; // มัดจำของลูกค้าที่หักในรายการนี้
   final PaymentInfo payment;
   final WarehouseInfo warehouse;
   final String? notes;
@@ -45,6 +47,7 @@ class Sale {
     this.vatType = 'exclusive',
     required this.shippingCost,
     this.deposit = 0.0,
+    this.depositApplications = const [],
     required this.payment,
     required this.warehouse,
     this.notes,
@@ -76,6 +79,7 @@ class Sale {
       vatType: json['vatType'] ?? 'exclusive',
       shippingCost: (json['shippingCost'] ?? 0.0).toDouble(),
       deposit: (json['deposit'] ?? 0.0).toDouble(),
+      depositApplications: DepositApplication.listFromJson(json['depositApplications']),
       payment: PaymentInfo.fromJson(json['payment']),
       warehouse: WarehouseInfo.fromJson(json['warehouse']),
       notes: json['notes'],
@@ -106,6 +110,7 @@ class Sale {
       'vatType': vatType,
       'shippingCost': shippingCost,
       'deposit': deposit,
+      'depositApplications': depositApplications.map((a) => a.toJson()).toList(),
       'payment': payment.toJson(),
       'warehouse': warehouse.toJson(),
       'notes': notes,
@@ -135,6 +140,7 @@ class Sale {
     String? vatType,
     double? shippingCost,
     double? deposit,
+    List<DepositApplication>? depositApplications,
     PaymentInfo? payment,
     WarehouseInfo? warehouse,
     String? notes,
@@ -162,6 +168,7 @@ class Sale {
       vatType: vatType ?? this.vatType,
       shippingCost: shippingCost ?? this.shippingCost,
       deposit: deposit ?? this.deposit,
+      depositApplications: depositApplications ?? this.depositApplications,
       payment: payment ?? this.payment,
       warehouse: warehouse ?? this.warehouse,
       notes: notes ?? this.notes,
@@ -224,6 +231,7 @@ class SaleRequest {
   final String vatType; // "exclusive" (VAT นอก) or "inclusive" (VAT ใน)
   final double shippingCost;
   final double deposit;
+  final List<DepositApplication> depositApplications;
   final PaymentInfo payment;
   final WarehouseInfo warehouse;
   final String? notes;
@@ -242,6 +250,7 @@ class SaleRequest {
     this.vatType = 'exclusive',
     required this.shippingCost,
     this.deposit = 0.0,
+    this.depositApplications = const [],
     required this.payment,
     required this.warehouse,
     this.notes,
@@ -262,6 +271,7 @@ class SaleRequest {
       'vatType': vatType,
       'shippingCost': shippingCost,
       'deposit': deposit,
+      'depositApplications': depositApplications.map((a) => a.toJson()).toList(),
       'payment': payment.toJson(),
       'warehouse': warehouse.toJson(),
       'notes': notes,

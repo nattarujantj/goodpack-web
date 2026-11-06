@@ -25,6 +25,7 @@ class _MainScreenState extends State<MainScreen> {
   bool _isPurchaseExpanded = false;
   bool _isSaleExpanded = false;
   bool _isQuotationExpanded = false;
+  bool _isDepositExpanded = false;
 
   final List<Widget> _screens = [
     const ProductListScreen(),
@@ -54,6 +55,7 @@ class _MainScreenState extends State<MainScreen> {
     if (path.startsWith('/sale')) return 5;
     if (path.startsWith('/quotation')) return 6;
     if (path.startsWith('/expense')) return 7;
+    if (path.startsWith('/deposit')) return 12;
     if (path == '/export') return 8;
     if (path.startsWith('/international')) return 9;
     if (path == '/users') return 10;
@@ -161,6 +163,17 @@ class _MainScreenState extends State<MainScreen> {
                   _buildSubNavItem('ทั้งหมด', '/quotations'),
                   _buildSubNavItem('VAT', '/quotations?vat=true'),
                   _buildSubNavItem('Non-VAT', '/quotations?vat=false'),
+                ],
+              ),
+              _buildExpandableNavItem(
+                icon: Icons.savings_outlined,
+                title: 'มัดจำ',
+                isExpanded: _isDepositExpanded,
+                onExpand: (v) => setState(() => _isDepositExpanded = v),
+                isSelected: _getSelectedIndex() == 12,
+                children: [
+                  _buildSubNavItem('ลูกค้าวางมัดจำกับเรา', '/deposits?type=customer'),
+                  _buildSubNavItem('เราวางมัดจำกับซัพพลายเออร์', '/deposits?type=supplier'),
                 ],
               ),
               _buildNavItem(7, Icons.receipt_long, 'ค่าใช้จ่าย'),
@@ -339,6 +352,7 @@ class _MainScreenState extends State<MainScreen> {
         case 9: context.go('/internationals'); break;
         case 10: context.go('/users'); break;
         case 11: context.go('/inventory-snapshots'); break;
+        case 12: context.go('/deposits?type=customer'); break;
       }
     } else {
       if (_pageController.hasClients) {
