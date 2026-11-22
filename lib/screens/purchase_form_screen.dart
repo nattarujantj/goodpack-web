@@ -139,6 +139,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       productCode: item.productCode,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
+      preformProductId: item.preformProductId,
+      preformUnitPrice: item.preformUnitPrice,
       commissionPerUnit: item.commissionPerUnit,
       totalPrice: item.totalPrice,
     )).toList();
@@ -184,10 +186,16 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   }
 
   void _loadPurchaseFromId() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final purchase = context.read<PurchaseProvider>().getPurchaseById(widget.purchaseId!);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final purchaseProvider = context.read<PurchaseProvider>();
+      // เข้าลิงก์ตรง/รีเฟรชหน้า: ยังไม่มีในแคช ให้ดึงจาก API (ไม่อย่างนั้นฟอร์มจะว่างและแก้ไขไม่ได้)
+      final purchase = purchaseProvider.getPurchaseById(widget.purchaseId!) ??
+          await purchaseProvider.fetchPurchaseById(widget.purchaseId!);
+      if (!mounted) return;
       if (purchase != null) {
         _populateFieldsFromPurchase(purchase);
+      } else {
+        ErrorDialog.showServerError(context, 'ไม่พบรายการซื้อ');
       }
     });
   }
@@ -1140,6 +1148,16 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               ),
             ],
           ),
+          if (item.preformProductId != null && item.preformProductId!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Builder(builder: (context) {
+              final preform = context.read<ProductProvider>().getProductById(item.preformProductId!);
+              return Text(
+                'ใช้พรีฟอร์ม: ${preform?.name ?? item.preformProductId} × ${item.quantity} ชิ้น (ตัดสต็อกพรีฟอร์ม ${_isVAT ? 'VAT' : 'Non-VAT'})',
+                style: TextStyle(fontSize: 12, color: Colors.purple[700], fontWeight: FontWeight.w500),
+              );
+            }),
+          ],
           if (item.commissionPerUnit != null && item.commissionPerUnit! > 0) ...[
             const SizedBox(height: 8),
             Text(
