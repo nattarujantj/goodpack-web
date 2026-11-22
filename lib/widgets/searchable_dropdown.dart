@@ -108,7 +108,44 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
       }
     } else if (!_isTappingItem) {
       _removeOverlay();
+      _commitTypedText();
     }
+  }
+
+  /// เมื่อออกจากช่องโดยพิมพ์ค้นหาแต่ไม่ได้กดเลือกจากรายการ:
+  /// ถ้าข้อความตรงกับรายการเดียว ให้เลือกรายการนั้นให้เลย
+  /// ไม่อย่างนั้นคืนข้อความเป็นค่าที่เลือกอยู่ (หรือล้าง) เพื่อไม่ให้ดูเหมือนเลือกแล้วทั้งที่ยังไม่ได้เลือก
+  void _commitTypedText() {
+    if (_effectiveBottomSheet || !mounted) return;
+    final text = _searchController.text.trim();
+    if (text.isEmpty) return;
+
+    T? match;
+    for (final item in widget.items) {
+      if (widget.itemAsString(item) == text) {
+        match = item;
+        break;
+      }
+    }
+    if (match == null) {
+      final lower = text.toLowerCase();
+      final candidates = widget.items
+          .where((item) => widget.itemAsString(item).toLowerCase().contains(lower))
+          .toList();
+      if (candidates.length == 1) match = candidates.first;
+    }
+
+    if (match != null) {
+      if (match != widget.value) widget.onChanged?.call(match);
+      _searchController.text = widget.itemAsString(match as T);
+    } else if (widget.value != null) {
+      _searchController.text = widget.itemAsString(widget.value as T);
+    } else {
+      _searchController.clear();
+    }
+    setState(() {
+      _filteredItems = widget.items;
+    });
   }
 
   void _showOverlay() {
