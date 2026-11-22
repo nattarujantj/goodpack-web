@@ -391,6 +391,7 @@ class WarehouseItem {
   final String productName;
   final int quantity;
   final int boxes;
+  final int quantityPerPack; // จำนวน/ลัง(แพ็ค) ที่ผู้ใช้ระบุ (0 = ไม่ระบุ)
   final String? notes;
 
   WarehouseItem({
@@ -398,6 +399,7 @@ class WarehouseItem {
     required this.productName,
     required this.quantity,
     required this.boxes,
+    this.quantityPerPack = 0,
     this.notes,
   });
 
@@ -407,6 +409,7 @@ class WarehouseItem {
       productName: json['productName'] ?? '',
       quantity: json['quantity'] ?? 0,
       boxes: json['boxes'] ?? 0,
+      quantityPerPack: (json['quantityPerPack'] as num?)?.toInt() ?? 0,
       notes: json['notes'],
     );
   }
@@ -417,8 +420,26 @@ class WarehouseItem {
       'productName': productName,
       'quantity': quantity,
       'boxes': boxes,
+      if (quantityPerPack > 0) 'quantityPerPack': quantityPerPack,
       'notes': notes,
     };
+  }
+
+  WarehouseItem copyWith({int? quantity, int? boxes, int? quantityPerPack, String? Function()? notes}) {
+    return WarehouseItem(
+      productId: productId,
+      productName: productName,
+      quantity: quantity ?? this.quantity,
+      boxes: boxes ?? this.boxes,
+      quantityPerPack: quantityPerPack ?? this.quantityPerPack,
+      notes: notes != null ? notes() : this.notes,
+    );
+  }
+
+  /// จำนวนลังจากจำนวนชิ้น ÷ ชิ้น/ลัง (ปัดขึ้น) หรือ null ถ้าคำนวณไม่ได้
+  static int? boxesFor(int quantity, int perPack) {
+    if (perPack <= 0 || quantity <= 0) return null;
+    return (quantity + perPack - 1) ~/ perPack;
   }
 }
 

@@ -375,6 +375,13 @@ class Product {
   // Helper method to get total stock
   int get totalStock => stock.actualStock;
 
+  /// จำนวนลังสำหรับจำนวนชิ้นที่ระบุ (ปัดขึ้น ลังที่ไม่เต็มนับเป็น 1 ลัง)
+  /// คืนค่า null เมื่อสินค้ายังไม่มีข้อมูลจำนวน/ลัง(แพ็ค)
+  int? boxesForQuantity(int quantity) {
+    if (quantityPerPack <= 0 || quantity <= 0) return null;
+    return (quantity + quantityPerPack - 1) ~/ quantityPerPack;
+  }
+
   // Helper method to calculate pack remaining
   String get packRemainingText {
     if (quantityPerPack <= 0) {

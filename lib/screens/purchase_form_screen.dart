@@ -155,6 +155,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     _isWarehouseUpdated = false;
     _warehouseNotesController.text = '';
     _warehouseItems = [];
+    _syncWarehouseItems();
     
     if (mounted) {
       setState(() {});
@@ -223,6 +224,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     _actualShippingController.text = purchase.warehouse.actualShipping.toString();
     _purchaseItems = List.from(purchase.items);
     _warehouseItems = List.from(purchase.warehouse.items);
+    _syncWarehouseItems();
     
     if (mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -732,38 +734,17 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ResponsiveText(
-                  'ข้อมูลคลังสินค้า',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Row(
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: _copyFromPurchaseItems,
-                      icon: const Icon(Icons.copy, size: 16),
-                      label: const Text('คัดลอกจากซื้อ'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: _addWarehouseItem,
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text('เพิ่มสินค้า'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            ResponsiveText(
+              'ข้อมูลคลังสินค้า',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'จำนวนชิ้น/ลัง และจำนวนลัง กรอกที่รายการสินค้าที่ซื้อด้านบน',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             
@@ -795,21 +776,6 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             ),
             
             const SizedBox(height: 16),
-            
-            // Warehouse Items List
-            if (_warehouseItems.isNotEmpty) ...[
-              ResponsiveText(
-                'รายการสินค้าคลัง',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ...List.generate(_warehouseItems.length, (index) {
-                return _buildWarehouseItemRow(index);
-              }),
-            ],
           ],
         ),
       ),
@@ -1165,6 +1131,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               style: TextStyle(fontSize: 12, color: Colors.orange[800], fontStyle: FontStyle.italic),
             ),
           ],
+          const SizedBox(height: 12),
+          _buildPackFields(index),
           if (_isVAT) ...[
             const SizedBox(height: 8),
             Row(
@@ -1192,6 +1160,80 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  /// ช่อง ชิ้น/ลัง และ ลัง ของสินค้าที่ซื้อ (บันทึกลงข้อมูลคลังสินค้า)
+  Widget _buildPackFields(int index) {
+    if (index >= _warehouseItems.length) return const SizedBox.shrink();
+    final w = _warehouseItems[index];
+    final itemKey = identityHashCode(_purchaseItems[index]);
+    final perPack = _effectivePerPack(w);
+    final status = _perPackStatus(w);
+    final color = status?.warn == true ? Colors.orange[800] : Colors.blue[700];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                key: ValueKey('pack_${itemKey}_perpack'),
+                initialValue: perPack > 0 ? perPack.toString() : '',
+                decoration: const InputDecoration(
+                  labelText: 'ชิ้น/ลัง',
+                  isDense: true,
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  final perPack = int.tryParse(value) ?? 0;
+                  final current = _warehouseItems[index];
+                  setState(() {
+                    _warehouseItems[index] = current.copyWith(
+                      quantityPerPack: perPack,
+                      boxes: WarehouseItem.boxesFor(current.quantity, perPack),
+                    );
+                  });
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextFormField(
+                key: ValueKey('pack_${itemKey}_boxes_${w.boxes}'),
+                initialValue: w.boxes > 0 ? w.boxes.toString() : '',
+                decoration: const InputDecoration(
+                  labelText: 'จำนวนลัง',
+                  isDense: true,
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  _warehouseItems[index] = _warehouseItems[index].copyWith(boxes: int.tryParse(value) ?? 0);
+                },
+              ),
+            ),
+          ],
+        ),
+        if (status != null) ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(status.warn ? Icons.warning_amber_rounded : Icons.info_outline, size: 16, color: color),
+              const SizedBox(width: 4),
+              Expanded(child: Text(status.text, style: TextStyle(fontSize: 12, color: color))),
+            ],
+          ),
+        ],
+      ],
     );
   }
 
@@ -1546,6 +1588,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               onAdd: (item) {
                 setState(() {
                   _purchaseItems.add(item);
+                  _syncWarehouseItems();
                 });
                 Navigator.of(context).pop();
               },
@@ -1597,6 +1640,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                   // รายการนำเข้า: VAT ตามใบขนเป็นยอดคงที่ของรายการ ให้คงไว้ตอนแก้ไข
                   _purchaseItems[index] =
                       _isImport ? item.withImportVAT(_purchaseItems[index].importVAT) : item;
+                  _syncWarehouseItems();
                 });
                 Navigator.of(context).pop();
               },
@@ -1610,190 +1654,61 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   void _removePurchaseItem(int index) {
     setState(() {
       _purchaseItems.removeAt(index);
+      _syncWarehouseItems();
     });
   }
 
-  void _copyFromPurchaseItems() {
-    setState(() {
-      _warehouseItems = _purchaseItems.map((item) => WarehouseItem(
-        productId: item.productId,
-        productName: item.productName,
-        quantity: item.quantity,
-        boxes: 1, // Default 1 box
-        notes: null,
-      )).toList();
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('คัดลอกรายการสินค้าจากการซื้อแล้ว'),
-        backgroundColor: Colors.green,
-      ),
-    );
-  }
-
-  void _addWarehouseItem() {
-    showDialog(
-      context: context,
-      builder: (context) => _buildAddWarehouseItemDialog(),
-    );
-  }
-
-  Widget _buildAddWarehouseItemDialog() {
-    return Consumer<ProductProvider>(
-      builder: (context, productProvider, child) {
-        // แสดง loading indicator ถ้ากำลังโหลด
-        if (productProvider.isLoading) {
-          return AlertDialog(
-            title: const Text('เพิ่มสินค้าคลัง'),
-            content: const SizedBox(
-              height: 100,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('กำลังโหลดข้อมูลสินค้า...'),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }
-        
-        return AlertDialog(
-          title: const Text('เพิ่มสินค้าคลัง'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: _AddWarehouseItemForm(
-              products: productProvider.allProducts,
-              onAdd: (item) {
-                setState(() {
-                  _warehouseItems.add(item);
-                });
-                Navigator.of(context).pop();
-              },
-            ),
-          ),
+  /// สร้างรายการคลังสินค้าให้ตรงกับสินค้าที่ซื้อ (ลำดับเดียวกัน)
+  /// คงค่า ชิ้น/ลัง ลัง และหมายเหตุ ที่มีอยู่เดิมของสินค้าเดียวกันไว้
+  void _syncWarehouseItems() {
+    final remaining = List<WarehouseItem>.from(_warehouseItems);
+    _warehouseItems = _purchaseItems.map((p) {
+      final idx = remaining.indexWhere((w) => w.productId == p.productId);
+      if (idx >= 0) {
+        final existing = remaining.removeAt(idx);
+        if (existing.quantity == p.quantity) return existing;
+        final perPack = _effectivePerPack(existing);
+        return existing.copyWith(
+          quantity: p.quantity,
+          boxes: WarehouseItem.boxesFor(p.quantity, perPack) ?? existing.boxes,
         );
-      },
-    );
+      }
+      return WarehouseItem(
+        productId: p.productId,
+        productName: p.productName,
+        quantity: p.quantity,
+        boxes: _boxesForProduct(p.productId, p.quantity) ?? 0,
+        quantityPerPack: _productPerPack(p.productId),
+      );
+    }).toList();
   }
 
-  Widget _buildWarehouseItemRow(int index) {
-    final item = _warehouseItems[index];
-    
-    return Container(
-      key: ValueKey('warehouse_item_$index'),
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.orange[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.orange[200]!),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${item.productName}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.orange,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: () => _removeWarehouseItem(index),
-                icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                tooltip: 'ลบสินค้านี้',
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  key: ValueKey('warehouse_quantity_$index'),
-                  initialValue: item.quantity.toString(),
-                  decoration: const InputDecoration(
-                    labelText: 'จำนวน',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    final quantity = int.tryParse(value) ?? 0;
-                    _warehouseItems[index] = WarehouseItem(
-                      productId: _warehouseItems[index].productId,
-                      productName: _warehouseItems[index].productName,
-                      quantity: quantity,
-                      boxes: _warehouseItems[index].boxes,
-                      notes: _warehouseItems[index].notes,
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextFormField(
-                  key: ValueKey('warehouse_boxes_$index'),
-                  initialValue: item.boxes.toString(),
-                  decoration: const InputDecoration(
-                    labelText: 'ลัง',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    final boxes = int.tryParse(value) ?? 0;
-                    _warehouseItems[index] = WarehouseItem(
-                      productId: _warehouseItems[index].productId,
-                      productName: _warehouseItems[index].productName,
-                      quantity: _warehouseItems[index].quantity,
-                      boxes: boxes,
-                      notes: _warehouseItems[index].notes,
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
-            key: ValueKey('warehouse_notes_$index'),
-            initialValue: item.notes ?? '',
-            decoration: const InputDecoration(
-              labelText: 'หมายเหตุ',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            ),
-            maxLines: 2,
-            onChanged: (value) {
-              _warehouseItems[index] = WarehouseItem(
-                productId: _warehouseItems[index].productId,
-                productName: _warehouseItems[index].productName,
-                quantity: _warehouseItems[index].quantity,
-                boxes: _warehouseItems[index].boxes,
-                notes: value.trim().isEmpty ? null : value.trim(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
+  int _productPerPack(String productId) {
+    return Provider.of<ProductProvider>(context, listen: false).getProductById(productId)?.quantityPerPack ?? 0;
   }
 
-  void _removeWarehouseItem(int index) {
-    setState(() {
-      _warehouseItems.removeAt(index);
-    });
+  /// คำนวณจำนวนลังจากจำนวน/ลัง(แพ็ค) ที่บันทึกไว้ในสินค้า (null = ยังไม่มีข้อมูล)
+  int? _boxesForProduct(String productId, int quantity) {
+    return WarehouseItem.boxesFor(quantity, _productPerPack(productId));
   }
 
+  /// ชิ้น/ลัง ที่ใช้กับรายการนี้: ค่าที่ผู้ใช้ระบุ ถ้าไม่มีใช้ค่าของสินค้า
+  int _effectivePerPack(WarehouseItem item) {
+    return item.quantityPerPack > 0 ? item.quantityPerPack : _productPerPack(item.productId);
+  }
+
+  /// ข้อความใต้ช่อง ชิ้น/ลัง บอกว่าจะอัปเดตข้อมูลสินค้าหรือไม่
+  ({String text, bool warn})? _perPackStatus(WarehouseItem item) {
+    final current = _productPerPack(item.productId);
+    int entered = item.quantityPerPack;
+    if (entered <= 0 && item.boxes > 0 && item.quantity > 0 && item.quantity % item.boxes == 0) {
+      entered = item.quantity ~/ item.boxes;
+    }
+    if (entered <= 0) return null;
+    if (current <= 0) return (text: 'จะบันทึกเป็น $entered ชิ้น/ลัง ให้สินค้า', warn: false);
+    if (current != entered) return (text: 'จะเปลี่ยนจาก $current เป็น $entered ชิ้น/ลัง', warn: true);
+    return null;
+  }
 
   DateTime? _parsePaymentDate() {
     final dateText = _paymentDateController.text.trim();
@@ -1828,6 +1743,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       );
       return;
     }
+
+    _syncWarehouseItems();
 
     if (_purchaseItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1868,7 +1785,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           isUpdated: _isWarehouseUpdated,
           notes: _warehouseNotesController.text.trim().isEmpty ? null : _warehouseNotesController.text.trim(),
           actualShipping: double.tryParse(_actualShippingController.text) ?? 0.0,
-          items: _warehouseItems.isEmpty ? [] : _warehouseItems,
+          items: _warehouseItems,
         ),
       );
 
@@ -1886,6 +1803,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 
       if (resultPurchaseId != null && mounted) {
         context.read<DepositProvider>().invalidate();
+        // สต็อกและจำนวน/ลัง(แพ็ค) ของสินค้าเปลี่ยนหลังบันทึก
+        context.read<ProductProvider>().loadProducts();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -2153,162 +2072,6 @@ class _AddItemFormState extends State<_AddItemForm> {
       preformUnitPrice: _selectedPreform != null ? preformUnitPrice : null,
       commissionPerUnit: commission > 0 ? commission : null,
       totalPrice: totalPrice,
-    );
-
-    widget.onAdd(item);
-  }
-}
-
-class _AddWarehouseItemForm extends StatefulWidget {
-  final List<Product> products;
-  final Function(WarehouseItem) onAdd;
-
-  const _AddWarehouseItemForm({
-    required this.products,
-    required this.onAdd,
-  });
-
-  @override
-  State<_AddWarehouseItemForm> createState() => _AddWarehouseItemFormState();
-}
-
-class _AddWarehouseItemFormState extends State<_AddWarehouseItemForm> {
-  final _formKey = GlobalKey<FormState>();
-  Product? _selectedProduct;
-  final _quantityController = TextEditingController();
-  final _boxesController = TextEditingController();
-  final _notesController = TextEditingController();
-  final _boxesFocusNode = FocusNode();
-
-  @override
-  void dispose() {
-    _quantityController.dispose();
-    _boxesController.dispose();
-    _notesController.dispose();
-    _boxesFocusNode.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Product Selection
-          ProductSearchDropdown(
-            selectedProduct: _selectedProduct,
-            products: widget.products,
-            onChanged: (product) {
-              setState(() {
-                _selectedProduct = product;
-              });
-            },
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Quantity
-          TextFormField(
-            controller: _quantityController,
-            decoration: const InputDecoration(
-              labelText: 'จำนวน *',
-              border: OutlineInputBorder(),
-            ),
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.next,
-            onFieldSubmitted: (_) => _boxesFocusNode.requestFocus(),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'กรุณากรอกจำนวน';
-              }
-              if (int.tryParse(value) == null || int.parse(value) <= 0) {
-                return 'กรุณากรอกจำนวนที่ถูกต้อง';
-              }
-              return null;
-            },
-          ),
-
-          const SizedBox(height: 16),
-
-          // Boxes
-          TextFormField(
-            controller: _boxesController,
-            focusNode: _boxesFocusNode,
-            decoration: const InputDecoration(
-              labelText: 'จำนวนลัง',
-              border: OutlineInputBorder(),
-            ),
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.done,
-            validator: (value) {
-              if (value != null && value.trim().isNotEmpty) {
-                if (int.tryParse(value) == null || int.parse(value) < 0) {
-                  return 'กรุณากรอกจำนวนลังที่ถูกต้อง';
-                }
-              }
-              return null;
-            },
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Notes
-          TextFormField(
-            controller: _notesController,
-            decoration: const InputDecoration(
-              labelText: 'หมายเหตุ',
-              border: OutlineInputBorder(),
-            ),
-            maxLines: 2,
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Action Buttons
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('ยกเลิก'),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _addItem,
-                  child: const Text('เพิ่ม'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _addItem() {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    if (_selectedProduct == null) {
-      return;
-    }
-
-    final quantity = int.parse(_quantityController.text);
-    final boxes = int.tryParse(_boxesController.text) ?? 0;
-    final notes = _notesController.text.trim().isEmpty ? null : _notesController.text.trim();
-
-    final item = WarehouseItem(
-      productId: _selectedProduct!.id,
-      productName: _selectedProduct!.name,
-      quantity: quantity,
-      boxes: boxes,
-      notes: notes,
     );
 
     widget.onAdd(item);
