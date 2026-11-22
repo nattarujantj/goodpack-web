@@ -1620,6 +1620,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
         productName: item.productName,
         quantity: item.quantity,
         boxes: _boxesForProduct(item.productId, item.quantity) ?? 1,
+        quantityPerPack: _productPerPack(item.productId),
         notes: null,
       )).toList();
     });
@@ -1632,14 +1633,31 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     );
   }
 
-  /// คำนวณจำนวนลังจากจำนวน/ลัง(แพ็ค) ที่บันทึกไว้ในสินค้า (null = ยังไม่มีข้อมูล)
-  int? _boxesForProduct(String productId, int quantity) {
-    return context.read<ProductProvider>().getProductById(productId)?.boxesForQuantity(quantity);
+  int _productPerPack(String productId) {
+    return Provider.of<ProductProvider>(context, listen: false).getProductById(productId)?.quantityPerPack ?? 0;
   }
 
-  String? _perPackHint(String productId) {
-    final perPack = Provider.of<ProductProvider>(context, listen: false).getProductById(productId)?.quantityPerPack ?? 0;
-    return perPack > 0 ? '$perPack ชิ้น/ลัง' : null;
+  /// คำนวณจำนวนลังจากจำนวน/ลัง(แพ็ค) ที่บันทึกไว้ในสินค้า (null = ยังไม่มีข้อมูล)
+  int? _boxesForProduct(String productId, int quantity) {
+    return WarehouseItem.boxesFor(quantity, _productPerPack(productId));
+  }
+
+  /// ชิ้น/ลัง ที่ใช้กับรายการนี้: ค่าที่ผู้ใช้ระบุ ถ้าไม่มีใช้ค่าของสินค้า
+  int _effectivePerPack(WarehouseItem item) {
+    return item.quantityPerPack > 0 ? item.quantityPerPack : _productPerPack(item.productId);
+  }
+
+  /// ข้อความใต้ช่อง ชิ้น/ลัง บอกว่าจะอัปเดตข้อมูลสินค้าหรือไม่
+  ({String text, bool warn})? _perPackStatus(WarehouseItem item) {
+    final current = _productPerPack(item.productId);
+    int entered = item.quantityPerPack;
+    if (entered <= 0 && item.boxes > 0 && item.quantity > 0 && item.quantity % item.boxes == 0) {
+      entered = item.quantity ~/ item.boxes;
+    }
+    if (entered <= 0) return null;
+    if (current <= 0) return (text: 'จะบันทึกเป็น $entered ชิ้น/ลัง ให้สินค้า', warn: false);
+    if (current != entered) return (text: 'จะเปลี่ยนจาก $current เป็น $entered ชิ้น/ลัง', warn: true);
+    return null;
   }
 
   void _addWarehouseItem() {
@@ -1725,6 +1743,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           ),
           const SizedBox(height: 8),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: TextFormField(
@@ -1738,20 +1757,32 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                   keyboardType: TextInputType.number,
                   onChanged: (value) {
                     final quantity = int.tryParse(value) ?? 0;
-                    final autoBoxes = _boxesForProduct(_warehouseItems[index].productId, quantity);
-                    final updated = WarehouseItem(
-                      productId: _warehouseItems[index].productId,
-                      productName: _warehouseItems[index].productName,
-                      quantity: quantity,
-                      boxes: autoBoxes ?? _warehouseItems[index].boxes,
-                      notes: _warehouseItems[index].notes,
-                    );
-                    if (autoBoxes != null && autoBoxes != _warehouseItems[index].boxes) {
-                      // มีจำนวน/ลังในสินค้าแล้ว: คำนวณลังให้อัตโนมัติ
-                      setState(() => _warehouseItems[index] = updated);
-                    } else {
-                      _warehouseItems[index] = updated;
-                    }
+                    final current = _warehouseItems[index];
+                    final autoBoxes = WarehouseItem.boxesFor(quantity, _effectivePerPack(current));
+                    setState(() {
+                      _warehouseItems[index] = current.copyWith(quantity: quantity, boxes: autoBoxes);
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextFormField(
+                  key: ValueKey('warehouse_perpack_$index'),
+                  initialValue: _effectivePerPack(item) > 0 ? _effectivePerPack(item).toString() : '',
+                  decoration: const InputDecoration(
+                    labelText: 'ชิ้น/ลัง',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  ),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    final perPack = int.tryParse(value) ?? 0;
+                    final current = _warehouseItems[index];
+                    final autoBoxes = WarehouseItem.boxesFor(current.quantity, perPack);
+                    setState(() {
+                      _warehouseItems[index] = current.copyWith(quantityPerPack: perPack, boxes: autoBoxes);
+                    });
                   },
                 ),
               ),
@@ -1760,27 +1791,42 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                 child: TextFormField(
                   key: ValueKey('warehouse_boxes_${index}_${item.boxes}'),
                   initialValue: item.boxes.toString(),
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'ลัง',
-                    border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                    helperText: _perPackHint(item.productId),
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   ),
                   keyboardType: TextInputType.number,
                   onChanged: (value) {
-                    final boxes = int.tryParse(value) ?? 0;
-                    _warehouseItems[index] = WarehouseItem(
-                      productId: _warehouseItems[index].productId,
-                      productName: _warehouseItems[index].productName,
-                      quantity: _warehouseItems[index].quantity,
-                      boxes: boxes,
-                      notes: _warehouseItems[index].notes,
-                    );
+                    _warehouseItems[index] = _warehouseItems[index].copyWith(boxes: int.tryParse(value) ?? 0);
                   },
                 ),
               ),
             ],
           ),
+          Builder(builder: (context) {
+            final status = _perPackStatus(item);
+            if (status == null) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                children: [
+                  Icon(
+                    status.warn ? Icons.warning_amber_rounded : Icons.info_outline,
+                    size: 16,
+                    color: status.warn ? Colors.orange[800] : Colors.blue[700],
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      status.text,
+                      style: TextStyle(fontSize: 12, color: status.warn ? Colors.orange[800] : Colors.blue[700]),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
           const SizedBox(height: 8),
           TextFormField(
             key: ValueKey('warehouse_notes_$index'),
@@ -1792,12 +1838,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             ),
             maxLines: 2,
             onChanged: (value) {
-              _warehouseItems[index] = WarehouseItem(
-                productId: _warehouseItems[index].productId,
-                productName: _warehouseItems[index].productName,
-                quantity: _warehouseItems[index].quantity,
-                boxes: _warehouseItems[index].boxes,
-                notes: value.trim().isEmpty ? null : value.trim(),
+              _warehouseItems[index] = _warehouseItems[index].copyWith(
+                notes: () => value.trim().isEmpty ? null : value.trim(),
               );
             },
           ),
@@ -2197,6 +2239,7 @@ class _AddWarehouseItemFormState extends State<_AddWarehouseItemForm> {
   Product? _selectedProduct;
   final _quantityController = TextEditingController();
   final _boxesController = TextEditingController();
+  final _perPackController = TextEditingController();
   final _notesController = TextEditingController();
   final _boxesFocusNode = FocusNode();
 
@@ -2204,18 +2247,30 @@ class _AddWarehouseItemFormState extends State<_AddWarehouseItemForm> {
   void dispose() {
     _quantityController.dispose();
     _boxesController.dispose();
+    _perPackController.dispose();
     _notesController.dispose();
     _boxesFocusNode.dispose();
     super.dispose();
   }
 
-  /// มีจำนวน/ลัง(แพ็ค) ในสินค้าแล้ว: คำนวณจำนวนลังจากจำนวนให้อัตโนมัติ
+  /// มี ชิ้น/ลัง แล้ว: คำนวณจำนวนลังจากจำนวนให้อัตโนมัติ
   void _autoFillBoxes() {
     final quantity = int.tryParse(_quantityController.text.trim()) ?? 0;
-    final boxes = _selectedProduct?.boxesForQuantity(quantity);
+    final perPack = int.tryParse(_perPackController.text.trim()) ?? 0;
+    final boxes = WarehouseItem.boxesFor(quantity, perPack);
     if (boxes != null) {
       _boxesController.text = boxes.toString();
     }
+    setState(() {});
+  }
+
+  String? _perPackHelper() {
+    final current = _selectedProduct?.quantityPerPack ?? 0;
+    final entered = int.tryParse(_perPackController.text.trim()) ?? 0;
+    if (entered <= 0) return current > 0 ? null : 'ไม่บังคับ — กรอกครั้งเดียว ครั้งหน้าคำนวณลังให้';
+    if (current <= 0) return 'จะบันทึกเป็น $entered ชิ้น/ลัง ให้สินค้า';
+    if (current != entered) return 'จะเปลี่ยนจาก $current เป็น $entered ชิ้น/ลัง';
+    return null;
   }
 
   @override
@@ -2233,6 +2288,8 @@ class _AddWarehouseItemFormState extends State<_AddWarehouseItemForm> {
             onChanged: (product) {
               setState(() {
                 _selectedProduct = product;
+                final perPack = product?.quantityPerPack ?? 0;
+                _perPackController.text = perPack > 0 ? perPack.toString() : '';
               });
               _autoFillBoxes();
             },
@@ -2264,16 +2321,28 @@ class _AddWarehouseItemFormState extends State<_AddWarehouseItemForm> {
 
           const SizedBox(height: 16),
 
+          // Quantity per pack
+          TextFormField(
+            controller: _perPackController,
+            decoration: InputDecoration(
+              labelText: 'ชิ้น/ลัง',
+              border: const OutlineInputBorder(),
+              helperText: _perPackHelper(),
+              helperMaxLines: 2,
+            ),
+            keyboardType: TextInputType.number,
+            onChanged: (_) => _autoFillBoxes(),
+          ),
+
+          const SizedBox(height: 16),
+
           // Boxes
           TextFormField(
             controller: _boxesController,
             focusNode: _boxesFocusNode,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               labelText: 'จำนวนลัง',
-              border: const OutlineInputBorder(),
-              helperText: (_selectedProduct?.quantityPerPack ?? 0) > 0
-                  ? '${_selectedProduct!.quantityPerPack} ชิ้น/ลัง (คำนวณให้อัตโนมัติ)'
-                  : null,
+              border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
             textInputAction: TextInputAction.done,
@@ -2342,6 +2411,7 @@ class _AddWarehouseItemFormState extends State<_AddWarehouseItemForm> {
       productName: _selectedProduct!.name,
       quantity: quantity,
       boxes: boxes,
+      quantityPerPack: int.tryParse(_perPackController.text.trim()) ?? 0,
       notes: notes,
     );
 
